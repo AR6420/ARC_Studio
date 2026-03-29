@@ -178,3 +178,37 @@ class SystemAvailability(BaseModel):
     tribe_available: bool = False
     mirofish_available: bool = False
     warnings: list[str] = Field(default_factory=list)
+
+
+# -- Progress/estimate models (SSE streaming, D-09/D-10/OPT-05) --
+
+
+class ProgressEvent(BaseModel):
+    """SSE event payload for campaign progress. Per D-09, D-10."""
+
+    event: str  # iteration_start, step_start, step_complete, iteration_complete, threshold_check, convergence_check, campaign_complete, campaign_error
+    campaign_id: str
+    iteration: int = 0
+    max_iterations: int = 0
+    step: str | None = None  # generating, scoring, simulating, analyzing, checking
+    step_index: int | None = None  # 1-based
+    total_steps: int | None = None
+    eta_seconds: float | None = None
+    data: dict[str, Any] | None = None  # step-specific payload (scores summary, threshold status, etc.)
+    timestamp: str = ""  # ISO 8601, will be set on creation
+
+
+class EstimateRequest(BaseModel):
+    """Request body for POST /api/estimate. Per OPT-05."""
+
+    agent_count: int = Field(default=40, ge=20, le=200)
+    max_iterations: int = Field(default=4, ge=1, le=10)
+
+
+class EstimateResponse(BaseModel):
+    """Response from POST /api/estimate. Per OPT-05."""
+
+    estimated_minutes: float
+    agent_count: int
+    max_iterations: int
+    formula: str  # human-readable formula explanation
