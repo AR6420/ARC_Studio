@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import NewCampaign from '@/pages/new-campaign'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
           </div>
         }
       />
+      <Route path="/campaigns/new" element={<NewCampaign />} />
     </Routes>
   )
 }
