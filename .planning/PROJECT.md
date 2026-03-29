@@ -89,6 +89,7 @@ Modular monorepo with Docker service boundaries. Four main modules:
 | SQLite (not PostgreSQL) | Single-user, no concurrent writes, simpler setup | -- Pending |
 | LiteLLM proxy for MiroFish | MiroFish expects OpenAI-compatible API, LiteLLM translates to Anthropic | -- Pending |
 | Claude Haiku for agents, Opus for analysis | Cost/speed optimization — agents need volume, analysis needs depth | -- Pending |
+| Read API key from ~/.claude/.credentials.json | OAuth token rotates per Claude Code session; reading at runtime ensures always-fresh token | -- Pending |
 
 ## Evolution
 

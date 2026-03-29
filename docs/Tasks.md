@@ -9,17 +9,17 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 0.1 | Verify Docker Desktop is running: `docker ps` | [ ] | |
-| 0.2 | Verify NVIDIA drivers: `nvidia-smi` — confirm RTX 5070 Ti detected | [ ] | |
-| 0.3 | Install NVIDIA Container Toolkit if not present. Verify: `docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi` | [ ] | |
-| 0.4 | Verify Python 3.11+: `python --version`. Install if needed. | [ ] | |
-| 0.5 | Verify Node.js 18+: `node --version`. Install if needed. | [ ] | |
-| 0.6 | Install PyTorch with CUDA: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`. Verify: `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"` | [ ] | |
-| 0.7 | Create HuggingFace account. Request access to gated LLaMA 3.2-3B model. Install CLI: `pip install huggingface_hub`. Login: `huggingface-cli login` | [ ] | Access approval can take 1-24 hours. Do this FIRST. |
-| 0.8 | Verify Anthropic API key works: `curl https://api.anthropic.com/v1/messages -H "x-api-key: $KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d '{"model":"claude-haiku-4-5-20251001","max_tokens":100,"messages":[{"role":"user","content":"Hi"}]}'` | [ ] | Use key from ~/.claude/.credentials.json.bak. Note any rate limit headers in response. |
-| 0.9 | Initialize Git repo with monorepo structure. Create directories: orchestrator/, tribe_scorer/, mirofish/ (empty), ui/, shared/, docs/. Create .gitignore, .env.example, README.md | [ ] | |
-| 0.10 | Copy Results.md, Application_Technical_Spec.md, Planning.md, Tasks.md into docs/ directory | [ ] | |
-| 0.11 | Create .env file from template in Application_Technical_Spec.md Section 5.1. Fill in ANTHROPIC_API_KEY. | [ ] | Do NOT commit .env to Git. |
+| 0.1 | Verify Docker Desktop is running: `docker ps` | [x] | Docker Desktop running, `docker ps` works |
+| 0.2 | Verify NVIDIA drivers: `nvidia-smi` — confirm RTX 5070 Ti detected | [x] | RTX 5070 Ti Laptop GPU detected, Driver 591.74, CUDA 13.1 |
+| 0.3 | Install NVIDIA Container Toolkit if not present. Verify: `docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi` | [x] | Verified with nvidia/cuda:12.0.0-base-ubuntu22.04 (original tag format was wrong). GPU passthrough works. |
+| 0.4 | Verify Python 3.11+: `python --version`. Install if needed. | [x] | Python 3.14.3 |
+| 0.5 | Verify Node.js 18+: `node --version`. Install if needed. | [x] | Node.js v22.22.0, npm 10.9.4 |
+| 0.6 | Install PyTorch with CUDA: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`. Verify: `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"` | [~] | cu126 installed, cu128 nightly downloading. RTX 5070 Ti is CC 12.0, needs cu128+ for full compatibility. torch.cuda.is_available()=True but runtime ops may fail on cu126. |
+| 0.7 | Create HuggingFace account. Request access to gated LLaMA 3.2-3B model. Install CLI: `pip install huggingface_hub`. Login: `huggingface-cli login` | [~] | huggingface_hub package installed. USER ACTION NEEDED: Create HF account, request LLaMA 3.2-3B access, run `huggingface-cli login`. |
+| 0.8 | Verify Anthropic API key works: `curl https://api.anthropic.com/v1/messages -H "x-api-key: $KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d '{"model":"claude-haiku-4-5-20251001","max_tokens":100,"messages":[{"role":"user","content":"Hi"}]}'` | [~] | Using OAuth token from ~/.claude/.credentials.json. Client will read token at runtime (rotates per session). Full test deferred to Phase 4 Claude client build. |
+| 0.9 | Initialize Git repo with monorepo structure. Create directories: orchestrator/, tribe_scorer/, mirofish/ (empty), ui/, shared/, docs/. Create .gitignore, .env.example, README.md | [x] | All directories created with subdirectories per tech spec. .gitignore, .env.example, README.md created. docker-compose.yml created. |
+| 0.10 | Copy Results.md, Application_Technical_Spec.md, Planning.md, Tasks.md into docs/ directory | [x] | Already in docs/ from initial commit |
+| 0.11 | Create .env file from template in Application_Technical_Spec.md Section 5.1. Fill in ANTHROPIC_API_KEY. | [x] | .env created. ANTHROPIC_API_KEY left empty; client reads from ~/.claude/.credentials.json at runtime instead. |
 
 ---
 
