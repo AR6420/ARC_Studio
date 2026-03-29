@@ -94,8 +94,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [ ] **UI-04**: NewCampaign page: seed content input, prediction question, demographic selector (6 presets + custom), config panel (sliders, thresholds), time estimate, Run button
 - [x] **UI-05**: CampaignDetail page with 3 tabs (Campaign, Simulation, Report)
 - [x] **UI-06**: Campaign tab: composite score cards (color-coded), variant ranking, iteration chart
-- [ ] **UI-07**: Simulation tab: MiroFish metrics, sentiment timeline, coalition map, agent grid
-- [ ] **UI-08**: Agent interview: click agent card -> chat modal proxied through orchestrator
+- [x] **UI-07**: Simulation tab: MiroFish metrics, sentiment timeline, coalition map, agent grid
+- [x] **UI-08**: Agent interview: click agent card -> chat modal proxied through orchestrator
 - [x] **UI-09**: Report tab: verdict, scorecard, expandable deep analysis, mass psychology toggle
 - [x] **UI-10**: ProgressStream component connected to SSE during campaign runs
 - [x] **UI-11**: CampaignList page with status badges, click to open detail
@@ -208,8 +208,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | UI-04 | Phase 8 | Pending |
 | UI-05 | Phase 8 | Complete |
 | UI-06 | Phase 8 | Complete |
-| UI-07 | Phase 8 | Pending |
-| UI-08 | Phase 8 | Pending |
+| UI-07 | Phase 8 | Complete |
+| UI-08 | Phase 8 | Complete |
 | UI-09 | Phase 8 | Complete |
 | UI-10 | Phase 8 | Complete |
 | UI-11 | Phase 8 | Complete |

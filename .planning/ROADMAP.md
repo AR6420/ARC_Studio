@@ -146,7 +146,7 @@ Plans:
 - [x] 08-05-PLAN.md -- CampaignDetail page: 3 tabs, Campaign tab with score cards, variant ranking, iteration chart (UI-05, UI-06)
 - [x] 08-06-PLAN.md -- Simulation tab: metrics, sentiment timeline, agent grid, interview modal + backend proxy (UI-07, UI-08)
 - [x] 08-07-PLAN.md -- Report tab: 4 layers (verdict, scorecard, deep analysis, mass psychology), export buttons (UI-09, UI-12)
-- [ ] 08-08-PLAN.md -- Gap closure: wire orphaned components into campaign-detail.tsx (UI-05, UI-06, UI-07, UI-08, UI-10)
+- [x] 08-08-PLAN.md -- Gap closure: wire orphaned components into campaign-detail.tsx (UI-05, UI-06, UI-07, UI-08, UI-10)
 
 ### Phase 9: Validation and Documentation
 **Goal**: The core hypothesis is proven -- iterative optimization produces measurably better content across diverse scenarios, with full documentation and a demo recording
