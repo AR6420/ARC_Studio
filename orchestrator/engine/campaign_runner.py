@@ -16,10 +16,15 @@ Per D-05: Graceful degradation when TRIBE or MiroFish is unavailable.
 Per D-06: Pre-flight health check approach for simplicity.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, TYPE_CHECKING
 
 from orchestrator.api.schemas import SystemAvailability
+
+if TYPE_CHECKING:
+    from orchestrator.engine.report_generator import ReportGenerator
 from orchestrator.clients.tribe_client import TribeClient
 from orchestrator.clients.mirofish_client import MirofishClient
 from orchestrator.engine.variant_generator import VariantGenerator
@@ -60,6 +65,7 @@ class CampaignRunner:
         campaign_store: CampaignStore,
         tribe_client: TribeClient,
         mirofish_client: MirofishClient,
+        report_generator: ReportGenerator | None = None,
     ):
         self._variant_gen = variant_generator
         self._tribe_scoring = tribe_scoring
@@ -68,6 +74,7 @@ class CampaignRunner:
         self._store = campaign_store
         self._tribe_client = tribe_client
         self._mirofish_client = mirofish_client
+        self._report_generator = report_generator
 
     async def check_system_availability(self) -> SystemAvailability:
         """
@@ -389,6 +396,44 @@ class CampaignRunner:
                     if is_converged(improvement_history):
                         stop_reason = "converged"
                         break
+
+            # Generate final report (D-02: after final iteration)
+            if self._report_generator:
+                try:
+                    if progress_callback:
+                        await progress_callback({
+                            "event": "report_generating",
+                            "campaign_id": campaign_id,
+                        })
+
+                    # Gather all iterations and analyses from DB for the report
+                    all_iterations_db = await self._store.get_iterations(campaign_id)
+                    all_analyses_db = await self._store._get_analyses(campaign_id)
+
+                    report = await self._report_generator.generate_report(
+                        campaign=campaign,
+                        all_iterations=all_iterations_db,
+                        all_analyses=all_analyses_db,
+                        best_scores_history=best_scores_history,
+                        stop_reason=stop_reason,
+                    )
+                    await self._store.save_report(campaign_id=campaign_id, report=report)
+
+                    if progress_callback:
+                        await progress_callback({
+                            "event": "report_complete",
+                            "campaign_id": campaign_id,
+                        })
+                    logger.info("Report generated for campaign %s", campaign_id)
+                except Exception as e:
+                    logger.error("Report generation failed for campaign %s: %s", campaign_id, e)
+                    if progress_callback:
+                        await progress_callback({
+                            "event": "report_failed",
+                            "campaign_id": campaign_id,
+                            "error": str(e),
+                        })
+                    # Do NOT re-raise -- campaign data is already saved (per Pitfall 5)
 
             # Campaign completed -- set final status
             await self._store.update_campaign_status(campaign_id, "completed")

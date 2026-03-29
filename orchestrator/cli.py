@@ -32,7 +32,8 @@ from orchestrator.engine.tribe_scorer import TribeScoringPipeline
 from orchestrator.engine.mirofish_runner import MirofishRunner
 from orchestrator.engine.result_analyzer import ResultAnalyzer
 from orchestrator.engine.campaign_runner import CampaignRunner
-from orchestrator.api.schemas import CampaignCreateRequest
+from orchestrator.engine.report_generator import ReportGenerator
+from orchestrator.api.schemas import CampaignCreateRequest, ReportResponse
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         tribe_scoring = TribeScoringPipeline(tribe_client)
         mirofish_runner = MirofishRunner(mirofish_client)
         result_analyzer = ResultAnalyzer(claude)
+        report_generator = ReportGenerator(claude)
 
         runner = CampaignRunner(
             variant_generator=variant_gen,
@@ -95,6 +97,7 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             campaign_store=store,
             tribe_client=tribe_client,
             mirofish_client=mirofish_client,
+            report_generator=report_generator,
         )
 
         # Load seed content
@@ -149,6 +152,12 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                 data = event.get("data", {})
                 converged = data.get("converged", False)
                 print(f"  Convergence: {'CONVERGED' if converged else 'continuing'}")
+            elif evt == "report_generating":
+                print("\nGenerating final report...")
+            elif evt == "report_complete":
+                print("Report generated successfully.")
+            elif evt == "report_failed":
+                print(f"  WARNING: Report generation failed: {event.get('error', 'unknown')}")
             elif evt == "campaign_complete":
                 reason = event.get("stop_reason", "unknown")
                 print(f"\nCampaign complete. Stop reason: {reason}")
@@ -161,6 +170,11 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
 
         # Print summary
         _print_summary(result)
+
+        # Print report summary if available
+        report = await store.get_report(campaign.id)
+        if report:
+            _print_report_summary(report)
 
         return result
 
@@ -283,6 +297,40 @@ def _print_single_iteration(result: dict[str, Any]) -> None:
         print("RECOMMENDATIONS:")
         for rec in recs:
             print(f"  - {rec}")
+
+    print(f"\n{'='*60}\n")
+
+
+def _print_report_summary(report: ReportResponse) -> None:
+    """Print a concise report summary after campaign completion."""
+    print(f"\n{'='*60}")
+    print("REPORT SUMMARY")
+    print(f"{'='*60}\n")
+
+    # Verdict (first 300 chars)
+    if report.verdict:
+        verdict_preview = report.verdict[:300]
+        if len(report.verdict) > 300:
+            verdict_preview += "..."
+        print(f"VERDICT: {verdict_preview}")
+        print()
+
+    # Winning variant from scorecard
+    if report.scorecard:
+        print(f"WINNING VARIANT: {report.scorecard.winning_variant_id}")
+        print(f"SCORECARD: {report.scorecard.summary}")
+        print()
+
+    # Mass psychology note
+    has_general = report.mass_psychology_general is not None
+    has_technical = report.mass_psychology_technical is not None
+    if has_general or has_technical:
+        parts = []
+        if has_general:
+            parts.append("general narrative")
+        if has_technical:
+            parts.append("technical analysis")
+        print(f"MASS PSYCHOLOGY: {', '.join(parts)} available")
 
     print(f"\n{'='*60}\n")
 

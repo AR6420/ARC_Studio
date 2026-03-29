@@ -45,6 +45,7 @@ async def lifespan(app: FastAPI):
     from orchestrator.engine.mirofish_runner import MirofishRunner
     from orchestrator.engine.result_analyzer import ResultAnalyzer
     from orchestrator.engine.campaign_runner import CampaignRunner
+    from orchestrator.engine.report_generator import ReportGenerator
 
     # Startup
     db = Database(str(settings.database_path_absolute))
@@ -66,6 +67,7 @@ async def lifespan(app: FastAPI):
     tribe_scoring = TribeScoringPipeline(app.state.tribe_client)
     mirofish_runner_instance = MirofishRunner(app.state.mirofish_client)
     result_analyzer = ResultAnalyzer(app.state.claude_client)
+    report_generator = ReportGenerator(app.state.claude_client)
 
     app.state.campaign_runner = CampaignRunner(
         variant_generator=variant_gen,
@@ -75,6 +77,7 @@ async def lifespan(app: FastAPI):
         campaign_store=app.state.campaign_store,
         tribe_client=app.state.tribe_client,
         mirofish_client=app.state.mirofish_client,
+        report_generator=report_generator,
     )
 
     # Initialize background task tracking and progress queues
@@ -109,6 +112,7 @@ def create_app() -> FastAPI:
     from orchestrator.api.campaigns import router as campaigns_router
     from orchestrator.api.health import router as health_router
     from orchestrator.api.progress import router as progress_router
+    from orchestrator.api.reports import router as reports_router
 
     application = FastAPI(
         title="Nexus Sim Orchestrator",
@@ -130,6 +134,7 @@ def create_app() -> FastAPI:
     application.include_router(campaigns_router, prefix="/api")
     application.include_router(health_router, prefix="/api")
     application.include_router(progress_router, prefix="/api")
+    application.include_router(reports_router, prefix="/api")
 
     return application
 
