@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md and 05-02-PLAN.md (Wave 1)
-last_updated: "2026-03-29T10:51:22.807Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-03-29T11:11:10.938Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 7
-  completed_plans: 2
+  completed_plans: 3
   percent: 28
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 05 (orchestrator-integration-pipeline) — EXECUTING
-Plan: 3 of 7
-Status: Executing Phase 05
-Last activity: 2026-03-29 — Wave 1 complete (05-01 schemas/storage + 05-02 HTTP clients)
+Plan: 5 of 7
+Status: Ready to execute
+Last activity: 2026-03-29
 
 Progress: [##........] 28%
 
@@ -52,6 +52,8 @@ Progress: [##........] 28%
 - Trend: starting
 
 *Updated after each plan completion*
+| Phase 05 P04 | 6min | 2 tasks | 5 files |
+| Phase 05 P03 | 8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -68,6 +70,8 @@ Recent decisions affecting current work:
 - [05-02]: httpx.AsyncClient injected via constructor for shared connection pooling and testability
 - [05-02]: 120s timeout for TRIBE GPU inference; exponential backoff polling for MiroFish async tasks
 - [05-02]: Both clients return None on failure for graceful degradation (D-05)
+- [Phase 05]: Sequential scoring enforced for TRIBE (D-03) and MiroFish (D-04) to avoid GPU/Neo4j contention
+- [Phase 05]: 8 MiroFish metrics computed from raw data (posts/actions/timeline/agent_stats) per Pitfall 6 research
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T10:51:22.802Z
-Stopped at: Completed 05-01-PLAN.md and 05-02-PLAN.md (Wave 1)
+Last session: 2026-03-29T11:10:05.452Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
