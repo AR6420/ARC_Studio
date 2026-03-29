@@ -139,7 +139,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 08-01-PLAN.md -- Vite + React 19 + shadcn/ui + Tailwind v4 scaffold, TypeScript types, API client, theme (UI-01, UI-02)
+- [x] 08-01-PLAN.md -- Vite + React 19 + shadcn/ui + Tailwind v4 scaffold, TypeScript types, API client, theme (UI-01, UI-02)
 - [ ] 08-02-PLAN.md -- Layout shell (sidebar + header), routing, CampaignList page, status badges, common states (UI-03, UI-11, UI-13)
 - [ ] 08-03-PLAN.md -- NewCampaign page: form, demographic selector, config sliders, time estimate, Run (UI-04)
 - [ ] 08-04-PLAN.md -- SSE progress hook and ProgressStream component (UI-10)

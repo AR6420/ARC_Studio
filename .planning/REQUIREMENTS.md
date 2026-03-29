@@ -88,8 +88,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 
 ### UI Dashboard
 
-- [ ] **UI-01**: React + Vite + TypeScript + Tailwind scaffold with API client
-- [ ] **UI-02**: TypeScript types matching all Pydantic schemas
+- [x] **UI-01**: React + Vite + TypeScript + Tailwind scaffold with API client
+- [x] **UI-02**: TypeScript types matching all Pydantic schemas
 - [ ] **UI-03**: Layout with sidebar (campaign history) and header
 - [ ] **UI-04**: NewCampaign page: seed content input, prediction question, demographic selector (6 presets + custom), config panel (sliders, thresholds), time estimate, Run button
 - [ ] **UI-05**: CampaignDetail page with 3 tabs (Campaign, Simulation, Report)
@@ -202,8 +202,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | RPT-05 | Phase 7 | Complete |
 | RPT-06 | Phase 7 | Complete |
 | RPT-07 | Phase 7 | Complete |
-| UI-01 | Phase 8 | Pending |
-| UI-02 | Phase 8 | Pending |
+| UI-01 | Phase 8 | Complete |
+| UI-02 | Phase 8 | Complete |
 | UI-03 | Phase 8 | Pending |
 | UI-04 | Phase 8 | Pending |
 | UI-05 | Phase 8 | Pending |
