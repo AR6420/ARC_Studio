@@ -40,6 +40,11 @@ async def lifespan(app: FastAPI):
     from orchestrator.clients.tribe_client import TribeClient
     from orchestrator.clients.mirofish_client import MirofishClient
     from orchestrator.clients.claude_client import ClaudeClient
+    from orchestrator.engine.variant_generator import VariantGenerator
+    from orchestrator.engine.tribe_scorer import TribeScoringPipeline
+    from orchestrator.engine.mirofish_runner import MirofishRunner
+    from orchestrator.engine.result_analyzer import ResultAnalyzer
+    from orchestrator.engine.campaign_runner import CampaignRunner
 
     # Startup
     db = Database(str(settings.database_path_absolute))
@@ -56,6 +61,26 @@ async def lifespan(app: FastAPI):
     app.state.tribe_http = tribe_http
     app.state.mirofish_http = mirofish_http
 
+    # Construct engine components for CampaignRunner
+    variant_gen = VariantGenerator(app.state.claude_client)
+    tribe_scoring = TribeScoringPipeline(app.state.tribe_client)
+    mirofish_runner_instance = MirofishRunner(app.state.mirofish_client)
+    result_analyzer = ResultAnalyzer(app.state.claude_client)
+
+    app.state.campaign_runner = CampaignRunner(
+        variant_generator=variant_gen,
+        tribe_scoring=tribe_scoring,
+        mirofish_runner=mirofish_runner_instance,
+        result_analyzer=result_analyzer,
+        campaign_store=app.state.campaign_store,
+        tribe_client=app.state.tribe_client,
+        mirofish_client=app.state.mirofish_client,
+    )
+
+    # Initialize background task tracking and progress queues
+    app.state.running_tasks = {}
+    app.state.progress_queues = {}
+
     logger.info(
         "Orchestrator started — DB at %s, TRIBE at %s, MiroFish at %s",
         settings.database_path_absolute,
@@ -65,7 +90,14 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
+    # Shutdown -- cancel any running campaign tasks first
+    for task_id, task in app.state.running_tasks.items():
+        if not task.done():
+            task.cancel()
+            logger.info("Cancelled running task for campaign %s", task_id)
+    app.state.running_tasks.clear()
+    app.state.progress_queues.clear()
+
     await tribe_http.aclose()
     await mirofish_http.aclose()
     await db.close()
@@ -76,6 +108,7 @@ def create_app() -> FastAPI:
     """Factory function to create the FastAPI app."""
     from orchestrator.api.campaigns import router as campaigns_router
     from orchestrator.api.health import router as health_router
+    from orchestrator.api.progress import router as progress_router
 
     application = FastAPI(
         title="Nexus Sim Orchestrator",
@@ -96,6 +129,7 @@ def create_app() -> FastAPI:
     # Mount routers
     application.include_router(campaigns_router, prefix="/api")
     application.include_router(health_router, prefix="/api")
+    application.include_router(progress_router, prefix="/api")
 
     return application
 

@@ -4,6 +4,7 @@ Campaign CRUD endpoints for the Nexus Sim API.
 Provides POST/GET/DELETE operations for campaigns via the CampaignStore.
 """
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Request, HTTPException
@@ -12,6 +13,7 @@ from orchestrator.api.schemas import (
     CampaignResponse,
     CampaignListResponse,
 )
+from orchestrator.api.progress import get_or_create_queue
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["campaigns"])
@@ -27,12 +29,28 @@ async def create_campaign(request: Request, body: CampaignCreateRequest):
     campaign = await store.create_campaign(body)
 
     if body.auto_start:
-        # Background execution will be wired when campaign_runner is available on app.state
-        # For now, just create the campaign; execution is triggered separately
-        logger.info(
-            "Campaign %s created with auto_start=True (execution wired in Plan 07)",
-            campaign.id,
-        )
+        # Per Pitfall 4: Create queue BEFORE launching background task
+        queue = get_or_create_queue(request.app, campaign.id)
+
+        async def progress_callback(event: dict):
+            await queue.put(event)
+
+        async def _run_background(app, cid: str):
+            runner = app.state.campaign_runner
+            try:
+                await runner.run_campaign(
+                    campaign_id=cid,
+                    progress_callback=progress_callback,
+                )
+            except Exception as e:
+                logger.error("Background campaign %s failed: %s", cid, e)
+                await queue.put({"event": "campaign_error", "campaign_id": cid, "error": str(e)})
+            finally:
+                app.state.running_tasks.pop(cid, None)
+
+        task = asyncio.create_task(_run_background(request.app, campaign.id))
+        request.app.state.running_tasks[campaign.id] = task
+        logger.info("Campaign %s launched as background task", campaign.id)
 
     return campaign
 
