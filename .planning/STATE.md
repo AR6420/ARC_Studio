@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-03-29T21:31:08.957Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-03-29T21:39:48.215Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
   percent: 28
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 08 (ui-dashboard) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-03-29
 
@@ -64,6 +64,7 @@ Progress: [##........] 28%
 | Phase 07 P02 | 9min | 2 tasks | 5 files |
 | Phase 08 P01 | 21min | 2 tasks | 47 files |
 | Phase 08 P02 | 13min | 2 tasks | 9 files |
+| Phase 08 P04 | 14min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase 08]: apiFetch<T> generic wrapper centralizes all API calls with error handling in ui/src/api/client.ts
 - [Phase 08]: Layout uses React Router Outlet pattern: AppLayout wraps all /campaigns/* routes as a layout route
 - [Phase 08]: StatusBadge uses config-map pattern: each CampaignStatus maps to icon, label, and OKLCH color classes
+- [Phase 08]: EventSource uses addEventListener per named event type (not onmessage) to match backend named SSE events
+- [Phase 08]: React Query campaigns list also invalidated on campaign_complete to keep sidebar status badges current
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T21:31:08.948Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-03-29T21:39:48.209Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
