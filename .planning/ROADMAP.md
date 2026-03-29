@@ -103,7 +103,12 @@ Plans:
   2. The system stops early when all user-defined thresholds are met or when improvement is below 5% for 2 consecutive iterations
   3. SSE endpoint streams real-time progress events (iteration number, current step, ETA) during campaign execution
   4. Running a 3-iteration campaign demonstrates measurable score improvement between iteration 1 and the final iteration
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md -- Core optimization loop: threshold checker, convergence detector, time estimator, multi-iteration CampaignRunner (OPT-01, OPT-02, OPT-03, OPT-04, OPT-07)
+- [ ] 06-02-PLAN.md -- SSE progress streaming infrastructure + estimate endpoint (OPT-05, OPT-06)
+- [ ] 06-03-PLAN.md -- Integration wiring: lifespan runner, background tasks, CLI multi-iteration, progress router mount (OPT-01, OPT-06, OPT-07)
 
 ### Phase 7: Report Generation
 **Goal**: Campaign results are presented in a 4-layer report (verdict, scorecard, deep analysis, mass psychology) with JSON and Markdown export
@@ -153,7 +158,7 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 3. TRIBE v2 Setup | 0/? | Not started | - |
 | 4. Claude Client Setup | 0/? | Not started | - |
 | 5. Orchestrator Integration Pipeline | 7/7 | Complete | 2026-03-29 |
-| 6. Optimization Loop | 0/? | Not started | - |
+| 6. Optimization Loop | 0/3 | Planning complete | - |
 | 7. Report Generation | 0/? | Not started | - |
 | 8. UI Dashboard | 0/? | Not started | - |
 | 9. Validation and Documentation | 0/? | Not started | - |
