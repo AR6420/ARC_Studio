@@ -135,8 +135,17 @@ Plans:
   3. Clicking an agent card opens an interview modal that proxies chat through the orchestrator to MiroFish
   4. ProgressStream component shows real-time SSE updates during campaign execution with step tracking and ETA
   5. CampaignList page shows all campaigns with status badges, and the UI handles loading, error, and empty states gracefully
-**Plans**: TBD
+**Plans**: 7 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 08-01-PLAN.md -- Vite + React 19 + shadcn/ui + Tailwind v4 scaffold, TypeScript types, API client, theme (UI-01, UI-02)
+- [ ] 08-02-PLAN.md -- Layout shell (sidebar + header), routing, CampaignList page, status badges, common states (UI-03, UI-11, UI-13)
+- [ ] 08-03-PLAN.md -- NewCampaign page: form, demographic selector, config sliders, time estimate, Run (UI-04)
+- [ ] 08-04-PLAN.md -- SSE progress hook and ProgressStream component (UI-10)
+- [ ] 08-05-PLAN.md -- CampaignDetail page: 3 tabs, Campaign tab with score cards, variant ranking, iteration chart (UI-05, UI-06)
+- [ ] 08-06-PLAN.md -- Simulation tab: metrics, sentiment timeline, agent grid, interview modal + backend proxy (UI-07, UI-08)
+- [ ] 08-07-PLAN.md -- Report tab: 4 layers (verdict, scorecard, deep analysis, mass psychology), export buttons (UI-09, UI-12)
 
 ### Phase 9: Validation and Documentation
 **Goal**: The core hypothesis is proven -- iterative optimization produces measurably better content across diverse scenarios, with full documentation and a demo recording
@@ -164,5 +173,5 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 5. Orchestrator Integration Pipeline | 7/7 | Complete | 2026-03-29 |
 | 6. Optimization Loop | 0/3 | Planning complete | - |
 | 7. Report Generation | 0/2 | Planning complete | - |
-| 8. UI Dashboard | 0/? | Not started | - |
+| 8. UI Dashboard | 0/7 | Planning complete | - |
 | 9. Validation and Documentation | 0/? | Not started | - |
