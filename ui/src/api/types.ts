@@ -190,3 +190,14 @@ export interface EstimateResponse {
   max_iterations: number;
   formula: string;
 }
+
+// -- Agent interview models (UI-08) --
+
+export interface AgentChatRequest {
+  message: string;
+}
+
+export interface AgentChatResponse {
+  agent_id: string;
+  response: string;
+}
