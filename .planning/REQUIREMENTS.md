@@ -62,8 +62,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [x] **ORCH-09**: TRIBE scoring pipeline (orchestrator -> tribe_scorer -> composite scores)
 - [x] **ORCH-10**: MiroFish simulation pipeline (orchestrator -> graph build -> simulation -> results)
 - [x] **ORCH-11**: Composite score calculator implementing all 7 formulas from Results.md
-- [ ] **ORCH-12**: Result analyzer using Claude Opus for cross-system analysis
-- [ ] **ORCH-13**: Campaign runner wiring all components into single-iteration pipeline
+- [x] **ORCH-12**: Result analyzer using Claude Opus for cross-system analysis
+- [x] **ORCH-13**: Campaign runner wiring all components into single-iteration pipeline
 - [ ] **ORCH-14**: End-to-end CLI execution producing variants, scores, metrics, and analysis
 
 ### Optimization Loop
@@ -185,8 +185,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | ORCH-09 | Phase 5 | Complete |
 | ORCH-10 | Phase 5 | Complete |
 | ORCH-11 | Phase 5 | Complete |
-| ORCH-12 | Phase 5 | Pending |
-| ORCH-13 | Phase 5 | Pending |
+| ORCH-12 | Phase 5 | Complete |
+| ORCH-13 | Phase 5 | Complete |
 | ORCH-14 | Phase 5 | Pending |
 | OPT-01 | Phase 6 | Pending |
 | OPT-02 | Phase 6 | Pending |
