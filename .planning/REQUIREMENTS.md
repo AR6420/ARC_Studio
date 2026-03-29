@@ -72,8 +72,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [ ] **OPT-02**: Threshold checker comparing composite scores against user targets
 - [ ] **OPT-03**: Early stopping on threshold achievement or convergence (< 5% improvement for 2 iterations)
 - [ ] **OPT-04**: Time estimator with formula-based and runtime-refined estimates
-- [ ] **OPT-05**: POST /api/estimate endpoint
-- [ ] **OPT-06**: SSE progress streaming (iteration events, step tracking, ETA)
+- [x] **OPT-05**: POST /api/estimate endpoint
+- [x] **OPT-06**: SSE progress streaming (iteration events, step tracking, ETA)
 - [ ] **OPT-07**: Optimization loop demonstrably improves scores across iterations
 
 ### Report Generation
@@ -192,8 +192,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | OPT-02 | Phase 6 | Pending |
 | OPT-03 | Phase 6 | Pending |
 | OPT-04 | Phase 6 | Pending |
-| OPT-05 | Phase 6 | Pending |
-| OPT-06 | Phase 6 | Pending |
+| OPT-05 | Phase 6 | Complete |
+| OPT-06 | Phase 6 | Complete |
 | OPT-07 | Phase 6 | Pending |
 | RPT-01 | Phase 7 | Pending |
 | RPT-02 | Phase 7 | Pending |
