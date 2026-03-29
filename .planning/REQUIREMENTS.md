@@ -83,8 +83,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [x] **RPT-03**: Layer 3 Deep Analysis — all raw scores, metrics, reasoning chains, per-iteration data
 - [x] **RPT-04**: Layer 4 Mass Psychology General — narrative prose about crowd dynamics (200-600 words)
 - [x] **RPT-05**: Layer 4 Mass Psychology Technical — psychology theory references (>= 2 named theories)
-- [ ] **RPT-06**: JSON export of full campaign results
-- [ ] **RPT-07**: Markdown summary export
+- [x] **RPT-06**: JSON export of full campaign results
+- [x] **RPT-07**: Markdown summary export
 
 ### UI Dashboard
 
@@ -200,8 +200,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | RPT-03 | Phase 7 | Complete |
 | RPT-04 | Phase 7 | Complete |
 | RPT-05 | Phase 7 | Complete |
-| RPT-06 | Phase 7 | Pending |
-| RPT-07 | Phase 7 | Pending |
+| RPT-06 | Phase 7 | Complete |
+| RPT-07 | Phase 7 | Complete |
 | UI-01 | Phase 8 | Pending |
 | UI-02 | Phase 8 | Pending |
 | UI-03 | Phase 8 | Pending |

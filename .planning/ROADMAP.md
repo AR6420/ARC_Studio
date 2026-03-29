@@ -123,7 +123,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md -- Report data layer, ReportGenerator engine, scorecard prompt (RPT-01, RPT-02, RPT-03, RPT-04, RPT-05)
-- [ ] 07-02-PLAN.md -- Report API endpoints, JSON/Markdown export, pipeline integration (RPT-06, RPT-07)
+- [x] 07-02-PLAN.md -- Report API endpoints, JSON/Markdown export, pipeline integration (RPT-06, RPT-07)
 
 ### Phase 8: UI Dashboard
 **Goal**: Users interact with the full system through a React dashboard -- creating campaigns, watching real-time progress, viewing results across three tabs, and interviewing simulated agents
