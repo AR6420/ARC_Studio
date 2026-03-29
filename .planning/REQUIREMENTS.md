@@ -92,8 +92,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [x] **UI-02**: TypeScript types matching all Pydantic schemas
 - [x] **UI-03**: Layout with sidebar (campaign history) and header
 - [ ] **UI-04**: NewCampaign page: seed content input, prediction question, demographic selector (6 presets + custom), config panel (sliders, thresholds), time estimate, Run button
-- [ ] **UI-05**: CampaignDetail page with 3 tabs (Campaign, Simulation, Report)
-- [ ] **UI-06**: Campaign tab: composite score cards (color-coded), variant ranking, iteration chart
+- [x] **UI-05**: CampaignDetail page with 3 tabs (Campaign, Simulation, Report)
+- [x] **UI-06**: Campaign tab: composite score cards (color-coded), variant ranking, iteration chart
 - [ ] **UI-07**: Simulation tab: MiroFish metrics, sentiment timeline, coalition map, agent grid
 - [ ] **UI-08**: Agent interview: click agent card -> chat modal proxied through orchestrator
 - [ ] **UI-09**: Report tab: verdict, scorecard, expandable deep analysis, mass psychology toggle
@@ -206,8 +206,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | UI-02 | Phase 8 | Complete |
 | UI-03 | Phase 8 | Complete |
 | UI-04 | Phase 8 | Pending |
-| UI-05 | Phase 8 | Pending |
-| UI-06 | Phase 8 | Pending |
+| UI-05 | Phase 8 | Complete |
+| UI-06 | Phase 8 | Complete |
 | UI-07 | Phase 8 | Pending |
 | UI-08 | Phase 8 | Pending |
 | UI-09 | Phase 8 | Pending |
