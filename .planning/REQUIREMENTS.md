@@ -78,11 +78,11 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 
 ### Report Generation
 
-- [ ] **RPT-01**: Layer 1 Verdict — plain English recommendation (100-400 words, no jargon)
-- [ ] **RPT-02**: Layer 2 Scorecard — composite scores, variant ranking, iteration trajectory as structured JSON
-- [ ] **RPT-03**: Layer 3 Deep Analysis — all raw scores, metrics, reasoning chains, per-iteration data
-- [ ] **RPT-04**: Layer 4 Mass Psychology General — narrative prose about crowd dynamics (200-600 words)
-- [ ] **RPT-05**: Layer 4 Mass Psychology Technical — psychology theory references (>= 2 named theories)
+- [x] **RPT-01**: Layer 1 Verdict — plain English recommendation (100-400 words, no jargon)
+- [x] **RPT-02**: Layer 2 Scorecard — composite scores, variant ranking, iteration trajectory as structured JSON
+- [x] **RPT-03**: Layer 3 Deep Analysis — all raw scores, metrics, reasoning chains, per-iteration data
+- [x] **RPT-04**: Layer 4 Mass Psychology General — narrative prose about crowd dynamics (200-600 words)
+- [x] **RPT-05**: Layer 4 Mass Psychology Technical — psychology theory references (>= 2 named theories)
 - [ ] **RPT-06**: JSON export of full campaign results
 - [ ] **RPT-07**: Markdown summary export
 
@@ -195,11 +195,11 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | OPT-05 | Phase 6 | Complete |
 | OPT-06 | Phase 6 | Complete |
 | OPT-07 | Phase 6 | Complete |
-| RPT-01 | Phase 7 | Pending |
-| RPT-02 | Phase 7 | Pending |
-| RPT-03 | Phase 7 | Pending |
-| RPT-04 | Phase 7 | Pending |
-| RPT-05 | Phase 7 | Pending |
+| RPT-01 | Phase 7 | Complete |
+| RPT-02 | Phase 7 | Complete |
+| RPT-03 | Phase 7 | Complete |
+| RPT-04 | Phase 7 | Complete |
+| RPT-05 | Phase 7 | Complete |
 | RPT-06 | Phase 7 | Pending |
 | RPT-07 | Phase 7 | Pending |
 | UI-01 | Phase 8 | Pending |

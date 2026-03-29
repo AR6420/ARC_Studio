@@ -122,7 +122,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Report data layer, ReportGenerator engine, scorecard prompt (RPT-01, RPT-02, RPT-03, RPT-04, RPT-05)
+- [x] 07-01-PLAN.md -- Report data layer, ReportGenerator engine, scorecard prompt (RPT-01, RPT-02, RPT-03, RPT-04, RPT-05)
 - [ ] 07-02-PLAN.md -- Report API endpoints, JSON/Markdown export, pipeline integration (RPT-06, RPT-07)
 
 ### Phase 8: UI Dashboard
