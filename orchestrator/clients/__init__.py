@@ -8,7 +8,7 @@ Provides async client wrappers for:
 """
 
 from orchestrator.clients.claude_client import ClaudeClient
+from orchestrator.clients.mirofish_client import MirofishClient
 from orchestrator.clients.tribe_client import TribeClient
 
-# MirofishClient will be added after mirofish_client.py is created
-__all__ = ["ClaudeClient", "TribeClient"]
+__all__ = ["ClaudeClient", "MirofishClient", "TribeClient"]
