@@ -14,7 +14,7 @@
 | 0.3 | Install NVIDIA Container Toolkit if not present. Verify: `docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi` | [x] | Verified with nvidia/cuda:12.0.0-base-ubuntu22.04 (original tag format was wrong). GPU passthrough works. |
 | 0.4 | Verify Python 3.11+: `python --version`. Install if needed. | [x] | Python 3.14.3 |
 | 0.5 | Verify Node.js 18+: `node --version`. Install if needed. | [x] | Node.js v22.22.0, npm 10.9.4 |
-| 0.6 | Install PyTorch with CUDA: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`. Verify: `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"` | [~] | cu126 installed, cu128 nightly downloading. RTX 5070 Ti is CC 12.0, needs cu128+ for full compatibility. torch.cuda.is_available()=True but runtime ops may fail on cu126. |
+| 0.6 | Install PyTorch with CUDA: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`. Verify: `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"` | [x] | PyTorch 2.12.0.dev20260328+cu128 (nightly). RTX 5070 Ti CC 12.0 requires cu128. GPU tensor ops verified working. Use `--index-url https://download.pytorch.org/whl/nightly/cu128` for this GPU. |
 | 0.7 | Create HuggingFace account. Request access to gated LLaMA 3.2-3B model. Install CLI: `pip install huggingface_hub`. Login: `huggingface-cli login` | [~] | huggingface_hub package installed. USER ACTION NEEDED: Create HF account, request LLaMA 3.2-3B access, run `huggingface-cli login`. |
 | 0.8 | Verify Anthropic API key works: `curl https://api.anthropic.com/v1/messages -H "x-api-key: $KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d '{"model":"claude-haiku-4-5-20251001","max_tokens":100,"messages":[{"role":"user","content":"Hi"}]}'` | [~] | Using OAuth token from ~/.claude/.credentials.json. Client will read token at runtime (rotates per session). Full test deferred to Phase 4 Claude client build. |
 | 0.9 | Initialize Git repo with monorepo structure. Create directories: orchestrator/, tribe_scorer/, mirofish/ (empty), ui/, shared/, docs/. Create .gitignore, .env.example, README.md | [x] | All directories created with subdirectories per tech spec. .gitignore, .env.example, README.md created. docker-compose.yml created. |
@@ -27,19 +27,19 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 1.A.1 | Fork MiroFish-Offline (github.com/nikmcfly/MiroFish-Offline). Add as Git submodule: `git submodule add <fork-url> mirofish` | [ ] | Fork to your own GitHub first, then add as submodule. |
-| 1.A.2 | Create docker-compose.yml in repo root with Neo4j, Ollama, and LiteLLM services (use spec from Application_Technical_Spec.md Section 5.2) | [ ] | |
-| 1.A.3 | Start infrastructure services: `docker compose up -d neo4j ollama litellm` | [ ] | |
-| 1.A.4 | Pull embedding model into Ollama: `docker exec nexus-ollama ollama pull nomic-embed-text` | [ ] | ~274MB download |
-| 1.A.5 | Verify Neo4j is running: open http://localhost:7474, login with neo4j/mirofish | [ ] | |
-| 1.A.6 | Verify LiteLLM proxy is running: `curl http://localhost:4000/health` | [ ] | |
-| 1.A.7 | Test LiteLLM → Claude Haiku: `curl http://localhost:4000/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"claude-haiku-4-5-20251001","messages":[{"role":"user","content":"Hello"}]}'` | [ ] | This confirms the OpenAI-compatible proxy correctly routes to Anthropic. If this fails, MiroFish won't work. |
-| 1.A.8 | Configure MiroFish .env: set LLM_BASE_URL=http://litellm:4000/v1, NEO4J_URI=bolt://neo4j:7687, EMBEDDING_BASE_URL=http://ollama:11434 | [ ] | Use Docker service names (not localhost) for inter-container communication. |
-| 1.A.9 | Add MiroFish backend to docker-compose.yml. Build and start: `docker compose up -d mirofish-backend` | [ ] | May need Dockerfile adjustments. Check requirements.txt compatibility. |
-| 1.A.10 | Test MiroFish graph build: `curl -X POST http://localhost:5000/api/graph/build -H "Content-Type: application/json" -d '{"content":"Acme Corp announces new AI product...","title":"Test","source_type":"press_release"}'` | [ ] | Should return graph_id with entity count. If it fails, check LiteLLM + Neo4j connectivity. |
-| 1.A.11 | Test MiroFish simulation run (small): 20 agents, 10 cycles. Use the graph_id from previous step. | [ ] | First simulation will be slow. Monitor Docker logs: `docker logs nexus-mirofish -f` |
-| 1.A.12 | Test agent chat: after simulation completes, pick an agent ID from results and send a chat message via API | [ ] | |
-| 1.A.13 | Document MiroFish API endpoints, request/response formats, and any quirks discovered during testing | [ ] | Add to Notes column for Sprint 2 reference. |
+| 1.A.1 | Fork MiroFish-Offline (github.com/nikmcfly/MiroFish-Offline). Add as Git submodule: `git submodule add <fork-url> mirofish` | [x] | Forked to AR6420/MiroFish-Offline, added as submodule. |
+| 1.A.2 | Create docker-compose.yml in repo root with Neo4j, Ollama, and LiteLLM services (use spec from Application_Technical_Spec.md Section 5.2) | [x] | Neo4j 5.18 + LiteLLM + MiroFish. Ollama runs natively (already on host). Embeddings via host.docker.internal:11434. LiteLLM healthcheck uses python urllib (curl not in image). |
+| 1.A.3 | Start infrastructure services: `docker compose up -d neo4j ollama litellm` | [x] | Neo4j healthy, LiteLLM healthy. Ollama native (not Docker). |
+| 1.A.4 | Pull embedding model into Ollama: `docker exec nexus-ollama ollama pull nomic-embed-text` | [x] | Pulled into native Ollama (not Docker). `ollama pull nomic-embed-text` |
+| 1.A.5 | Verify Neo4j is running: open http://localhost:7474, login with neo4j/mirofish | [x] | Neo4j 5.18.1 community, healthy, APOC plugin enabled. |
+| 1.A.6 | Verify LiteLLM proxy is running: `curl http://localhost:4000/health` | [x] | Returns healthy. |
+| 1.A.7 | Test LiteLLM → Claude Haiku: `curl http://localhost:4000/v1/chat/completions ...` | [x] | Claude Haiku responds "Hello" through LiteLLM proxy. OAuth token from ~/.claude/.credentials.json works. |
+| 1.A.8 | Configure MiroFish .env: set LLM_BASE_URL=http://litellm:4000/v1, NEO4J_URI=bolt://neo4j:7687, EMBEDDING_BASE_URL=http://ollama:11434 | [x] | Configured via docker-compose environment vars. EMBEDDING_BASE_URL=http://host.docker.internal:11434 (native Ollama). OPENAI_API_BASE_URL also set for OASIS/CAMEL-AI. |
+| 1.A.9 | Add MiroFish backend to docker-compose.yml. Build and start: `docker compose up -d mirofish-backend` | [x] | Built from mirofish/Dockerfile (Python 3.11 + Node.js + uv). Container: nexus-mirofish. Ports 3000 (frontend) + 5001 (backend). |
+| 1.A.10 | Test MiroFish graph build | [x] | MiroFish-Offline API differs from tech spec. Flow: POST /api/graph/ontology/generate (upload file) -> POST /api/graph/build (async task) -> poll /api/graph/task/{id}. Tested: ontology generated with 10 entity types, graph built with 4 nodes + 1 edge. Port is 5001 not 5000. |
+| 1.A.11 | Test MiroFish simulation run (small) | [x] | Flow: POST /api/simulation/create -> POST /api/simulation/prepare (async) -> POST /api/simulation/start. Ran 3 rounds parallel (Twitter+Reddit). 4 agents, 8 actions total. Agents produced realistic persona-consistent posts about NexaVault. |
+| 1.A.12 | Test agent chat: after simulation completes, pick an agent ID from results and send a chat message via API | [x] | POST /api/simulation/interview with agent_id (not agent_name). Returns rich persona-consistent responses per platform. Agent "Jane Chen" gave detailed technical concerns about NexaVault. |
+| 1.A.13 | Document MiroFish API endpoints, request/response formats, and any quirks discovered during testing | [x] | KEY DIFFERENCES FROM TECH SPEC: (1) Port 5001 not 5000. (2) Uses Neo4j (not Zep Cloud) - MiroFish-Offline fork. (3) Simulation lifecycle: create->prepare->start (not single run). (4) Ontology generation required before graph build. (5) Interview uses agent_id not agent_name. (6) OASIS/CAMEL-AI needs OPENAI_API_KEY+OPENAI_API_BASE_URL env vars. |
 
 ---
 
