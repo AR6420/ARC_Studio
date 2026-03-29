@@ -90,7 +90,7 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 
 - [x] **UI-01**: React + Vite + TypeScript + Tailwind scaffold with API client
 - [x] **UI-02**: TypeScript types matching all Pydantic schemas
-- [ ] **UI-03**: Layout with sidebar (campaign history) and header
+- [x] **UI-03**: Layout with sidebar (campaign history) and header
 - [ ] **UI-04**: NewCampaign page: seed content input, prediction question, demographic selector (6 presets + custom), config panel (sliders, thresholds), time estimate, Run button
 - [ ] **UI-05**: CampaignDetail page with 3 tabs (Campaign, Simulation, Report)
 - [ ] **UI-06**: Campaign tab: composite score cards (color-coded), variant ranking, iteration chart
@@ -98,9 +98,9 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [ ] **UI-08**: Agent interview: click agent card -> chat modal proxied through orchestrator
 - [ ] **UI-09**: Report tab: verdict, scorecard, expandable deep analysis, mass psychology toggle
 - [ ] **UI-10**: ProgressStream component connected to SSE during campaign runs
-- [ ] **UI-11**: CampaignList page with status badges, click to open detail
+- [x] **UI-11**: CampaignList page with status badges, click to open detail
 - [ ] **UI-12**: JSON and Markdown export buttons on Report tab
-- [ ] **UI-13**: Loading states, error states, empty states, responsive layout
+- [x] **UI-13**: Loading states, error states, empty states, responsive layout
 
 ### Validation
 
@@ -204,7 +204,7 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | RPT-07 | Phase 7 | Complete |
 | UI-01 | Phase 8 | Complete |
 | UI-02 | Phase 8 | Complete |
-| UI-03 | Phase 8 | Pending |
+| UI-03 | Phase 8 | Complete |
 | UI-04 | Phase 8 | Pending |
 | UI-05 | Phase 8 | Pending |
 | UI-06 | Phase 8 | Pending |
@@ -212,9 +212,9 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | UI-08 | Phase 8 | Pending |
 | UI-09 | Phase 8 | Pending |
 | UI-10 | Phase 8 | Pending |
-| UI-11 | Phase 8 | Pending |
+| UI-11 | Phase 8 | Complete |
 | UI-12 | Phase 8 | Pending |
-| UI-13 | Phase 8 | Pending |
+| UI-13 | Phase 8 | Complete |
 | VAL-01 | Phase 9 | Pending |
 | VAL-02 | Phase 9 | Pending |
 | VAL-03 | Phase 9 | Pending |
