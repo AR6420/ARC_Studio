@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-03-29T11:31:55.392Z"
+stopped_at: Completed 05-06-PLAN.md
+last_updated: "2026-03-29T11:37:11.788Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 28
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 05 (orchestrator-integration-pipeline) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-03-29
 
@@ -55,6 +55,7 @@ Progress: [##........] 28%
 | Phase 05 P04 | 6min | 2 tasks | 5 files |
 | Phase 05 P03 | 8min | 2 tasks | 5 files |
 | Phase 05 P05 | 7min | 2 tasks | 4 files |
+| Phase 05 P06 | 13min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Pre-flight health check runs once before pipeline (D-06), not per-step
 - [Phase 05]: None propagation through composite scorer handles missing TRIBE/MiroFish data cleanly
 - [Phase 05]: Campaign status lifecycle: pending -> running -> completed/failed with DB persistence at each transition
+- [Phase 05]: Deferred imports in FastAPI lifespan to break circular dependency (api/__init__ -> campaign_store -> schemas)
+- [Phase 05]: Manual app.state setup in tests (httpx 0.28 ASGITransport does not trigger lifespan events)
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T11:31:55.388Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-03-29T11:37:11.782Z
+Stopped at: Completed 05-06-PLAN.md
 Resume file: None

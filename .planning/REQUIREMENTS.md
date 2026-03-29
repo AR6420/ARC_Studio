@@ -51,12 +51,12 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 
 ### Orchestrator Pipeline
 
-- [ ] **ORCH-01**: FastAPI app with CORS for localhost:5173, lifespan hooks
+- [x] **ORCH-01**: FastAPI app with CORS for localhost:5173, lifespan hooks
 - [x] **ORCH-02**: SQLite database with campaign and iteration tables
 - [x] **ORCH-03**: Pydantic schemas for all request/response models
-- [ ] **ORCH-04**: Campaign CRUD endpoints (POST, GET, GET list, DELETE)
-- [ ] **ORCH-05**: System health endpoint pinging all downstream services
-- [ ] **ORCH-06**: Demographics endpoint returning preset list
+- [x] **ORCH-04**: Campaign CRUD endpoints (POST, GET, GET list, DELETE)
+- [x] **ORCH-05**: System health endpoint pinging all downstream services
+- [x] **ORCH-06**: Demographics endpoint returning preset list
 - [x] **ORCH-07**: Async HTTP clients for TRIBE scorer and MiroFish
 - [x] **ORCH-08**: Variant generator using Claude to create N content variants
 - [x] **ORCH-09**: TRIBE scoring pipeline (orchestrator -> tribe_scorer -> composite scores)
@@ -174,12 +174,12 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | CLAUDE-04 | Phase 4 | Pending |
 | CLAUDE-05 | Phase 4 | Pending |
 | CLAUDE-06 | Phase 4 | Pending |
-| ORCH-01 | Phase 5 | Pending |
+| ORCH-01 | Phase 5 | Complete |
 | ORCH-02 | Phase 5 | Complete |
 | ORCH-03 | Phase 5 | Complete |
-| ORCH-04 | Phase 5 | Pending |
-| ORCH-05 | Phase 5 | Pending |
-| ORCH-06 | Phase 5 | Pending |
+| ORCH-04 | Phase 5 | Complete |
+| ORCH-05 | Phase 5 | Complete |
+| ORCH-06 | Phase 5 | Complete |
 | ORCH-07 | Phase 5 | Complete |
 | ORCH-08 | Phase 5 | Complete |
 | ORCH-09 | Phase 5 | Complete |

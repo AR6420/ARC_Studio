@@ -91,7 +91,7 @@ Plans:
 - [x] 05-03-PLAN.md -- Variant generator + composite scorer (ORCH-08, ORCH-11)
 - [x] 05-04-PLAN.md -- TRIBE scoring pipeline + MiroFish simulation runner (ORCH-09, ORCH-10)
 - [x] 05-05-PLAN.md -- Result analyzer + campaign runner (ORCH-12, ORCH-13)
-- [ ] 05-06-PLAN.md -- FastAPI app + CRUD + health + demographics endpoints (ORCH-01, ORCH-04, ORCH-05, ORCH-06)
+- [x] 05-06-PLAN.md -- FastAPI app + CRUD + health + demographics endpoints (ORCH-01, ORCH-04, ORCH-05, ORCH-06)
 - [ ] 05-07-PLAN.md -- CLI entry point + end-to-end verification (ORCH-14)
 
 ### Phase 6: Optimization Loop
