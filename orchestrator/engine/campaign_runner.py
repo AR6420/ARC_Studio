@@ -1,0 +1,270 @@
+"""
+Campaign runner for Nexus Sim -- the heart of the orchestration pipeline.
+
+Wires all engine components into a single-iteration pipeline:
+  1. Pre-flight health check (system availability)
+  2. Generate N content variants (Claude Haiku)
+  3. Score variants with TRIBE v2 (sequential, per D-03)
+  4. Simulate variants with MiroFish (sequential, per D-04)
+  5. Compute composite scores
+  6. Cross-system analysis (Claude Opus)
+  7. Persist everything to SQLite
+
+Per ORCH-13: Single-iteration pipeline that can be called repeatedly
+for multi-iteration optimization (Phase 6).
+Per D-05: Graceful degradation when TRIBE or MiroFish is unavailable.
+Per D-06: Pre-flight health check approach for simplicity.
+"""
+
+import logging
+from typing import Any
+
+from orchestrator.api.schemas import SystemAvailability
+from orchestrator.clients.tribe_client import TribeClient
+from orchestrator.clients.mirofish_client import MirofishClient
+from orchestrator.engine.variant_generator import VariantGenerator
+from orchestrator.engine.tribe_scorer import TribeScoringPipeline
+from orchestrator.engine.mirofish_runner import MirofishRunner
+from orchestrator.engine.composite_scorer import compute_composite_scores
+from orchestrator.engine.result_analyzer import ResultAnalyzer
+from orchestrator.storage.campaign_store import CampaignStore
+from orchestrator.prompts.demographic_profiles import get_cognitive_weights
+
+logger = logging.getLogger(__name__)
+
+
+class CampaignRunner:
+    """
+    Main orchestration: wires variant generation, TRIBE scoring, MiroFish
+    simulation, composite scoring, and cross-system analysis into a
+    single-iteration campaign pipeline.
+
+    Per D-05: Graceful degradation when TRIBE or MiroFish is unavailable.
+    Per D-06 (Claude's discretion): Uses pre-flight health check approach.
+    """
+
+    def __init__(
+        self,
+        variant_generator: VariantGenerator,
+        tribe_scoring: TribeScoringPipeline,
+        mirofish_runner: MirofishRunner,
+        result_analyzer: ResultAnalyzer,
+        campaign_store: CampaignStore,
+        tribe_client: TribeClient,
+        mirofish_client: MirofishClient,
+    ):
+        self._variant_gen = variant_generator
+        self._tribe_scoring = tribe_scoring
+        self._mirofish_runner = mirofish_runner
+        self._result_analyzer = result_analyzer
+        self._store = campaign_store
+        self._tribe_client = tribe_client
+        self._mirofish_client = mirofish_client
+
+    async def check_system_availability(self) -> SystemAvailability:
+        """
+        Pre-flight health check of downstream services.
+        Per D-06: Check once before pipeline starts -- simpler and avoids
+        partial state.
+        """
+        warnings: list[str] = []
+        tribe_ok = await self._tribe_client.health_check()
+        if not tribe_ok:
+            warnings.append("TRIBE v2 scorer unavailable -- neural scores will be skipped")
+
+        mirofish_ok = await self._mirofish_client.health_check()
+        if not mirofish_ok:
+            warnings.append("MiroFish simulator unavailable -- simulation metrics will be skipped")
+
+        availability = SystemAvailability(
+            tribe_available=tribe_ok,
+            mirofish_available=mirofish_ok,
+            warnings=warnings,
+        )
+
+        if warnings:
+            for w in warnings:
+                logger.warning(w)
+
+        if not tribe_ok and not mirofish_ok:
+            logger.warning(
+                "Both TRIBE and MiroFish unavailable -- only variant generation and analysis will run"
+            )
+
+        return availability
+
+    async def run_single_iteration(
+        self,
+        campaign_id: str,
+        iteration_number: int = 1,
+        previous_iteration_results: list[dict[str, Any]] | None = None,
+        previous_analysis: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Run a single iteration of the campaign pipeline.
+
+        Pipeline sequence (per ORCH-13):
+        1. Pre-flight system health check
+        2. Generate N content variants (Claude Haiku)
+        3. Score all variants with TRIBE v2 (sequential, per D-03)
+        4. Simulate all variants with MiroFish (sequential, per D-04)
+        5. Compute composite scores for each variant
+        6. Cross-system analysis (Claude Opus)
+        7. Persist everything to SQLite
+
+        Returns dict with: variants, tribe_scores, mirofish_metrics,
+        composite_scores, analysis, system_availability, warnings.
+        """
+        # Load campaign from DB
+        campaign = await self._store.get_campaign(campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {campaign_id} not found")
+
+        # Update status to running
+        await self._store.update_campaign_status(campaign_id, "running")
+
+        try:
+            # Step 1: Pre-flight health check
+            availability = await self.check_system_availability()
+
+            # Step 2: Generate variants
+            logger.info("Step 2: Generating %d content variants", 3)
+            variants = await self._variant_gen.generate_variants(
+                campaign_brief=campaign.seed_content,
+                demographic=campaign.demographic,
+                demographic_custom=campaign.demographic_custom,
+                num_variants=3,  # Per D-01
+                constraints=campaign.constraints,
+                previous_iteration_results=previous_iteration_results,
+            )
+
+            # Step 3: TRIBE scoring (if available)
+            tribe_scores_list: list[dict[str, float] | None] = []
+            if availability.tribe_available:
+                logger.info("Step 3: Scoring %d variants with TRIBE v2", len(variants))
+                tribe_scores_list = await self._tribe_scoring.score_variants(variants)
+            else:
+                logger.info("Step 3: Skipping TRIBE scoring (unavailable)")
+                tribe_scores_list = [None] * len(variants)
+
+            # Step 4: MiroFish simulation (if available)
+            mirofish_metrics_list: list[dict[str, Any] | None] = []
+            if availability.mirofish_available:
+                logger.info("Step 4: Running MiroFish simulations for %d variants", len(variants))
+                mirofish_metrics_list = await self._mirofish_runner.simulate_variants(
+                    variants=variants,
+                    prediction_question=campaign.prediction_question,
+                    campaign_id=campaign_id,
+                    agent_count=campaign.agent_count,
+                    max_rounds=30,
+                )
+            else:
+                logger.info("Step 4: Skipping MiroFish simulation (unavailable)")
+                mirofish_metrics_list = [None] * len(variants)
+
+            # Step 5: Compute composite scores
+            logger.info("Step 5: Computing composite scores")
+            cognitive_weights = _get_weights(campaign.demographic)
+            composite_scores_list: list[dict[str, float | None]] = []
+            for i, variant in enumerate(variants):
+                tribe = tribe_scores_list[i] if i < len(tribe_scores_list) else None
+                mirofish = mirofish_metrics_list[i] if i < len(mirofish_metrics_list) else None
+                composite = compute_composite_scores(
+                    tribe=tribe,
+                    mirofish=mirofish,
+                    cognitive_weights=cognitive_weights,
+                    agent_count=campaign.agent_count,
+                )
+                composite_scores_list.append(composite)
+
+            # Step 5b: Persist iterations to DB
+            for i, variant in enumerate(variants):
+                tribe = tribe_scores_list[i] if i < len(tribe_scores_list) else None
+                mirofish = mirofish_metrics_list[i] if i < len(mirofish_metrics_list) else None
+                composite = composite_scores_list[i]
+                await self._store.save_iteration(
+                    campaign_id=campaign_id,
+                    iteration_number=iteration_number,
+                    variant_id=variant["id"],
+                    variant_content=variant["content"],
+                    variant_strategy=variant.get("strategy"),
+                    tribe_scores=tribe,
+                    mirofish_metrics=mirofish,
+                    composite_scores=composite,
+                )
+
+            # Step 6: Cross-system analysis (Claude Opus)
+            logger.info("Step 6: Running Claude Opus cross-system analysis")
+            variants_with_scores = []
+            for i, variant in enumerate(variants):
+                variants_with_scores.append({
+                    "variant_id": variant["id"],
+                    "content": variant["content"],
+                    "strategy": variant.get("strategy", ""),
+                    "tribe_scores": tribe_scores_list[i] if i < len(tribe_scores_list) else None,
+                    "mirofish_metrics": mirofish_metrics_list[i] if i < len(mirofish_metrics_list) else None,
+                    "composite_scores": composite_scores_list[i],
+                })
+
+            analysis = await self._result_analyzer.analyze_iteration(
+                iteration_number=iteration_number,
+                campaign_brief=campaign.seed_content,
+                prediction_question=campaign.prediction_question,
+                demographic=campaign.demographic,
+                demographic_custom=campaign.demographic_custom,
+                variants_with_scores=variants_with_scores,
+                thresholds=campaign.thresholds,
+                previous_analysis=previous_analysis,
+            )
+
+            # Step 6b: Persist analysis to DB
+            await self._store.save_analysis(
+                campaign_id=campaign_id,
+                iteration_number=iteration_number,
+                analysis_json=analysis,
+                system_availability={
+                    "tribe_available": availability.tribe_available,
+                    "mirofish_available": availability.mirofish_available,
+                },
+            )
+
+            # Update status to completed (for single iteration)
+            await self._store.update_campaign_status(campaign_id, "completed")
+
+            result = {
+                "campaign_id": campaign_id,
+                "iteration_number": iteration_number,
+                "variants": variants,
+                "tribe_scores": tribe_scores_list,
+                "mirofish_metrics": mirofish_metrics_list,
+                "composite_scores": composite_scores_list,
+                "analysis": analysis,
+                "system_availability": {
+                    "tribe_available": availability.tribe_available,
+                    "mirofish_available": availability.mirofish_available,
+                },
+                "warnings": availability.warnings,
+            }
+
+            logger.info("Campaign %s iteration %d completed successfully", campaign_id, iteration_number)
+            return result
+
+        except Exception as e:
+            logger.error("Campaign %s iteration %d failed: %s", campaign_id, iteration_number, e)
+            await self._store.update_campaign_status(campaign_id, "failed", error=str(e))
+            raise
+
+
+def _get_weights(demographic: str) -> dict[str, float]:
+    """Get cognitive weights for a demographic. Returns uniform weights for custom demographics."""
+    if demographic == "custom":
+        return {
+            "attention_capture": 1.0,
+            "emotional_resonance": 1.0,
+            "memory_encoding": 1.0,
+            "reward_response": 1.0,
+            "threat_detection": 1.0,
+            "cognitive_load": 1.0,
+            "social_relevance": 1.0,
+        }
+    return get_cognitive_weights(demographic)
