@@ -2,13 +2,13 @@
  * Campaign detail page with 3 tabs: Campaign, Simulation, Report.
  *
  * Uses React Router useParams for campaign ID, fetches data via
- * useCampaign hook, and renders tab-specific content. The Report tab
- * is fully wired with all 4 report layers and export functionality.
- *
- * Campaign and Simulation tab content are placeholders until
- * plans 08-05 and 08-06 wire their respective components.
+ * useCampaign hook, and renders tab-specific content. All three tabs
+ * fully wired: Campaign (score cards, variant ranking, iteration chart),
+ * Simulation (metrics, sentiment, agent grid, interview modal),
+ * Report (4 layers + export).
  */
 
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileBarChart, Activity, FileText, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,8 +24,161 @@ import { ScorecardTable } from '@/components/results/scorecard-table';
 import { DeepAnalysis } from '@/components/results/deep-analysis';
 import { MassPsychology } from '@/components/results/mass-psychology';
 import { ExportButtons } from '@/components/results/export-buttons';
+import { ScoreCard } from '@/components/results/score-card';
+import { VariantRanking } from '@/components/results/variant-ranking';
+import { IterationChart } from '@/components/results/iteration-chart';
+import { MetricsPanel } from '@/components/simulation/metrics-panel';
+import { SentimentTimeline } from '@/components/simulation/sentiment-timeline';
+import { AgentGrid } from '@/components/simulation/agent-grid';
+import { AgentInterview } from '@/components/simulation/agent-interview';
+import { ProgressStream } from '@/components/progress/progress-stream';
 import { formatDate } from '@/utils/formatters';
-import type { CampaignResponse } from '@/api/types';
+import type { AgentData } from '@/components/simulation/agent-grid';
+import type { CampaignResponse, CompositeScores } from '@/api/types';
+
+// -- Constants for composite score display --
+
+const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
+  'attention_score',
+  'virality_potential',
+  'conversion_potential',
+  'audience_fit',
+  'memory_durability',
+  'backlash_risk',
+  'polarization_index',
+];
+
+const SCORE_DESCRIPTIONS: Record<string, string> = {
+  attention_score: 'How strongly the content captures and holds attention',
+  virality_potential: 'Likelihood of organic sharing and spread',
+  conversion_potential: 'Ability to drive desired action',
+  audience_fit: 'Resonance with the target demographic',
+  memory_durability: 'How well content sticks in long-term memory',
+  backlash_risk: 'Risk of negative backlash (lower is better)',
+  polarization_index: 'Degree of opinion polarization (lower is better)',
+};
+
+// -- Campaign tab content --
+
+function CampaignTabContent({ campaign }: { campaign: CampaignResponse }) {
+  const iterations = campaign.iterations ?? [];
+
+  if (iterations.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-muted-foreground">
+          No iteration data available yet.
+        </p>
+      </div>
+    );
+  }
+
+  // Find the latest iteration number
+  const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
+
+  // Get all variants from the latest iteration
+  const latestIterations = iterations.filter(
+    (it) => it.iteration_number === maxIterNum,
+  );
+
+  // Find the best variant by average non-null composite score
+  let bestScores: CompositeScores | null = null;
+  let bestAvg = -1;
+
+  for (const variant of latestIterations) {
+    if (!variant.composite_scores) continue;
+    const vals = COMPOSITE_KEYS.map((k) => variant.composite_scores![k]).filter(
+      (v): v is number => v !== null,
+    );
+    if (vals.length === 0) continue;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg > bestAvg) {
+      bestAvg = avg;
+      bestScores = variant.composite_scores;
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Composite Scores */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-foreground">
+          Composite Scores
+        </h3>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {COMPOSITE_KEYS.map((key) => (
+            <ScoreCard
+              key={key}
+              name={key}
+              value={bestScores?.[key] ?? null}
+              description={SCORE_DESCRIPTIONS[key]}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Variant Ranking */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-foreground">
+          Variant Ranking
+        </h3>
+        <VariantRanking variants={latestIterations} />
+      </div>
+
+      {/* Score Trajectory */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-foreground">
+          Score Trajectory
+        </h3>
+        <IterationChart iterations={iterations} />
+      </div>
+    </div>
+  );
+}
+
+// -- Simulation tab content --
+
+function SimulationTabContent({
+  campaign,
+  onInterviewAgent,
+}: {
+  campaign: CampaignResponse;
+  onInterviewAgent: (agentId: string, agentName: string) => void;
+}) {
+  const iterations = campaign.iterations ?? [];
+
+  if (iterations.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-muted-foreground">
+          No simulation data available yet.
+        </p>
+      </div>
+    );
+  }
+
+  // Find the latest iteration (single record with max iteration_number)
+  const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
+  const latestIteration = iterations.find(
+    (it) => it.iteration_number === maxIterNum,
+  );
+
+  const metrics = latestIteration?.mirofish_metrics ?? null;
+  const trajectory = metrics?.sentiment_trajectory ?? null;
+
+  // Agent data not available in API response (known limitation from 08-06)
+  const agents: AgentData[] = [];
+
+  return (
+    <div className="space-y-8">
+      <MetricsPanel metrics={metrics} />
+      <SentimentTimeline trajectory={trajectory} />
+      <AgentGrid agents={agents} onInterviewAgent={onInterviewAgent} />
+    </div>
+  );
+}
+
+// -- Report tab helpers --
 
 /** Report tab skeleton for loading state. */
 function ReportSkeleton() {
@@ -148,9 +301,15 @@ function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
   );
 }
 
+// -- Main component --
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: campaign, isLoading, isError, error, refetch } = useCampaign(id!);
+  const [interviewAgent, setInterviewAgent] = useState<{ id: string; name: string } | null>(null);
+
+  const handleInterviewAgent = (agentId: string, agentName: string) =>
+    setInterviewAgent({ id: agentId, name: agentName });
 
   if (isLoading) {
     return <CampaignDetailSkeleton />;
@@ -190,8 +349,11 @@ export default function CampaignDetail() {
         </div>
       </div>
 
+      {/* Real-time progress for running campaigns */}
+      {campaign.status === 'running' && <ProgressStream campaignId={id!} />}
+
       {/* Tabs */}
-      <Tabs defaultValue="report">
+      <Tabs defaultValue="campaign">
         <TabsList variant="line" className="gap-0">
           <TabsTrigger value="campaign" className="gap-1.5">
             <FileBarChart className="size-3.5" />
@@ -208,27 +370,26 @@ export default function CampaignDetail() {
         </TabsList>
 
         <TabsContent value="campaign" className="pt-6">
-          {/* Campaign tab content - wired by plan 08-05 */}
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-muted-foreground">
-              Campaign overview content renders here.
-            </p>
-          </div>
+          <CampaignTabContent campaign={campaign} />
         </TabsContent>
 
         <TabsContent value="simulation" className="pt-6">
-          {/* Simulation tab content - wired by plan 08-06 */}
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-muted-foreground">
-              Simulation results render here.
-            </p>
-          </div>
+          <SimulationTabContent campaign={campaign} onInterviewAgent={handleInterviewAgent} />
         </TabsContent>
 
         <TabsContent value="report" className="pt-6">
           <ReportTabContent campaign={campaign} />
         </TabsContent>
       </Tabs>
+
+      {/* Agent interview modal */}
+      <AgentInterview
+        campaignId={campaign.id}
+        agentId={interviewAgent?.id ?? ''}
+        agentName={interviewAgent?.name ?? ''}
+        open={interviewAgent !== null}
+        onOpenChange={(open) => { if (!open) setInterviewAgent(null); }}
+      />
     </div>
   );
 }
