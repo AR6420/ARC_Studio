@@ -87,7 +87,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 05-01-PLAN.md -- Pydantic schemas + SQLite storage layer (ORCH-02, ORCH-03)
-- [ ] 05-02-PLAN.md -- HTTP clients for TRIBE v2 and MiroFish (ORCH-07)
+- [x] 05-02-PLAN.md -- HTTP clients for TRIBE v2 and MiroFish (ORCH-07)
 - [ ] 05-03-PLAN.md -- Variant generator + composite scorer (ORCH-08, ORCH-11)
 - [ ] 05-04-PLAN.md -- TRIBE scoring pipeline + MiroFish simulation runner (ORCH-09, ORCH-10)
 - [ ] 05-05-PLAN.md -- Result analyzer + campaign runner (ORCH-12, ORCH-13)
@@ -152,7 +152,7 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 2. MiroFish-Offline Setup | 0/? | Not started | - |
 | 3. TRIBE v2 Setup | 0/? | Not started | - |
 | 4. Claude Client Setup | 0/? | Not started | - |
-| 5. Orchestrator Integration Pipeline | 0/7 | Planned | - |
+| 5. Orchestrator Integration Pipeline | 1/7 | Executing | - |
 | 6. Optimization Loop | 0/? | Not started | - |
 | 7. Report Generation | 0/? | Not started | - |
 | 8. UI Dashboard | 0/? | Not started | - |
