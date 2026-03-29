@@ -2,6 +2,10 @@
 Tests for the optimization loop helpers: threshold checking, convergence
 detection, time estimation, best variant finder, and iteration feedback builder.
 
+Also tests CampaignRunner.run_campaign() multi-iteration loop behavior:
+pass previous results, threshold stop, convergence stop, max iterations,
+progress events, manage_status=False usage.
+
 Covers:
 - check_thresholds: normal, inverted (backlash_risk, polarization_index), None, empty
 - compute_improvement: positive, negative, None scores, zero previous
@@ -9,9 +13,15 @@ Covers:
 - TimeEstimator: formula-based pre-run, runtime-refined remaining
 - find_best_composite: selects variant with highest adjusted average
 - build_iteration_feedback: transforms result + analysis into prompt format
+- run_campaign: multi-iteration loop with threshold/convergence/max_iter stops
 """
 
+from unittest.mock import AsyncMock, MagicMock, call, patch
+
 import pytest
+
+from orchestrator.api.schemas import CampaignResponse
+from orchestrator.engine.campaign_runner import CampaignRunner
 
 from orchestrator.engine.optimization_loop import (
     INVERTED_SCORES,
@@ -326,3 +336,290 @@ class TestInvertedScores:
     def test_is_set(self):
         """INVERTED_SCORES is a set for O(1) lookup."""
         assert isinstance(INVERTED_SCORES, (set, frozenset))
+
+
+# ── CampaignRunner.run_campaign() tests ────────────────────────────────────
+
+
+def _make_campaign_response(
+    max_iterations: int = 4,
+    thresholds: dict[str, float] | None = None,
+) -> CampaignResponse:
+    """Create a realistic mock campaign response."""
+    return CampaignResponse(
+        id="campaign-001",
+        status="pending",
+        seed_content="A" * 150,
+        prediction_question="How will tech professionals respond?",
+        demographic="tech_professionals",
+        demographic_custom=None,
+        agent_count=40,
+        max_iterations=max_iterations,
+        thresholds=thresholds,
+        constraints=None,
+        created_at="2026-03-29T00:00:00Z",
+    )
+
+
+def _make_iteration_result(
+    iteration: int,
+    attention_score: float = 70.0,
+    backlash_risk: float = 20.0,
+) -> dict:
+    """Create a mock single-iteration result with configurable scores."""
+    return {
+        "campaign_id": "campaign-001",
+        "iteration_number": iteration,
+        "variants": [
+            {"id": f"v1_iter{iteration}", "content": "content1", "strategy": "direct"},
+            {"id": f"v2_iter{iteration}", "content": "content2", "strategy": "social_proof"},
+            {"id": f"v3_iter{iteration}", "content": "content3", "strategy": "urgency"},
+        ],
+        "tribe_scores": [
+            {"attention_capture": 80.0, "emotional_resonance": 75.0},
+            {"attention_capture": 70.0, "emotional_resonance": 65.0},
+            {"attention_capture": 60.0, "emotional_resonance": 55.0},
+        ],
+        "mirofish_metrics": [
+            {"organic_shares": 12, "sentiment_trajectory": [0.2, 0.4]},
+            {"organic_shares": 8, "sentiment_trajectory": [0.1, 0.3]},
+            {"organic_shares": 5, "sentiment_trajectory": [0.0, 0.2]},
+        ],
+        "composite_scores": [
+            {"attention_score": attention_score, "backlash_risk": backlash_risk, "virality_potential": 60.0},
+            {"attention_score": attention_score - 10, "backlash_risk": backlash_risk + 10, "virality_potential": 50.0},
+            {"attention_score": attention_score - 20, "backlash_risk": backlash_risk + 20, "virality_potential": 40.0},
+        ],
+        "analysis": {
+            "per_variant_assessment": [
+                {"variant_id": f"v1_iter{iteration}", "composite_assessment": "Good."},
+            ],
+            "recommendations_for_next_iteration": ["Improve attention."],
+        },
+        "system_availability": {"tribe_available": True, "mirofish_available": True},
+        "warnings": [],
+    }
+
+
+def _build_campaign_runner(
+    campaign: CampaignResponse | None = None,
+    iteration_results: list[dict] | None = None,
+) -> tuple[CampaignRunner, dict[str, AsyncMock]]:
+    """
+    Build a CampaignRunner with mocked dependencies for run_campaign testing.
+
+    If iteration_results is provided, run_single_iteration returns them
+    sequentially. Otherwise returns a default result for each call.
+    """
+    mock_variant_gen = AsyncMock()
+    mock_tribe_scoring = AsyncMock()
+    mock_mirofish_runner = AsyncMock()
+    mock_result_analyzer = AsyncMock()
+    mock_store = AsyncMock()
+    mock_tribe_client = AsyncMock()
+    mock_mirofish_client = AsyncMock()
+
+    if campaign is None:
+        campaign = _make_campaign_response()
+
+    mock_store.get_campaign.return_value = campaign
+
+    runner = CampaignRunner(
+        variant_generator=mock_variant_gen,
+        tribe_scoring=mock_tribe_scoring,
+        mirofish_runner=mock_mirofish_runner,
+        result_analyzer=mock_result_analyzer,
+        campaign_store=mock_store,
+        tribe_client=mock_tribe_client,
+        mirofish_client=mock_mirofish_client,
+    )
+
+    mocks = {
+        "variant_gen": mock_variant_gen,
+        "tribe_scoring": mock_tribe_scoring,
+        "mirofish_runner": mock_mirofish_runner,
+        "result_analyzer": mock_result_analyzer,
+        "store": mock_store,
+        "tribe_client": mock_tribe_client,
+        "mirofish_client": mock_mirofish_client,
+    }
+
+    return runner, mocks
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_passes_previous_results():
+    """Iteration 2+ receives previous_iteration_results and previous_analysis."""
+    campaign = _make_campaign_response(max_iterations=2, thresholds=None)
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    # Track calls to run_single_iteration
+    call_args_list = []
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        call_args_list.append({
+            "iteration_number": iteration_number,
+            "previous_iteration_results": previous_iteration_results,
+            "previous_analysis": previous_analysis,
+            "manage_status": manage_status,
+        })
+        return _make_iteration_result(iteration_number)
+
+    runner.run_single_iteration = mock_run_single
+
+    result = await runner.run_campaign("campaign-001")
+
+    # Iteration 1: no previous results
+    assert call_args_list[0]["iteration_number"] == 1
+    assert call_args_list[0]["previous_iteration_results"] is None
+    assert call_args_list[0]["previous_analysis"] is None
+
+    # Iteration 2: has previous results and analysis
+    assert call_args_list[1]["iteration_number"] == 2
+    assert call_args_list[1]["previous_iteration_results"] is not None
+    assert len(call_args_list[1]["previous_iteration_results"]) == 3  # 3 variants
+    assert call_args_list[1]["previous_analysis"] is not None
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_stops_on_threshold_met():
+    """Loop exits with stop_reason='thresholds_met' when thresholds are met."""
+    campaign = _make_campaign_response(
+        max_iterations=4,
+        thresholds={"attention_score": 75.0},
+    )
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    call_count = 0
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        nonlocal call_count
+        call_count += 1
+        if iteration_number == 1:
+            return _make_iteration_result(iteration_number, attention_score=60.0)
+        else:
+            # Iteration 2: scores meet threshold
+            return _make_iteration_result(iteration_number, attention_score=80.0)
+
+    runner.run_single_iteration = mock_run_single
+
+    result = await runner.run_campaign("campaign-001")
+
+    assert result["stop_reason"] == "thresholds_met"
+    assert result["iterations_completed"] == 2
+    assert call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_stops_on_convergence():
+    """Loop exits with stop_reason='converged' after <5% improvement for 2 consecutive iterations."""
+    campaign = _make_campaign_response(max_iterations=5, thresholds=None)
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    # Need 3 iterations to get 2 improvement values (Pitfall 6)
+    # iter1 -> iter2: small improvement, iter2 -> iter3: small improvement
+    iteration_scores = [70.0, 71.0, 71.5, 72.0, 72.5]
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        score = iteration_scores[iteration_number - 1]
+        return _make_iteration_result(iteration_number, attention_score=score)
+
+    runner.run_single_iteration = mock_run_single
+
+    result = await runner.run_campaign("campaign-001")
+
+    assert result["stop_reason"] == "converged"
+    # Should stop after iter 3 (2 improvement values both < 5%)
+    assert result["iterations_completed"] == 3
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_respects_max_iterations():
+    """Without convergence or threshold, runs exactly max_iterations."""
+    campaign = _make_campaign_response(max_iterations=3, thresholds=None)
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    # Scores improve significantly each time (no convergence)
+    iteration_scores = [50.0, 65.0, 80.0]
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        score = iteration_scores[iteration_number - 1]
+        return _make_iteration_result(iteration_number, attention_score=score)
+
+    runner.run_single_iteration = mock_run_single
+
+    result = await runner.run_campaign("campaign-001")
+
+    assert result["stop_reason"] == "max_iterations"
+    assert result["iterations_completed"] == 3
+    assert len(result["iterations"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_emits_progress_events():
+    """Progress callback receives iteration_start, iteration_complete, campaign_complete events."""
+    campaign = _make_campaign_response(max_iterations=2, thresholds=None)
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    # Significant improvement to avoid convergence
+    iteration_scores = [50.0, 70.0]
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        score = iteration_scores[iteration_number - 1]
+        return _make_iteration_result(iteration_number, attention_score=score)
+
+    runner.run_single_iteration = mock_run_single
+
+    events = []
+    async def progress_callback(event):
+        events.append(event)
+
+    result = await runner.run_campaign("campaign-001", progress_callback=progress_callback)
+
+    event_types = [e["event"] for e in events]
+
+    # Expect: iteration_start, iteration_complete (x2), campaign_complete
+    assert event_types.count("iteration_start") == 2
+    assert event_types.count("iteration_complete") == 2
+    assert event_types.count("campaign_complete") == 1
+
+    # campaign_complete event has stop_reason
+    complete_event = [e for e in events if e["event"] == "campaign_complete"][0]
+    assert complete_event["stop_reason"] == "max_iterations"
+
+
+@pytest.mark.asyncio
+async def test_run_campaign_manage_status_false_in_single_iteration():
+    """run_single_iteration is called with manage_status=False from run_campaign."""
+    campaign = _make_campaign_response(max_iterations=1, thresholds=None)
+    runner, mocks = _build_campaign_runner(campaign=campaign)
+
+    manage_status_values = []
+
+    async def mock_run_single(campaign_id, iteration_number=1,
+                               previous_iteration_results=None,
+                               previous_analysis=None,
+                               manage_status=True):
+        manage_status_values.append(manage_status)
+        return _make_iteration_result(iteration_number)
+
+    runner.run_single_iteration = mock_run_single
+
+    await runner.run_campaign("campaign-001")
+
+    assert manage_status_values == [False]

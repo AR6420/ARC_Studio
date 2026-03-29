@@ -17,7 +17,7 @@ Per D-06: Pre-flight health check approach for simplicity.
 """
 
 import logging
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from orchestrator.api.schemas import SystemAvailability
 from orchestrator.clients.tribe_client import TribeClient
@@ -28,6 +28,14 @@ from orchestrator.engine.mirofish_runner import MirofishRunner
 from orchestrator.engine.composite_scorer import compute_composite_scores
 from orchestrator.engine.result_analyzer import ResultAnalyzer
 from orchestrator.storage.campaign_store import CampaignStore
+from orchestrator.engine.optimization_loop import (
+    TimeEstimator,
+    build_iteration_feedback,
+    check_thresholds,
+    compute_improvement,
+    find_best_composite,
+    is_converged,
+)
 from orchestrator.prompts.demographic_profiles import get_cognitive_weights
 
 logger = logging.getLogger(__name__)
@@ -99,6 +107,7 @@ class CampaignRunner:
         iteration_number: int = 1,
         previous_iteration_results: list[dict[str, Any]] | None = None,
         previous_analysis: dict[str, Any] | None = None,
+        manage_status: bool = True,
     ) -> dict[str, Any]:
         """
         Run a single iteration of the campaign pipeline.
@@ -120,8 +129,9 @@ class CampaignRunner:
         if not campaign:
             raise ValueError(f"Campaign {campaign_id} not found")
 
-        # Update status to running
-        await self._store.update_campaign_status(campaign_id, "running")
+        # Update status to running (skip if caller manages status, e.g. run_campaign)
+        if manage_status:
+            await self._store.update_campaign_status(campaign_id, "running")
 
         try:
             # Step 1: Pre-flight health check
@@ -228,8 +238,9 @@ class CampaignRunner:
                 },
             )
 
-            # Update status to completed (for single iteration)
-            await self._store.update_campaign_status(campaign_id, "completed")
+            # Update status to completed (skip if caller manages status)
+            if manage_status:
+                await self._store.update_campaign_status(campaign_id, "completed")
 
             result = {
                 "campaign_id": campaign_id,
@@ -251,7 +262,164 @@ class CampaignRunner:
 
         except Exception as e:
             logger.error("Campaign %s iteration %d failed: %s", campaign_id, iteration_number, e)
+            if manage_status:
+                await self._store.update_campaign_status(campaign_id, "failed", error=str(e))
+            raise
+
+    async def run_campaign(
+        self,
+        campaign_id: str,
+        progress_callback: Callable[[dict], Awaitable[None]] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Multi-iteration optimization loop.
+
+        Calls run_single_iteration() in a loop, passing previous results forward.
+        Checks thresholds (D-06, D-07) and convergence (D-05) after each iteration.
+        Emits progress events via optional callback.
+
+        Per D-01: Full previous results passed forward.
+        Per D-02: 3 variants per iteration (already default).
+        Per D-03: Replace all variants each iteration (no carry-forward).
+        Per D-04: Opus recommendations in iteration_note.
+        Per D-08: max_iterations is hard cap.
+
+        Args:
+            campaign_id: Campaign to run.
+            progress_callback: Optional async callback for progress events.
+
+        Returns:
+            Dict with campaign_id, iterations, stop_reason, iterations_completed,
+            best_scores_history, improvement_history.
+        """
+        campaign = await self._store.get_campaign(campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {campaign_id} not found")
+
+        max_iterations = campaign.max_iterations
+        thresholds = campaign.thresholds
+
+        # Set campaign status to running (loop manages status)
+        await self._store.update_campaign_status(campaign_id, "running")
+
+        estimator = TimeEstimator()
+        total_steps_per_iteration = 5  # generating, scoring, simulating, analyzing, checking
+
+        previous_results: list[dict[str, Any]] | None = None
+        previous_analysis: dict[str, Any] | None = None
+        best_scores_history: list[dict[str, float | None]] = []
+        improvement_history: list[float] = []
+        observed_step_durations: list[float] = []
+        all_iteration_results: list[dict[str, Any]] = []
+        stop_reason = "max_iterations"
+
+        try:
+            for iteration in range(1, max_iterations + 1):
+                # Emit iteration_start event
+                if progress_callback:
+                    eta = estimator.estimate_remaining(
+                        current_iteration=iteration,
+                        current_step=0,
+                        total_steps_per_iteration=total_steps_per_iteration,
+                        max_iterations=max_iterations,
+                        observed_step_durations=observed_step_durations,
+                    )
+                    await progress_callback({
+                        "event": "iteration_start",
+                        "campaign_id": campaign_id,
+                        "iteration": iteration,
+                        "max_iterations": max_iterations,
+                        "eta_seconds": eta * 60,
+                    })
+
+                # Run the single iteration (status managed by this loop)
+                result = await self.run_single_iteration(
+                    campaign_id=campaign_id,
+                    iteration_number=iteration,
+                    previous_iteration_results=previous_results,
+                    previous_analysis=previous_analysis,
+                    manage_status=False,
+                )
+
+                # Extract best composite scores for threshold/convergence checks
+                best_composite = find_best_composite(result["composite_scores"])
+                best_scores_history.append(best_composite)
+
+                # Compute improvement if we have 2+ iterations
+                if len(best_scores_history) >= 2:
+                    improvement = compute_improvement(
+                        best_scores_history[-1], best_scores_history[-2]
+                    )
+                    improvement_history.append(improvement)
+
+                # Build feedback for next iteration
+                previous_results = build_iteration_feedback(result, result["analysis"])
+                previous_analysis = result["analysis"]
+
+                # Track result
+                all_iteration_results.append(result)
+
+                # Emit iteration_complete event
+                if progress_callback:
+                    await progress_callback({
+                        "event": "iteration_complete",
+                        "campaign_id": campaign_id,
+                        "iteration": iteration,
+                        "max_iterations": max_iterations,
+                        "best_scores": best_composite,
+                    })
+
+                # Check thresholds (D-06, D-07)
+                if thresholds:
+                    all_met, threshold_status = check_thresholds(best_composite, thresholds)
+                    if progress_callback:
+                        await progress_callback({
+                            "event": "threshold_check",
+                            "campaign_id": campaign_id,
+                            "iteration": iteration,
+                            "all_met": all_met,
+                            "status": threshold_status,
+                        })
+                    if all_met:
+                        stop_reason = "thresholds_met"
+                        break
+
+                # Check convergence (D-05 -- need at least 2 improvement values)
+                if len(improvement_history) >= 2:
+                    if is_converged(improvement_history):
+                        stop_reason = "converged"
+                        break
+
+            # Campaign completed -- set final status
+            await self._store.update_campaign_status(campaign_id, "completed")
+
+            # Emit campaign_complete event
+            if progress_callback:
+                await progress_callback({
+                    "event": "campaign_complete",
+                    "campaign_id": campaign_id,
+                    "stop_reason": stop_reason,
+                    "iterations_completed": len(all_iteration_results),
+                })
+
+            return {
+                "campaign_id": campaign_id,
+                "iterations": all_iteration_results,
+                "stop_reason": stop_reason,
+                "iterations_completed": len(all_iteration_results),
+                "best_scores_history": best_scores_history,
+                "improvement_history": improvement_history,
+            }
+
+        except Exception as e:
+            logger.error("Campaign %s failed during multi-iteration loop: %s", campaign_id, e)
             await self._store.update_campaign_status(campaign_id, "failed", error=str(e))
+            if progress_callback:
+                await progress_callback({
+                    "event": "campaign_error",
+                    "campaign_id": campaign_id,
+                    "error": str(e),
+                })
             raise
 
 
