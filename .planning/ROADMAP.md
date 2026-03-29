@@ -119,7 +119,11 @@ Plans:
   2. Layer 2 scorecard contains composite scores, variant ranking, and iteration trajectory as structured JSON
   3. Layer 4 mass psychology includes both a general narrative (200-600 words) and a technical analysis referencing at least 2 named psychology theories
   4. Full campaign results can be downloaded as JSON and a Markdown summary can be exported
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md -- Report data layer, ReportGenerator engine, scorecard prompt (RPT-01, RPT-02, RPT-03, RPT-04, RPT-05)
+- [ ] 07-02-PLAN.md -- Report API endpoints, JSON/Markdown export, pipeline integration (RPT-06, RPT-07)
 
 ### Phase 8: UI Dashboard
 **Goal**: Users interact with the full system through a React dashboard -- creating campaigns, watching real-time progress, viewing results across three tabs, and interviewing simulated agents
@@ -159,6 +163,6 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 4. Claude Client Setup | 0/? | Not started | - |
 | 5. Orchestrator Integration Pipeline | 7/7 | Complete | 2026-03-29 |
 | 6. Optimization Loop | 0/3 | Planning complete | - |
-| 7. Report Generation | 0/? | Not started | - |
+| 7. Report Generation | 0/2 | Planning complete | - |
 | 8. UI Dashboard | 0/? | Not started | - |
 | 9. Validation and Documentation | 0/? | Not started | - |
