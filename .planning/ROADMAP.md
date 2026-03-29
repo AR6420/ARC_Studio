@@ -86,7 +86,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 7 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Pydantic schemas + SQLite storage layer (ORCH-02, ORCH-03)
+- [x] 05-01-PLAN.md -- Pydantic schemas + SQLite storage layer (ORCH-02, ORCH-03)
 - [ ] 05-02-PLAN.md -- HTTP clients for TRIBE v2 and MiroFish (ORCH-07)
 - [ ] 05-03-PLAN.md -- Variant generator + composite scorer (ORCH-08, ORCH-11)
 - [ ] 05-04-PLAN.md -- TRIBE scoring pipeline + MiroFish simulation runner (ORCH-09, ORCH-10)
