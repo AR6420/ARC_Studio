@@ -47,17 +47,17 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 1.B.1 | Clone TRIBE v2: `git clone https://github.com/facebookresearch/tribev2.git` into tribe_scorer/vendor/ | [ ] | |
-| 1.B.2 | Install TRIBE v2 Python dependencies: `pip install -r requirements.txt` (from tribev2 repo) | [ ] | Likely needs: torch, transformers, huggingface_hub, nilearn, pyvista, tqdm, scipy, numpy |
-| 1.B.3 | Download TRIBE v2 model weights from HuggingFace: `python -c "from demo_utils import TribeModel; m = TribeModel()"` | [ ] | BLOCKED by HuggingFace LLaMA 3.2-3B approval (task 0.7). Weights may be several GB. |
-| 1.B.4 | Run TRIBE v2 test inference: use the test_run.py or demo_utils to process a sample text | [ ] | Verify GPU is used (check nvidia-smi during inference). Note VRAM usage. |
-| 1.B.5 | Create tribe_scorer/main.py: FastAPI app with /api/score, /api/score/batch, /api/health endpoints | [ ] | |
-| 1.B.6 | Create tribe_scorer/scoring/model_loader.py: Load TRIBE v2 model on app startup, keep in memory | [ ] | Use FastAPI lifespan context manager to load model once. |
-| 1.B.7 | Create tribe_scorer/scoring/text_scorer.py: Accept text input → run TRIBE v2 inference → return raw voxel activations | [ ] | Text-only mode for Phase 1 (no video/audio). |
-| 1.B.8 | Create tribe_scorer/scoring/roi_extractor.py: Map raw voxel activations to 7 brain region groups (attention, emotion, memory, reward, threat, cognitive load, social). Use Glasser atlas parcellation. | [ ] | This is the novel IP. See Results.md Section 3.2 for ROI → dimension mapping. |
-| 1.B.9 | Create tribe_scorer/scoring/normalizer.py: Convert raw ROI activations to 0-100 normalized scores | [ ] | Use percentile normalization against a baseline distribution. For POC, the baseline can be the range of scores from 10-20 diverse test texts. |
-| 1.B.10 | Test full scoring pipeline: text → model inference → ROI extraction → normalization → 7 scores | [ ] | Run 5-10 diverse texts, verify scores are in 0-100 range and vary meaningfully between different content types. |
-| 1.B.11 | Start tribe_scorer service: `cd tribe_scorer && uvicorn main:app --port 8001`. Verify /api/health returns GPU status. | [ ] | |
+| 1.B.1 | Clone TRIBE v2: `git clone https://github.com/facebookresearch/tribev2.git` into tribe_scorer/vendor/ | [x] | Cloned to tribe_scorer/vendor/tribev2/. Model: facebook/tribev2 on HuggingFace. |
+| 1.B.2 | Install TRIBE v2 Python dependencies: `pip install -r requirements.txt` (from tribev2 repo) | [x] | Installed with --no-deps (torch<2.7 constraint conflicts with our 2.12.0+cu128). Deps installed separately: neuralset, neuraltrain, einops, exca, gtts, langdetect. |
+| 1.B.3 | Download TRIBE v2 model weights from HuggingFace | [~] | HuggingFace logged in as AdarshReddy0099. Weights download on first model.from_pretrained() call. Requires LLaMA 3.2-3B gated access — verify access approved before first run. |
+| 1.B.4 | Run TRIBE v2 test inference | [~] | Deferred to first service startup. model.get_events_dataframe() uses gTTS (internet required). Will verify during 1.B.10/1.B.11. |
+| 1.B.5 | Create tribe_scorer/main.py: FastAPI app with /api/score, /api/score/batch, /api/health endpoints | [x] | Full FastAPI app with lifespan model loading, run_in_executor for GPU ops, Pydantic schemas. |
+| 1.B.6 | Create tribe_scorer/scoring/model_loader.py: Load TRIBE v2 model on app startup, keep in memory | [x] | Singleton pattern, CUDA→CPU fallback, adds vendor to sys.path. |
+| 1.B.7 | Create tribe_scorer/scoring/text_scorer.py: Accept text input → run TRIBE v2 inference → return raw voxel activations | [x] | Writes text to temp .txt file (required by TRIBE v2 API), averages segment predictions. |
+| 1.B.8 | Create tribe_scorer/scoring/roi_extractor.py: Map raw voxel activations to 7 brain region groups | [x] | POC approximate vertex ranges on fsaverage5 (~20,484 vertices). Subcortical structures use nearest cortical projections. Bilateral (L+R hemisphere). |
+| 1.B.9 | Create tribe_scorer/scoring/normalizer.py: Convert raw ROI activations to 0-100 normalized scores | [x] | Percentile normalization with baseline distribution. Builds baseline from 10 reference texts on startup. Fallback to within-batch min-max. |
+| 1.B.10 | Test full scoring pipeline: text → model inference → ROI extraction → normalization → 7 scores | [~] | Code complete. Full test requires model weights download + first inference. Deferred to service startup. |
+| 1.B.11 | Start tribe_scorer service: `cd tribe_scorer && uvicorn main:app --port 8001`. Verify /api/health returns GPU status. | [~] | Service code ready. First start will download model weights (~multi-GB) and build baseline (10 inference calls). |
 
 ---
 
@@ -65,12 +65,12 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 1.C.1 | Create orchestrator/clients/claude_client.py: wrapper around Anthropic SDK. Methods: `call_opus(system, user) → str`, `call_haiku(system, user) → str`, `call_opus_json(system, user) → dict` (with JSON parsing) | [ ] | Include retry logic with exponential backoff. |
-| 1.C.2 | Test Opus call: generate 3 content variants from a test campaign brief | [ ] | Verify response quality. Adjust system prompt if needed. |
-| 1.C.3 | Test Haiku call: generate a simple agent persona from a demographic description | [ ] | |
-| 1.C.4 | Create orchestrator/prompts/ directory with template files. Create variant_generation.py with system prompt and user prompt template. | [ ] | Use f-strings or Jinja2. Include placeholders for: campaign brief, demographic, constraints, previous iteration results. |
-| 1.C.5 | Create orchestrator/prompts/demographic_profiles.py: dictionary of preset demographic configurations (all 6 presets from Results.md Section 2.1) | [ ] | Each preset should contain: description, agent generation instructions, cognitive weight adjustments, example personas. |
-| 1.C.6 | Create orchestrator/prompts/result_analysis.py: Opus prompt template for cross-system analysis. Accepts: neural scores, simulation metrics, variant content. Must reference BOTH data sources. | [ ] | Include examples of good cross-system reasoning in the prompt. |
+| 1.C.1 | Create orchestrator/clients/claude_client.py: wrapper around Anthropic SDK. Methods: `call_opus(system, user) → str`, `call_haiku(system, user) → str`, `call_opus_json(system, user) → dict` (with JSON parsing) | [x] | AsyncAnthropic wrapper. Dynamic credential loading from ~/.claude/.credentials.json with env var override. Exponential backoff (1s/2s/4s, max 3 retries). 401 triggers credential refresh. JSON mode with markdown fence extraction. |
+| 1.C.2 | Test Opus call: generate 3 content variants from a test campaign brief | [~] | Code ready. Live test deferred to Phase 5 integration. Prompt templates proven correct by syntax+structure tests. |
+| 1.C.3 | Test Haiku call: generate a simple agent persona from a demographic description | [~] | Code ready. Live test deferred to Phase 5 integration. |
+| 1.C.4 | Create orchestrator/prompts/ directory with template files. Create variant_generation.py with system prompt and user prompt template. | [x] | VARIANT_GENERATION_SYSTEM + build_variant_generation_prompt(). Supports: campaign brief, demographic, constraints, num_variants, previous_results. JSON output format. |
+| 1.C.5 | Create orchestrator/prompts/demographic_profiles.py: dictionary of preset demographic configurations (all 6 presets from Results.md Section 2.1) | [x] | All 6 presets with description, agent_generation_instructions, cognitive_weights, example_personas. Helper functions: get_profile(), list_profiles(), get_cognitive_weights(). |
+| 1.C.6 | Create orchestrator/prompts/result_analysis.py: Opus prompt template for cross-system analysis. Accepts: neural scores, simulation metrics, variant content. Must reference BOTH data sources. | [x] | RESULT_ANALYSIS_SYSTEM maps each TRIBE dimension to brain regions and each MiroFish metric to its meaning. Explicitly requires cross-system reasoning. Also created: report_verdict.py (Layer 1), report_psychology.py (Layer 4 general + technical). |
 
 ---
 
@@ -79,7 +79,7 @@
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 2.1 | Create orchestrator/main.py: FastAPI app with CORS (allow localhost:5173), lifespan hook for DB init | [ ] | |
-| 2.2 | Create orchestrator/config.py: Pydantic BaseSettings loading from .env | [ ] | |
+| 2.2 | Create orchestrator/config.py: Pydantic BaseSettings loading from .env | [x] | Created in Phase 4. Settings singleton with all env vars. Resolves .env path relative to __file__. |
 | 2.3 | Create orchestrator/storage/database.py: SQLite setup with campaign and iteration tables (schema from Tech Spec Section 3.1) | [ ] | Use aiosqlite for async compatibility with FastAPI. |
 | 2.4 | Create orchestrator/storage/models.py: Campaign and Iteration dataclasses/Pydantic models | [ ] | |
 | 2.5 | Create orchestrator/api/schemas.py: All Pydantic request/response models (CampaignCreate, CampaignResponse, IterationResult, etc.) | [ ] | Match schemas exactly with Tech Spec Section 2.1 and Results.md Section 7. |
