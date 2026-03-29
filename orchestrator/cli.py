@@ -13,6 +13,7 @@ Per ORCH-14: Produces variants, scores, metrics, and analysis without needing th
 import argparse
 import asyncio
 import json
+import json as json_module
 import logging
 import sys
 from pathlib import Path
@@ -52,6 +53,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--demographic-custom", type=str, default=None,
                        help="Custom demographic description (when --demographic=custom)")
     parser.add_argument("--agent-count", type=int, default=40, help="Number of MiroFish agents (default: 40)")
+    parser.add_argument("--max-iterations", type=int, default=4, help="Max optimization iterations (default: 4)")
+    parser.add_argument("--thresholds", type=str, default=None,
+                       help='JSON thresholds, e.g. \'{"attention_score": 70.0}\'')
     parser.add_argument("--constraints", type=str, default=None, help="Brand guidelines or constraints")
     parser.add_argument("--output", type=str, default=None, help="Path to write JSON results (default: stdout)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
@@ -99,6 +103,13 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         else:
             seed_content = args.seed_content
 
+        # Parse thresholds if provided
+        thresholds = None
+        if hasattr(args, "thresholds") and args.thresholds:
+            thresholds = json_module.loads(args.thresholds)
+
+        max_iterations = getattr(args, "max_iterations", 4)
+
         # Create campaign
         request = CampaignCreateRequest(
             seed_content=seed_content,
@@ -106,6 +117,8 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             demographic=args.demographic,
             demographic_custom=args.demographic_custom,
             agent_count=args.agent_count,
+            max_iterations=max_iterations,
+            thresholds=thresholds,
             constraints=args.constraints,
             auto_start=False,
         )
@@ -114,12 +127,36 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         print(f"Campaign created: {campaign.id}")
         print(f"Demographic: {args.demographic}")
         print(f"Agent count: {args.agent_count}")
+        print(f"Max iterations: {max_iterations}")
         print(f"{'='*60}\n")
 
-        # Run single iteration
-        result = await runner.run_single_iteration(
+        async def cli_progress_callback(event: dict):
+            """Print progress events to console."""
+            evt = event.get("event", "")
+            if evt == "iteration_start":
+                iteration = event.get("iteration", "?")
+                max_iter = event.get("max_iterations", "?")
+                eta = event.get("eta_seconds")
+                eta_str = f" (ETA: {eta:.0f}s)" if eta else ""
+                print(f"\n--- Iteration {iteration}/{max_iter}{eta_str} ---")
+            elif evt == "iteration_complete":
+                iteration = event.get("iteration", "?")
+                print(f"--- Iteration {iteration} complete ---")
+            elif evt == "threshold_check":
+                all_met = event.get("all_met", False)
+                print(f"  Thresholds: {'ALL MET' if all_met else 'not yet met'}")
+            elif evt == "convergence_check":
+                data = event.get("data", {})
+                converged = data.get("converged", False)
+                print(f"  Convergence: {'CONVERGED' if converged else 'continuing'}")
+            elif evt == "campaign_complete":
+                reason = event.get("stop_reason", "unknown")
+                print(f"\nCampaign complete. Stop reason: {reason}")
+
+        # Run multi-iteration campaign
+        result = await runner.run_campaign(
             campaign_id=campaign.id,
-            iteration_number=1,
+            progress_callback=cli_progress_callback,
         )
 
         # Print summary
@@ -134,11 +171,50 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _print_summary(result: dict[str, Any]) -> None:
-    """Print a human-readable summary of campaign results."""
+    """Print a human-readable summary of campaign results.
+
+    Handles both multi-iteration results (from run_campaign()) with
+    'iterations', 'stop_reason', 'iterations_completed', 'best_scores_history'
+    and single-iteration results (from run_single_iteration()) with
+    'variants', 'tribe_scores', etc.
+    """
     print(f"\n{'='*60}")
+
+    # Multi-iteration result (from run_campaign)
+    iterations = result.get("iterations")
+    if iterations is not None:
+        stop_reason = result.get("stop_reason", "unknown")
+        iterations_completed = result.get("iterations_completed", len(iterations))
+        best_scores_history = result.get("best_scores_history", [])
+
+        print(f"CAMPAIGN RESULTS ({iterations_completed} iteration(s), stop: {stop_reason})")
+        print(f"{'='*60}\n")
+
+        # Best scores trajectory
+        if best_scores_history:
+            print("BEST SCORES TRAJECTORY:")
+            for i, scores in enumerate(best_scores_history, 1):
+                summary_parts = []
+                for name, val in scores.items():
+                    if val is not None:
+                        summary_parts.append(f"{name}={val:.1f}" if isinstance(val, float) else f"{name}={val}")
+                print(f"  Iteration {i}: {', '.join(summary_parts) if summary_parts else 'N/A'}")
+            print()
+
+        # Print details for the last iteration
+        if iterations:
+            last = iterations[-1]
+            _print_single_iteration(last)
+        return
+
+    # Single-iteration result (from run_single_iteration -- backward compat)
     print("CAMPAIGN RESULTS")
     print(f"{'='*60}\n")
+    _print_single_iteration(result)
 
+
+def _print_single_iteration(result: dict[str, Any]) -> None:
+    """Print details for a single iteration result."""
     # System availability
     avail = result.get("system_availability", {})
     warnings = result.get("warnings", [])

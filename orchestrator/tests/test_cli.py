@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from orchestrator.cli import parse_args, run_campaign, main, _print_summary
+from orchestrator.cli import parse_args, run_campaign, main, _print_summary, _print_single_iteration
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +98,7 @@ class TestRunCampaignMocked:
     async def test_run_campaign_mocked(self, tmp_path):
         """
         Mock all external dependencies and verify run_campaign completes,
-        returning a dict with the expected top-level keys.
+        returning a dict with the expected top-level keys (multi-iteration format).
         """
         seed = "A comprehensive test seed content for the campaign " * 5
 
@@ -109,38 +109,34 @@ class TestRunCampaignMocked:
             demographic="tech_professionals",
             demographic_custom=None,
             agent_count=40,
+            max_iterations=4,
+            thresholds=None,
             constraints=None,
             output=None,
             verbose=False,
         )
 
-        # Canned data for mock returns
+        # Canned data for mock returns (multi-iteration format from run_campaign)
         fake_campaign_id = "test-campaign-001"
-        fake_variants = [
-            {"id": "v1", "content": "Variant one content", "strategy": "direct_appeal"},
-            {"id": "v2", "content": "Variant two content", "strategy": "social_proof"},
-            {"id": "v3", "content": "Variant three content", "strategy": "urgency"},
-        ]
-        fake_tribe_scores = {
-            "attention_capture": 75.0,
-            "emotional_resonance": 68.0,
-            "memory_encoding": 72.0,
-            "reward_response": 65.0,
-            "threat_detection": 20.0,
-            "cognitive_load": 45.0,
-            "social_relevance": 80.0,
-        }
-        fake_analysis = {
-            "per_variant_assessment": [],
-            "ranking": ["v1", "v3", "v2"],
-            "cross_system_insights": ["Neural attention correlates with social sharing"],
-            "recommendations_for_next_iteration": ["Increase emotional hooks"],
-        }
-        fake_result = {
+        fake_single_iteration = {
             "campaign_id": fake_campaign_id,
             "iteration_number": 1,
-            "variants": fake_variants,
-            "tribe_scores": [fake_tribe_scores, None, fake_tribe_scores],
+            "variants": [
+                {"id": "v1", "content": "Variant one content", "strategy": "direct_appeal"},
+                {"id": "v2", "content": "Variant two content", "strategy": "social_proof"},
+                {"id": "v3", "content": "Variant three content", "strategy": "urgency"},
+            ],
+            "tribe_scores": [
+                {"attention_capture": 75.0, "emotional_resonance": 68.0,
+                 "memory_encoding": 72.0, "reward_response": 65.0,
+                 "threat_detection": 20.0, "cognitive_load": 45.0,
+                 "social_relevance": 80.0},
+                None,
+                {"attention_capture": 75.0, "emotional_resonance": 68.0,
+                 "memory_encoding": 72.0, "reward_response": 65.0,
+                 "threat_detection": 20.0, "cognitive_load": 45.0,
+                 "social_relevance": 80.0},
+            ],
             "mirofish_metrics": [None, None, None],
             "composite_scores": [
                 {"attention_score": 72.2, "virality_potential": None,
@@ -148,9 +144,22 @@ class TestRunCampaignMocked:
                  "conversion_potential": 51.9, "audience_fit": 65.0,
                  "polarization_index": None},
             ] * 3,
-            "analysis": fake_analysis,
+            "analysis": {
+                "per_variant_assessment": [],
+                "ranking": ["v1", "v3", "v2"],
+                "cross_system_insights": ["Neural attention correlates with social sharing"],
+                "recommendations_for_next_iteration": ["Increase emotional hooks"],
+            },
             "system_availability": {"tribe_available": True, "mirofish_available": False},
             "warnings": ["MiroFish simulator unavailable -- simulation metrics will be skipped"],
+        }
+        fake_result = {
+            "campaign_id": fake_campaign_id,
+            "iterations": [fake_single_iteration],
+            "stop_reason": "max_iterations",
+            "iterations_completed": 1,
+            "best_scores_history": [{"attention_score": 72.2}],
+            "improvement_history": [],
         }
 
         # Mock all the components
@@ -159,7 +168,7 @@ class TestRunCampaignMocked:
         mock_store.create_campaign.return_value = MagicMock(id=fake_campaign_id)
 
         mock_runner = AsyncMock()
-        mock_runner.run_single_iteration.return_value = fake_result
+        mock_runner.run_campaign.return_value = fake_result
 
         db_path = str(tmp_path / "test.db")
 
@@ -186,21 +195,19 @@ class TestRunCampaignMocked:
 
             result = await run_campaign(args)
 
-        # Verify result structure
+        # Verify result structure (multi-iteration format)
         assert isinstance(result, dict)
         assert "campaign_id" in result
-        assert "variants" in result
-        assert "tribe_scores" in result
-        assert "mirofish_metrics" in result
-        assert "composite_scores" in result
-        assert "analysis" in result
-        assert "system_availability" in result
-        assert "warnings" in result
+        assert "iterations" in result
+        assert "stop_reason" in result
+        assert "iterations_completed" in result
+        assert "best_scores_history" in result
 
-        # Verify the pipeline was invoked
+        # Verify the pipeline was invoked via run_campaign (not run_single_iteration)
         mock_db.connect.assert_awaited_once()
         mock_store.create_campaign.assert_awaited_once()
-        mock_runner.run_single_iteration.assert_awaited_once()
+        mock_runner.run_campaign.assert_awaited_once()
+        mock_runner.run_single_iteration.assert_not_awaited()
         mock_db.close.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -217,6 +224,8 @@ class TestRunCampaignMocked:
             demographic="tech_professionals",
             demographic_custom=None,
             agent_count=40,
+            max_iterations=4,
+            thresholds=None,
             constraints=None,
             output=None,
             verbose=False,
@@ -224,21 +233,18 @@ class TestRunCampaignMocked:
 
         fake_result = {
             "campaign_id": "test-002",
-            "iteration_number": 1,
-            "variants": [],
-            "tribe_scores": [],
-            "mirofish_metrics": [],
-            "composite_scores": [],
-            "analysis": {},
-            "system_availability": {"tribe_available": False, "mirofish_available": False},
-            "warnings": [],
+            "iterations": [],
+            "stop_reason": "max_iterations",
+            "iterations_completed": 0,
+            "best_scores_history": [],
+            "improvement_history": [],
         }
 
         mock_db = AsyncMock()
         mock_store = AsyncMock()
         mock_store.create_campaign.return_value = MagicMock(id="test-002")
         mock_runner = AsyncMock()
-        mock_runner.run_single_iteration.return_value = fake_result
+        mock_runner.run_campaign.return_value = fake_result
 
         with patch("orchestrator.cli.Database", return_value=mock_db), \
              patch("orchestrator.cli.CampaignStore", return_value=mock_store), \
@@ -272,8 +278,49 @@ class TestRunCampaignMocked:
 class TestPrintSummary:
     """Verify the summary printer handles various result shapes."""
 
-    def test_print_summary_full_result(self, capsys):
-        """Print a full result with all fields populated."""
+    def test_print_summary_multi_iteration(self, capsys):
+        """Print a multi-iteration result from run_campaign()."""
+        result = {
+            "campaign_id": "test-001",
+            "iterations": [
+                {
+                    "system_availability": {"tribe_available": True, "mirofish_available": True},
+                    "warnings": [],
+                    "variants": [
+                        {"id": "v1", "content": "Content for variant one", "strategy": "direct_appeal"},
+                    ],
+                    "tribe_scores": [
+                        {"attention_capture": 75.0, "emotional_resonance": 68.0},
+                    ],
+                    "mirofish_metrics": [
+                        {"organic_shares": 15, "sentiment_drift": 0.12, "sentiment_trajectory": [0.1, 0.2]},
+                    ],
+                    "composite_scores": [
+                        {"attention_score": 72.2, "virality_potential": 45.1},
+                    ],
+                    "analysis": {
+                        "ranking": ["v1"],
+                        "cross_system_insights": ["High attention maps to sharing behavior"],
+                        "recommendations_for_next_iteration": ["Try more emotional hooks"],
+                    },
+                },
+            ],
+            "stop_reason": "max_iterations",
+            "iterations_completed": 1,
+            "best_scores_history": [{"attention_score": 72.2}],
+            "improvement_history": [],
+        }
+        _print_summary(result)
+        captured = capsys.readouterr()
+        assert "CAMPAIGN RESULTS (1 iteration(s), stop: max_iterations)" in captured.out
+        assert "BEST SCORES TRAJECTORY:" in captured.out
+        assert "TRIBE v2: Available" in captured.out
+        assert "MiroFish: Available" in captured.out
+        assert "v1" in captured.out
+        assert "RANKING: v1" in captured.out
+
+    def test_print_summary_single_iteration_compat(self, capsys):
+        """Print a single-iteration result (backward compat with run_single_iteration)."""
         result = {
             "system_availability": {"tribe_available": True, "mirofish_available": True},
             "warnings": [],
@@ -299,9 +346,6 @@ class TestPrintSummary:
         captured = capsys.readouterr()
         assert "CAMPAIGN RESULTS" in captured.out
         assert "TRIBE v2: Available" in captured.out
-        assert "MiroFish: Available" in captured.out
-        assert "v1" in captured.out
-        assert "RANKING: v1" in captured.out
         assert "CROSS-SYSTEM INSIGHTS:" in captured.out
 
     def test_print_summary_empty_result(self, capsys):
