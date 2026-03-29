@@ -1,0 +1,27 @@
+# FastAPI service dependencies for TRIBE v2 scorer
+# Install TRIBE v2 itself from the vendored directory:
+#   pip install -e ./vendor/tribev2
+
+# Web framework
+fastapi>=0.111.0,<0.120.0
+uvicorn[standard]>=0.29.0,<0.35.0
+pydantic>=2.7.0,<3.0.0
+pydantic-settings>=2.2.0,<3.0.0
+
+# Scientific / ML stack (must be compatible with tribev2 requirements)
+numpy>=2.0.0,<3.0.0
+torch>=2.5.1,<2.7
+
+# Required by tribev2 directly (listed here for explicit visibility)
+transformers>=4.40.0
+huggingface_hub>=0.23.0
+einops>=0.7.0
+gtts>=2.5.0
+langdetect>=1.0.9
+soundfile>=0.12.0
+spacy>=3.7.0
+Levenshtein>=0.25.0
+julius>=0.2.7
+
+# Async worker support
+anyio>=4.3.0

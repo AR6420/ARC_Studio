@@ -1,0 +1,3 @@
+[submodule "mirofish"]
+	path = mirofish
+	url = https://github.com/AR6420/MiroFish-Offline.git
