@@ -58,10 +58,10 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [ ] **ORCH-05**: System health endpoint pinging all downstream services
 - [ ] **ORCH-06**: Demographics endpoint returning preset list
 - [x] **ORCH-07**: Async HTTP clients for TRIBE scorer and MiroFish
-- [ ] **ORCH-08**: Variant generator using Claude to create N content variants
+- [x] **ORCH-08**: Variant generator using Claude to create N content variants
 - [x] **ORCH-09**: TRIBE scoring pipeline (orchestrator -> tribe_scorer -> composite scores)
 - [x] **ORCH-10**: MiroFish simulation pipeline (orchestrator -> graph build -> simulation -> results)
-- [ ] **ORCH-11**: Composite score calculator implementing all 7 formulas from Results.md
+- [x] **ORCH-11**: Composite score calculator implementing all 7 formulas from Results.md
 - [ ] **ORCH-12**: Result analyzer using Claude Opus for cross-system analysis
 - [ ] **ORCH-13**: Campaign runner wiring all components into single-iteration pipeline
 - [ ] **ORCH-14**: End-to-end CLI execution producing variants, scores, metrics, and analysis
@@ -181,10 +181,10 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | ORCH-05 | Phase 5 | Pending |
 | ORCH-06 | Phase 5 | Pending |
 | ORCH-07 | Phase 5 | Complete |
-| ORCH-08 | Phase 5 | Pending |
+| ORCH-08 | Phase 5 | Complete |
 | ORCH-09 | Phase 5 | Complete |
 | ORCH-10 | Phase 5 | Complete |
-| ORCH-11 | Phase 5 | Pending |
+| ORCH-11 | Phase 5 | Complete |
 | ORCH-12 | Phase 5 | Pending |
 | ORCH-13 | Phase 5 | Pending |
 | ORCH-14 | Phase 5 | Pending |

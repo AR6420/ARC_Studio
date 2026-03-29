@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-03-29T11:11:10.938Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-03-29T11:12:45.418Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 9
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - [05-02]: Both clients return None on failure for graceful degradation (D-05)
 - [Phase 05]: Sequential scoring enforced for TRIBE (D-03) and MiroFish (D-04) to avoid GPU/Neo4j contention
 - [Phase 05]: 8 MiroFish metrics computed from raw data (posts/actions/timeline/agent_stats) per Pitfall 6 research
+- [Phase 05]: Composite score normalization divides by scaling factors (100, 10, etc.) to keep 0-100 range
+- [Phase 05]: Sentiment stability defaults to 0.5 neutral when trajectory has <2 data points
+- [Phase 05]: Polarization index scaled by 20x to map small raw values (0-5 range) into 0-100 range
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T11:10:05.452Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-03-29T11:12:45.413Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
