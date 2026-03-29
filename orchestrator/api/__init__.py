@@ -109,6 +109,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Factory function to create the FastAPI app."""
+    from orchestrator.api.agents import router as agents_router
     from orchestrator.api.campaigns import router as campaigns_router
     from orchestrator.api.health import router as health_router
     from orchestrator.api.progress import router as progress_router
@@ -131,6 +132,7 @@ def create_app() -> FastAPI:
     )
 
     # Mount routers
+    application.include_router(agents_router, prefix="/api")
     application.include_router(campaigns_router, prefix="/api")
     application.include_router(health_router, prefix="/api")
     application.include_router(progress_router, prefix="/api")

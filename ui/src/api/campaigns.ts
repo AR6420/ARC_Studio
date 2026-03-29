@@ -6,6 +6,7 @@
 
 import { apiFetch } from './client';
 import type {
+  AgentChatResponse,
   CampaignCreateRequest,
   CampaignListResponse,
   CampaignResponse,
@@ -53,4 +54,18 @@ export function getEstimate(
 
 export function getHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>('/api/health');
+}
+
+export function chatAgent(
+  campaignId: string,
+  agentId: string,
+  message: string,
+): Promise<AgentChatResponse> {
+  return apiFetch<AgentChatResponse>(
+    `/api/campaigns/${campaignId}/agents/${agentId}/chat`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    },
+  );
 }
