@@ -321,6 +321,29 @@ class MirofishClient:
             logger.error("MiroFish simulation start failed: %s", e)
             return False
 
+    async def chat_agent(self, agent_id: str, message: str) -> dict[str, Any] | None:
+        """
+        Send a chat message to a simulated agent via MiroFish API.
+
+        POST /api/agent/{agent_id}/chat
+        Returns response dict or None on failure (graceful degradation per D-05).
+        """
+        try:
+            resp = await self._client.post(
+                f"/api/agent/{agent_id}/chat",
+                json={"message": message},
+                timeout=30.0,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            logger.warning(
+                "Agent chat failed: %s %s", resp.status_code, resp.text[:200]
+            )
+            return None
+        except Exception as e:
+            logger.error("Agent chat error: %s", e)
+            return None
+
     async def _extract_results(self, simulation_id: str) -> dict[str, Any] | None:
         """Step 6: Fetch raw results from multiple MiroFish endpoints."""
         try:

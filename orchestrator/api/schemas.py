@@ -248,3 +248,19 @@ class EstimateResponse(BaseModel):
     agent_count: int
     max_iterations: int
     formula: str  # human-readable formula explanation
+
+
+# -- Agent interview models (UI-08) --
+
+
+class AgentChatRequest(BaseModel):
+    """Request to chat with a simulated agent."""
+
+    message: str = Field(..., min_length=1, max_length=2000)
+
+
+class AgentChatResponse(BaseModel):
+    """Response from agent interview."""
+
+    agent_id: str
+    response: str
