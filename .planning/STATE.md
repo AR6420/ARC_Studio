@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-29T15:15:20.602Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-29T15:16:22.149Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 9
@@ -88,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 05]: CLI instantiates all components directly (Database, clients, engine) for server-free campaign execution
 - [Phase 06]: Queue cleanup in SSE finally block ensures no memory leak on disconnect or completion
 - [Phase 06]: SSE pattern: asyncio.Queue per campaign on app.state -> async generator -> EventSourceResponse with 30s keepalive
+- [Phase 06]: INVERTED_SCORES set for backlash_risk and polarization_index where lower is better
+- [Phase 06]: manage_status=True default on run_single_iteration preserves backward compatibility
+- [Phase 06]: Progress callback is async Callable for SSE integration decoupling
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:13:59.914Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-29T15:16:22.146Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

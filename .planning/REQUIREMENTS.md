@@ -68,13 +68,13 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 
 ### Optimization Loop
 
-- [ ] **OPT-01**: Multi-iteration support in campaign runner (pass previous results to variant generation)
-- [ ] **OPT-02**: Threshold checker comparing composite scores against user targets
-- [ ] **OPT-03**: Early stopping on threshold achievement or convergence (< 5% improvement for 2 iterations)
-- [ ] **OPT-04**: Time estimator with formula-based and runtime-refined estimates
+- [x] **OPT-01**: Multi-iteration support in campaign runner (pass previous results to variant generation)
+- [x] **OPT-02**: Threshold checker comparing composite scores against user targets
+- [x] **OPT-03**: Early stopping on threshold achievement or convergence (< 5% improvement for 2 iterations)
+- [x] **OPT-04**: Time estimator with formula-based and runtime-refined estimates
 - [x] **OPT-05**: POST /api/estimate endpoint
 - [x] **OPT-06**: SSE progress streaming (iteration events, step tracking, ETA)
-- [ ] **OPT-07**: Optimization loop demonstrably improves scores across iterations
+- [x] **OPT-07**: Optimization loop demonstrably improves scores across iterations
 
 ### Report Generation
 
@@ -188,13 +188,13 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | ORCH-12 | Phase 5 | Complete |
 | ORCH-13 | Phase 5 | Complete |
 | ORCH-14 | Phase 5 | Complete |
-| OPT-01 | Phase 6 | Pending |
-| OPT-02 | Phase 6 | Pending |
-| OPT-03 | Phase 6 | Pending |
-| OPT-04 | Phase 6 | Pending |
+| OPT-01 | Phase 6 | Complete |
+| OPT-02 | Phase 6 | Complete |
+| OPT-03 | Phase 6 | Complete |
+| OPT-04 | Phase 6 | Complete |
 | OPT-05 | Phase 6 | Complete |
 | OPT-06 | Phase 6 | Complete |
-| OPT-07 | Phase 6 | Pending |
+| OPT-07 | Phase 6 | Complete |
 | RPT-01 | Phase 7 | Pending |
 | RPT-02 | Phase 7 | Pending |
 | RPT-03 | Phase 7 | Pending |
