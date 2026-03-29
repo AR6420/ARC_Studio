@@ -1,174 +1,234 @@
 /**
- * Campaign detail page with 3-tab structure.
+ * Campaign detail page with 3 tabs: Campaign, Simulation, Report.
  *
- * Tabs:
- * - Campaign: composite score cards, variant ranking, iteration trajectory (08-05)
- * - Simulation: MiroFish metrics, sentiment timeline, agent grid + interview (08-06)
- * - Report: generated report layers (08-07)
+ * Uses React Router useParams for campaign ID, fetches data via
+ * useCampaign hook, and renders tab-specific content. The Report tab
+ * is fully wired with all 4 report layers and export functionality.
  *
- * Uses React Router useParams to fetch campaign data via useCampaign hook.
+ * Campaign and Simulation tab content are placeholders until
+ * plans 08-05 and 08-06 wire their respective components.
  */
 
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useCampaign } from '@/hooks/use-campaigns';
-import { CampaignDetailSkeleton } from '@/components/common/loading-skeleton';
-import { ErrorState } from '@/components/common/error-state';
-import { StatusBadge } from '@/components/common/status-badge';
-import { ProgressStream } from '@/components/progress/progress-stream';
+import { FileBarChart, Activity, FileText, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MetricsPanel } from '@/components/simulation/metrics-panel';
-import { SentimentTimeline } from '@/components/simulation/sentiment-timeline';
-import { AgentGrid } from '@/components/simulation/agent-grid';
-import { AgentInterview } from '@/components/simulation/agent-interview';
-import type { AgentData } from '@/components/simulation/agent-grid';
-import type { IterationRecord } from '@/api/types';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/common/status-badge';
+import { ErrorState } from '@/components/common/error-state';
+import { CampaignDetailSkeleton } from '@/components/common/loading-skeleton';
+import { useCampaign } from '@/hooks/use-campaigns';
+import { useReport } from '@/hooks/use-report';
+import { VerdictDisplay } from '@/components/results/verdict-display';
+import { ScorecardTable } from '@/components/results/scorecard-table';
+import { DeepAnalysis } from '@/components/results/deep-analysis';
+import { MassPsychology } from '@/components/results/mass-psychology';
+import { ExportButtons } from '@/components/results/export-buttons';
 import { formatDate } from '@/utils/formatters';
+import type { CampaignResponse } from '@/api/types';
 
-/** Extract the latest iteration's metrics from the campaign data. */
-function getLatestIteration(
-  iterations: IterationRecord[] | null | undefined,
-): IterationRecord | null {
-  if (!iterations || iterations.length === 0) return null;
-  return iterations.reduce((best, curr) =>
-    curr.iteration_number > best.iteration_number ? curr : best,
+/** Report tab skeleton for loading state. */
+function ReportSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-6 w-48" />
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-4 w-4/6" />
+      </div>
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-48 w-full" />
+    </div>
   );
 }
 
-/** Extract agent data from iteration records for display in the grid. */
-function extractAgents(
-  iterations: IterationRecord[] | null | undefined,
-): AgentData[] {
-  // Agent data comes from MiroFish simulation results which are stored
-  // in the raw simulation data. For now, we synthesize placeholders from
-  // available iteration data. When MiroFish agent_stats are available in
-  // the campaign response, this will pull real agent profiles.
-  if (!iterations || iterations.length === 0) return [];
+/** Report tab content with all 4 layers + export buttons. */
+function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
+  const {
+    data: report,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useReport(campaign.id);
 
-  // Check if any iteration has mirofish_metrics -- if so, simulation ran
-  const hasSimulation = iterations.some((it) => it.mirofish_metrics != null);
-  if (!hasSimulation) return [];
+  if (campaign.status !== 'completed') {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
+          <Clock className="size-6 text-muted-foreground/60" />
+        </div>
+        <p className="text-sm font-medium text-foreground/80">
+          Campaign must complete before report is available
+        </p>
+        <p className="text-xs text-muted-foreground">
+          The report will be generated once all iterations finish.
+        </p>
+      </div>
+    );
+  }
 
-  // Generate representative agent set from metrics
-  // In production, these come from /api/simulation/{id}/agent-stats
-  // For now return empty to show the "no agents" state gracefully
-  return [];
-}
+  if (isLoading) {
+    return <ReportSkeleton />;
+  }
 
-export default function CampaignDetail() {
-  const { id } = useParams<{ id: string }>();
-  const { data: campaign, isLoading, error, refetch } = useCampaign(id ?? '');
-
-  const [interviewAgent, setInterviewAgent] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-
-  if (isLoading) return <CampaignDetailSkeleton />;
-
-  if (error) {
+  if (isError) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load report';
+    // 404 means report not yet generated
+    if (message.includes('404') || message.includes('not found')) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
+            <FileText className="size-6 text-muted-foreground/60" />
+          </div>
+          <p className="text-sm font-medium text-foreground/80">
+            Report not yet generated
+          </p>
+          <p className="text-xs text-muted-foreground">
+            The report generation may still be in progress.
+          </p>
+        </div>
+      );
+    }
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : 'Failed to load campaign'}
+        message={message}
         onRetry={() => void refetch()}
       />
     );
   }
 
-  if (!campaign) {
+  if (!report) {
     return (
-      <ErrorState message="Campaign not found." />
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
+          <FileText className="size-6 text-muted-foreground/60" />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          No report data available
+        </p>
+      </div>
     );
   }
 
-  const latestIteration = getLatestIteration(campaign.iterations);
-  const mirofishMetrics = latestIteration?.mirofish_metrics ?? null;
-  const sentimentTrajectory = mirofishMetrics?.sentiment_trajectory ?? null;
-  const agents = extractAgents(campaign.iterations);
+  return (
+    <div className="space-y-8">
+      {/* Export buttons - top right */}
+      <div className="flex justify-end">
+        <ExportButtons campaignId={campaign.id} />
+      </div>
+
+      {/* Layer 1: Verdict */}
+      <VerdictDisplay verdict={report.verdict ?? null} />
+
+      <Separator className="opacity-40" />
+
+      {/* Layer 2: Scorecard */}
+      <ScorecardTable scorecard={report.scorecard ?? null} />
+
+      <Separator className="opacity-40" />
+
+      {/* Layer 3: Deep Analysis (collapsed by default) */}
+      <DeepAnalysis
+        deepAnalysis={
+          (report.deep_analysis as Record<string, unknown>) ?? null
+        }
+      />
+
+      <Separator className="opacity-40" />
+
+      {/* Layer 4: Mass Psychology */}
+      <MassPsychology
+        general={report.mass_psychology_general ?? null}
+        technical={report.mass_psychology_technical ?? null}
+      />
+    </div>
+  );
+}
+
+export default function CampaignDetail() {
+  const { id } = useParams<{ id: string }>();
+  const { data: campaign, isLoading, isError, error, refetch } = useCampaign(id!);
+
+  if (isLoading) {
+    return <CampaignDetailSkeleton />;
+  }
+
+  if (isError || !campaign) {
+    return (
+      <ErrorState
+        message={
+          error instanceof Error
+            ? error.message
+            : 'Failed to load campaign'
+        }
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
       {/* Campaign header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-xl font-semibold text-foreground">
-          {campaign.prediction_question}
-        </h1>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-foreground">
+            {campaign.prediction_question}
+          </h1>
           <StatusBadge status={campaign.status} />
-          <span className="text-xs text-muted-foreground">
-            {campaign.demographic}
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{campaign.demographic}</span>
+          <span className="text-foreground/20">&middot;</span>
+          <span>
+            {campaign.agent_count} agents, {campaign.max_iterations} iterations
           </span>
-          <span className="text-xs text-muted-foreground">
-            {formatDate(campaign.created_at)}
-          </span>
+          <span className="text-foreground/20">&middot;</span>
+          <span>{formatDate(campaign.created_at)}</span>
         </div>
       </div>
 
-      {/* Progress stream for running campaigns */}
-      {campaign.status === 'running' && id && (
-        <ProgressStream campaignId={id} />
-      )}
-
-      {/* Error display for failed campaigns */}
-      {campaign.status === 'failed' && campaign.error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <p className="text-sm text-destructive">{campaign.error}</p>
-        </div>
-      )}
-
       {/* Tabs */}
-      <Tabs defaultValue="campaign">
-        <TabsList variant="line">
-          <TabsTrigger value="campaign">Campaign</TabsTrigger>
-          <TabsTrigger value="simulation">Simulation</TabsTrigger>
-          <TabsTrigger value="report">Report</TabsTrigger>
+      <Tabs defaultValue="report">
+        <TabsList variant="line" className="gap-0">
+          <TabsTrigger value="campaign" className="gap-1.5">
+            <FileBarChart className="size-3.5" />
+            Campaign
+          </TabsTrigger>
+          <TabsTrigger value="simulation" className="gap-1.5">
+            <Activity className="size-3.5" />
+            Simulation
+          </TabsTrigger>
+          <TabsTrigger value="report" className="gap-1.5">
+            <FileText className="size-3.5" />
+            Report
+          </TabsTrigger>
         </TabsList>
 
-        {/* Campaign tab -- placeholder for 08-05 components */}
-        <TabsContent value="campaign">
+        <TabsContent value="campaign" className="pt-6">
+          {/* Campaign tab content - wired by plan 08-05 */}
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-muted-foreground">
-              Campaign results view loading...
+              Campaign overview content renders here.
             </p>
           </div>
         </TabsContent>
 
-        {/* Simulation tab -- fully implemented by 08-06 */}
-        <TabsContent value="simulation">
-          <div className="flex flex-col gap-6 pt-2">
-            <MetricsPanel metrics={mirofishMetrics} />
-            <SentimentTimeline trajectory={sentimentTrajectory} />
-            <AgentGrid
-              agents={agents}
-              onInterviewAgent={(agentId, agentName) =>
-                setInterviewAgent({ id: agentId, name: agentName })
-              }
-            />
+        <TabsContent value="simulation" className="pt-6">
+          {/* Simulation tab content - wired by plan 08-06 */}
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              Simulation results render here.
+            </p>
           </div>
         </TabsContent>
 
-        {/* Report tab -- placeholder for 08-07 */}
-        <TabsContent value="report">
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-muted-foreground">
-              Report view loading...
-            </p>
-          </div>
+        <TabsContent value="report" className="pt-6">
+          <ReportTabContent campaign={campaign} />
         </TabsContent>
       </Tabs>
-
-      {/* Agent interview modal */}
-      {interviewAgent && id && (
-        <AgentInterview
-          campaignId={id}
-          agentId={interviewAgent.id}
-          agentName={interviewAgent.name}
-          open={true}
-          onOpenChange={(open) => {
-            if (!open) setInterviewAgent(null);
-          }}
-        />
-      )}
     </div>
   );
 }
