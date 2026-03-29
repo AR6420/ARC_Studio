@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: MiroFish-Offline Setup** - Social simulation running independently with Claude Haiku agents
 - [ ] **Phase 3: TRIBE v2 Setup** - Neural scoring service running on local GPU with 7-dimension output
 - [ ] **Phase 4: Claude Client Setup** - LLM client with Opus/Haiku methods, prompts, and demographic presets
-- [ ] **Phase 5: Orchestrator Integration Pipeline** - All systems wired into single-iteration campaign pipeline
+- [x] **Phase 5: Orchestrator Integration Pipeline** - All systems wired into single-iteration campaign pipeline
 - [ ] **Phase 6: Optimization Loop** - Multi-iteration improvement with convergence detection and progress streaming
 - [ ] **Phase 7: Report Generation** - 4-layer report output with JSON and Markdown export
 - [ ] **Phase 8: UI Dashboard** - React dashboard with campaign form, results tabs, and real-time progress
@@ -92,7 +92,7 @@ Plans:
 - [x] 05-04-PLAN.md -- TRIBE scoring pipeline + MiroFish simulation runner (ORCH-09, ORCH-10)
 - [x] 05-05-PLAN.md -- Result analyzer + campaign runner (ORCH-12, ORCH-13)
 - [x] 05-06-PLAN.md -- FastAPI app + CRUD + health + demographics endpoints (ORCH-01, ORCH-04, ORCH-05, ORCH-06)
-- [ ] 05-07-PLAN.md -- CLI entry point + end-to-end verification (ORCH-14)
+- [x] 05-07-PLAN.md -- CLI entry point + end-to-end verification (ORCH-14)
 
 ### Phase 6: Optimization Loop
 **Goal**: The system iterates on content variants, measurably improving scores across iterations, with automatic convergence detection and real-time progress streaming
@@ -152,7 +152,7 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 2. MiroFish-Offline Setup | 0/? | Not started | - |
 | 3. TRIBE v2 Setup | 0/? | Not started | - |
 | 4. Claude Client Setup | 0/? | Not started | - |
-| 5. Orchestrator Integration Pipeline | 1/7 | Executing | - |
+| 5. Orchestrator Integration Pipeline | 7/7 | Complete | 2026-03-29 |
 | 6. Optimization Loop | 0/? | Not started | - |
 | 7. Report Generation | 0/? | Not started | - |
 | 8. UI Dashboard | 0/? | Not started | - |
