@@ -224,10 +224,24 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | VAL-07 | Phase 9 | Pending |
 
 **Coverage:**
-- v1 requirements: 76 total
-- Mapped to phases: 76
+- v1 requirements: 78 total
+- Mapped to phases: 78
 - Unmapped: 0
+
+**Phase Summary:**
+| Phase | Category | Count |
+|-------|----------|-------|
+| Phase 1 | Environment (ENV) | 9 |
+| Phase 2 | MiroFish Integration (MIRO) | 8 |
+| Phase 3 | TRIBE v2 Neural Scoring (TRIBE) | 7 |
+| Phase 4 | Claude Client (CLAUDE) | 6 |
+| Phase 5 | Orchestrator Pipeline (ORCH) | 14 |
+| Phase 6 | Optimization Loop (OPT) | 7 |
+| Phase 7 | Report Generation (RPT) | 7 |
+| Phase 8 | UI Dashboard (UI) | 13 |
+| Phase 9 | Validation (VAL) | 7 |
+| **Total** | | **78** |
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Last updated: 2026-03-28 after roadmap creation*
