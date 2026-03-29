@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS analyses (
     created_at TEXT NOT NULL,
     UNIQUE(campaign_id, iteration_number)
 );
+
+CREATE TABLE IF NOT EXISTS reports (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL UNIQUE REFERENCES campaigns(id) ON DELETE CASCADE,
+    verdict TEXT,
+    scorecard TEXT,
+    deep_analysis TEXT,
+    mass_psychology_general TEXT,
+    mass_psychology_technical TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 

@@ -18,6 +18,8 @@ from orchestrator.api.schemas import (
     CompositeScores,
     IterationRecord,
     MirofishMetrics,
+    ReportResponse,
+    ScorecardData,
     TribeScores,
 )
 from orchestrator.storage.database import Database
@@ -303,6 +305,79 @@ class CampaignStore:
         )
         rows = await cursor.fetchall()
         return [self._row_to_analysis(row) for row in rows]
+
+    # ── Report operations ─────────────────────────────────────────────────────
+
+    async def save_report(
+        self,
+        campaign_id: str,
+        report: dict,
+    ) -> str:
+        """
+        Save a report with all 5 layer fields. Per D-01: separate fields.
+        Serializes scorecard and deep_analysis dicts to JSON strings.
+        Returns the generated report id.
+        """
+        report_id = _new_id()
+        created_at = _now_iso()
+
+        scorecard = report.get("scorecard")
+        deep_analysis = report.get("deep_analysis")
+
+        await self._db.conn.execute(
+            """
+            INSERT INTO reports
+                (id, campaign_id, verdict, scorecard, deep_analysis,
+                 mass_psychology_general, mass_psychology_technical, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                report_id,
+                campaign_id,
+                report.get("verdict"),
+                json.dumps(scorecard) if scorecard else None,
+                json.dumps(deep_analysis) if deep_analysis else None,
+                report.get("mass_psychology_general"),
+                report.get("mass_psychology_technical"),
+                created_at,
+            ),
+        )
+        await self._db.conn.commit()
+        return report_id
+
+    async def get_report(self, campaign_id: str) -> ReportResponse | None:
+        """
+        Fetch a report for a campaign. Returns None if no report exists.
+        Deserializes scorecard via ScorecardData model, deep_analysis via json.loads.
+        """
+        cursor = await self._db.conn.execute(
+            "SELECT * FROM reports WHERE campaign_id = ?", (campaign_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+
+        scorecard_raw = row["scorecard"]
+        deep_analysis_raw = row["deep_analysis"]
+
+        scorecard = None
+        if scorecard_raw:
+            scorecard = ScorecardData(**json.loads(scorecard_raw))
+
+        deep_analysis = None
+        if deep_analysis_raw:
+            deep_analysis = json.loads(deep_analysis_raw)
+
+        return ReportResponse(
+            id=row["id"],
+            campaign_id=row["campaign_id"],
+            verdict=row["verdict"],
+            scorecard=scorecard,
+            deep_analysis=deep_analysis,
+            mass_psychology_general=row["mass_psychology_general"],
+            mass_psychology_technical=row["mass_psychology_technical"],
+            created_at=row["created_at"],
+        )
 
     # ── Row conversion helpers ───────────────────────────────────────────────
 

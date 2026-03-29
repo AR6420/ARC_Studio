@@ -132,6 +132,42 @@ class CampaignListResponse(BaseModel):
     total: int
 
 
+# -- Report models (Layer 2 scorecard + full report response) --
+
+
+class ScorecardVariant(BaseModel):
+    """A single variant's ranking entry within the scorecard."""
+
+    variant_id: str
+    rank: int
+    strategy: str
+    composite_scores: dict[str, float | None]
+    color_coding: dict[str, str]
+
+
+class ScorecardData(BaseModel):
+    """Layer 2 scorecard: structured ranking data with iteration trajectory."""
+
+    winning_variant_id: str
+    variants: list[ScorecardVariant]
+    iteration_trajectory: list[dict[str, Any]]
+    thresholds_status: dict[str, Any]
+    summary: str
+
+
+class ReportResponse(BaseModel):
+    """Full report with all 4 layers stored as separate fields (per D-01)."""
+
+    id: str
+    campaign_id: str
+    verdict: str | None = None
+    scorecard: ScorecardData | None = None
+    deep_analysis: dict[str, Any] | None = None
+    mass_psychology_general: str | None = None
+    mass_psychology_technical: str | None = None
+    created_at: str
+
+
 # -- Health response --
 
 
