@@ -108,7 +108,7 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md -- Core optimization loop: threshold checker, convergence detector, time estimator, multi-iteration CampaignRunner (OPT-01, OPT-02, OPT-03, OPT-04, OPT-07)
 - [x] 06-02-PLAN.md -- SSE progress streaming infrastructure + estimate endpoint (OPT-05, OPT-06)
-- [ ] 06-03-PLAN.md -- Integration wiring: lifespan runner, background tasks, CLI multi-iteration, progress router mount (OPT-01, OPT-06, OPT-07)
+- [x] 06-03-PLAN.md -- Integration wiring: lifespan runner, background tasks, CLI multi-iteration, progress router mount (OPT-01, OPT-06, OPT-07)
 
 ### Phase 7: Report Generation
 **Goal**: Campaign results are presented in a 4-layer report (verdict, scorecard, deep analysis, mass psychology) with JSON and Markdown export
