@@ -36,6 +36,14 @@ SIM_PREPARE_TIMEOUT = 300.0  # 5 minutes max for simulation prepare
 SIM_RUN_TIMEOUT = 600.0  # 10 minutes max for simulation run
 
 
+def _get_field(resp_json: dict, field: str):
+    """Extract a field from MiroFish response, checking both top-level and nested 'data'."""
+    val = resp_json.get(field)
+    if val is not None:
+        return val
+    return resp_json.get("data", {}).get(field)
+
+
 class MirofishClient:
     """
     Async HTTP client for MiroFish social simulation service (port 5000).
@@ -134,10 +142,14 @@ class MirofishClient:
             )
             resp.raise_for_status()
             result = resp.json()
-            project_id = result.get("project_id")
+            # MiroFish nests project_id inside "data" on success
+            project_id = result.get("project_id") or (
+                result.get("data", {}).get("project_id")
+            )
             if not project_id:
                 logger.error(
-                    "MiroFish ontology response missing project_id: %s", result
+                    "MiroFish ontology response missing project_id: %s",
+                    str(result)[:200],
                 )
                 return None
             logger.info("MiroFish ontology generated for project %s", project_id)
@@ -155,7 +167,7 @@ class MirofishClient:
                 timeout=30.0,
             )
             resp.raise_for_status()
-            task_id = resp.json().get("task_id")
+            task_id = _get_field(resp.json(), "task_id")
             if not task_id:
                 logger.error("MiroFish graph build response missing task_id")
                 return False
@@ -175,11 +187,11 @@ class MirofishClient:
                 resp = await self._client.get(url, timeout=15.0)
                 resp.raise_for_status()
                 data = resp.json()
-                status = data.get("status", "")
+                status = _get_field(data, "status") or ""
                 if status == "completed":
                     return True
                 if status == "failed":
-                    logger.error("MiroFish task failed: %s", data)
+                    logger.error("MiroFish task failed: %s", str(data)[:200])
                     return False
                 logger.debug(
                     "MiroFish task polling: status=%s, progress=%s",
@@ -207,7 +219,7 @@ class MirofishClient:
                 timeout=30.0,
             )
             resp.raise_for_status()
-            sim_id = resp.json().get("simulation_id")
+            sim_id = _get_field(resp.json(), "simulation_id")
             if not sim_id:
                 logger.error(
                     "MiroFish create simulation response missing simulation_id"
@@ -231,12 +243,12 @@ class MirofishClient:
             )
             resp.raise_for_status()
             data = resp.json()
-            if data.get("already_prepared"):
+            if data.get("already_prepared") or (data.get("data", {}).get("already_prepared")):
                 return True
-            task_id = data.get("task_id")
+            task_id = _get_field(data, "task_id")
             if not task_id:
                 logger.error(
-                    "MiroFish prepare response missing task_id: %s", data
+                    "MiroFish prepare response missing task_id: %s", str(data)[:200]
                 )
                 return False
             # Poll prepare status via its own endpoint
@@ -246,18 +258,23 @@ class MirofishClient:
                 try:
                     status_resp = await self._client.post(
                         "/api/simulation/prepare/status",
-                        json={"task_id": task_id},
+                        json={"simulation_id": simulation_id},
                         timeout=15.0,
                     )
                     status_resp.raise_for_status()
                     status_data = status_resp.json()
+                    inner = status_data.get("data", {})
+                    status_val = _get_field(status_data, "status") or ""
+                    prepare_status = inner.get("prepare_info", {}).get("status", "")
                     if (
-                        status_data.get("status") == "completed"
+                        status_val in ("completed", "ready")
+                        or prepare_status == "ready"
+                        or inner.get("already_prepared")
                         or status_data.get("ready")
                     ):
                         return True
-                    if status_data.get("status") == "failed":
-                        logger.error("MiroFish prepare failed: %s", status_data)
+                    if status_val == "failed":
+                        logger.error("MiroFish prepare failed: %s", str(status_data)[:200])
                         return False
                 except Exception as e:
                     logger.warning("MiroFish prepare status poll error: %s", e)
@@ -296,17 +313,19 @@ class MirofishClient:
                     )
                     status_resp.raise_for_status()
                     data = status_resp.json()
-                    runner_status = data.get("runner_status", "")
+                    inner = data.get("data", {})
+                    runner_status = inner.get("runner_status") or data.get("runner_status") or ""
                     if runner_status == "completed":
                         return True
                     if runner_status == "failed":
-                        logger.error("MiroFish simulation run failed: %s", data)
+                        logger.error("MiroFish simulation run failed: %s", str(data)[:200])
                         return False
+                    progress = inner.get("progress_percent") or data.get("progress_percent", 0)
+                    cur_round = inner.get("current_round") or data.get("current_round")
                     logger.debug(
-                        "MiroFish sim running: round %s/%s (%.0f%%)",
-                        data.get("current_round"),
-                        data.get("total_rounds"),
-                        data.get("progress_percent", 0),
+                        "MiroFish sim running: round %s (%.0f%%)",
+                        cur_round,
+                        progress,
                     )
                 except Exception as e:
                     logger.warning("MiroFish run status poll error: %s", e)
@@ -360,22 +379,22 @@ class MirofishClient:
                 f"/api/simulation/{simulation_id}/agent-stats", timeout=30.0
             )
 
+            def _unwrap(resp):
+                """Extract data from MiroFish response, handling nested 'data' wrapper."""
+                if resp.status_code != 200:
+                    return []
+                j = resp.json()
+                # MiroFish wraps most responses in {"data": ..., "success": true}
+                if isinstance(j, dict) and "data" in j:
+                    return j["data"]
+                return j
+
             results: dict[str, Any] = {
                 "simulation_id": simulation_id,
-                "posts": (
-                    posts_resp.json() if posts_resp.status_code == 200 else []
-                ),
-                "actions": (
-                    actions_resp.json() if actions_resp.status_code == 200 else []
-                ),
-                "timeline": (
-                    timeline_resp.json() if timeline_resp.status_code == 200 else []
-                ),
-                "agent_stats": (
-                    agent_stats_resp.json()
-                    if agent_stats_resp.status_code == 200
-                    else []
-                ),
+                "posts": _unwrap(posts_resp),
+                "actions": _unwrap(actions_resp),
+                "timeline": _unwrap(timeline_resp),
+                "agent_stats": _unwrap(agent_stats_resp),
             }
             return results
         except Exception as e:

@@ -72,8 +72,22 @@ class MirofishRunner:
                 results.append(None)
                 continue
 
+            # Unwrap nested MiroFish response format:
+            # MiroFish returns {"posts": {"posts": [...], "count": N}, ...}
+            # compute_metrics expects {"posts": [...], "actions": [...], ...}
+            unwrapped = {}
+            for key in ("posts", "actions", "timeline", "agent_stats"):
+                val = raw_results.get(key, [])
+                if isinstance(val, dict):
+                    # Extract the inner list: {"posts": [...]} or {"actions": [...]}
+                    inner = val.get(key) or val.get("stats") or val.get("timeline") or []
+                    unwrapped[key] = inner
+                else:
+                    unwrapped[key] = val
+            unwrapped["simulation_id"] = raw_results.get("simulation_id")
+
             # Compute 8 structured metrics from raw data
-            metrics = compute_metrics(raw_results, agent_count)
+            metrics = compute_metrics(unwrapped, agent_count)
             logger.info(
                 "MiroFish metrics for %s: shares=%d, counter_narratives=%d, drift=%.2f",
                 variant_id,

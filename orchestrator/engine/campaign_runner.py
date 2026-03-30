@@ -173,7 +173,7 @@ class CampaignRunner:
                     prediction_question=campaign.prediction_question,
                     campaign_id=campaign_id,
                     agent_count=campaign.agent_count,
-                    max_rounds=30,
+                    max_rounds=5,
                 )
             else:
                 logger.info("Step 4: Skipping MiroFish simulation (unavailable)")

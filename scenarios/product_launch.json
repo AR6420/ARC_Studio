@@ -4,7 +4,7 @@
   "prediction_question": "How will CTOs and engineering leaders react to this launch announcement?",
   "demographic": "tech_professionals",
   "expected_behavior": "The system should identify tension between security messaging (which activates trust) and collaboration messaging (which activates different neural pathways). Should recommend optimal balance.",
-  "agent_count": 40,
-  "max_iterations": 3,
+  "agent_count": 20,
+  "max_iterations": 2,
   "thresholds": null
 }

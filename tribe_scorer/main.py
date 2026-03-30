@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
         await loop.run_in_executor(
             None,
             lambda: load_model(
-                model_path=settings.tribe_model_path,
+                model_path=settings.resolved_model_path,
                 device=settings.tribe_device,
                 cache_folder=settings.cache_folder,
             ),

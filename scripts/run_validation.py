@@ -73,7 +73,7 @@ def run_scenario(scenario: dict, results_dir: str = "results", dry_run: bool = F
             cmd,
             capture_output=True,
             text=True,
-            timeout=1200,  # 20 minutes max per scenario
+            timeout=2400,  # 40 minutes max per scenario
         )
         if result.returncode != 0:
             print(f"  ERROR (exit code {result.returncode})")

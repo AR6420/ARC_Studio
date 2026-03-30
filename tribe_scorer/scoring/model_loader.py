@@ -6,10 +6,16 @@ requires ~8-10 GB of VRAM when running on CUDA.
 """
 
 import logging
+import pathlib
 import sys
 from pathlib import Path
 
 import torch
+
+# Windows fix: TRIBE v2 checkpoint was saved on Linux with PosixPath objects.
+# torch.load on Windows cannot deserialize PosixPath — patch it to WindowsPath.
+if sys.platform == "win32":
+    pathlib.PosixPath = pathlib.WindowsPath
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +68,17 @@ def load_model(model_path: str, device: str, cache_folder: str) -> None:
         ) from exc
 
     Path(cache_folder).mkdir(parents=True, exist_ok=True)
+
+    # Resolve local paths to absolute to prevent Windows backslash from being
+    # misinterpreted as a HuggingFace repo ID separator.
+    local_path = Path(model_path)
+    if local_path.exists():
+        model_path = str(local_path.resolve())
+        logger.info("Resolved local model path: %s", model_path)
+    else:
+        # Ensure forward slashes for HuggingFace repo IDs on Windows
+        model_path = model_path.replace("\\", "/")
+
     logger.info("Loading TRIBE v2 from '%s' onto device '%s'…", model_path, device)
     try:
         model = TribeModel.from_pretrained(

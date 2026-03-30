@@ -31,7 +31,12 @@ Thumbs.db
 
 # Data
 data/*.db
+data/*.db-wal
+data/*.db-shm
 data/*.sqlite
+
+# TRIBE v2 cache (TTS audio, WhisperX artifacts)
+tribe_scorer/cache/
 
 # Models (large files)
 models/

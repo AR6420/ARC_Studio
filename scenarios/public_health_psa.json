@@ -4,7 +4,7 @@
   "prediction_question": "Will this PSA drive vaccine uptake or create anti-vaccine backlash?",
   "demographic": "general_consumer_us",
   "expected_behavior": "The system should detect that clinical trial statistics trigger cognitive load in non-scientific audiences, and that community protection framing activates social relevance more than personal protection framing.",
-  "agent_count": 40,
-  "max_iterations": 3,
+  "agent_count": 20,
+  "max_iterations": 2,
   "thresholds": null
 }

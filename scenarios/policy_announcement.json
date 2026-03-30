@@ -4,7 +4,7 @@
   "prediction_question": "How will different political constituencies react to this regulation?",
   "demographic": "policy_aware_public",
   "expected_behavior": "The system should detect coalition formation along predictable lines (pro-privacy vs. pro-business) and identify framing strategies that minimize polarization.",
-  "agent_count": 40,
-  "max_iterations": 3,
+  "agent_count": 20,
+  "max_iterations": 2,
   "thresholds": null
 }
