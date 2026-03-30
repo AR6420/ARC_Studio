@@ -168,13 +168,27 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             progress_callback=cli_progress_callback,
         )
 
-        # Print summary
-        _print_summary(result)
+        # Write output file BEFORE printing summary to avoid data loss
+        # if Unicode chars in LLM output cause encoding errors on Windows
+        if hasattr(args, "output") and args.output:
+            output_path = Path(args.output)
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2, default=str)
+            print(f"Full results written to {output_path}")
+
+        # Print summary (may fail on Windows with non-ASCII chars)
+        try:
+            _print_summary(result)
+        except UnicodeEncodeError:
+            print("[Summary display skipped: contains characters unsupported by console encoding]")
 
         # Print report summary if available
-        report = await store.get_report(campaign.id)
-        if report:
-            _print_report_summary(report)
+        try:
+            report = await store.get_report(campaign.id)
+            if report:
+                _print_report_summary(report)
+        except UnicodeEncodeError:
+            print("[Report display skipped: contains characters unsupported by console encoding]")
 
         return result
 
@@ -345,13 +359,8 @@ def main(argv: list[str] | None = None):
 
     result = asyncio.run(run_campaign(args))
 
-    if args.output:
-        # Write full results as JSON
-        output_path = Path(args.output)
-        # Convert to JSON-serializable format (handle None, etc.)
-        with output_path.open("w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, default=str)
-        print(f"Full results written to {output_path}")
+    # JSON output is now written inside run_campaign() to ensure data is
+    # persisted before any print-related Unicode errors can lose the result.
 
 
 if __name__ == "__main__":

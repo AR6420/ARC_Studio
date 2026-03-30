@@ -111,6 +111,7 @@ class ClaudeClient:
             "CLAUDE_HAIKU_MODEL", "claude-haiku-4-5-20251001"
         )
         self._client: AsyncAnthropic = self._build_client()
+        self._opus_fallback_active: bool = False
 
     def _resolve_api_key(self) -> str:
         """
@@ -239,15 +240,46 @@ class ClaudeClient:
         Use for: cross-system analysis, final report generation, anything requiring
         multi-step reasoning over TRIBE v2 + MiroFish combined results.
 
+        Falls back to Haiku if Opus is not accessible (e.g., OAuth token scope
+        does not include Opus). The fallback is sticky for the session to avoid
+        repeated failed attempts.
+
         Returns the raw text response.
         """
+        if self._opus_fallback_active:
+            logger.debug(
+                "Opus fallback active; using Haiku (model=%s, max_tokens=%d)",
+                self._haiku_model, max_tokens,
+            )
+            return await self._call(
+                model=self._haiku_model,
+                system=system,
+                user=user,
+                max_tokens=max_tokens,
+            )
+
         logger.debug("Calling Opus (model=%s, max_tokens=%d)", self._opus_model, max_tokens)
-        return await self._call(
-            model=self._opus_model,
-            system=system,
-            user=user,
-            max_tokens=max_tokens,
-        )
+        try:
+            return await self._call(
+                model=self._opus_model,
+                system=system,
+                user=user,
+                max_tokens=max_tokens,
+            )
+        except APIStatusError as exc:
+            if exc.status_code == 400:
+                logger.warning(
+                    "Opus model returned 400 (likely not accessible with current token); "
+                    "falling back to Haiku for this and subsequent calls"
+                )
+                self._opus_fallback_active = True
+                return await self._call(
+                    model=self._haiku_model,
+                    system=system,
+                    user=user,
+                    max_tokens=max_tokens,
+                )
+            raise
 
     async def call_haiku(
         self,

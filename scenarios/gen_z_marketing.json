@@ -1,6 +1,6 @@
 {
   "name": "Gen Z Product Marketing (Young Digital Audience)",
-  "seed_content": "Launch copy for a new AI-powered study tool targeting college students.",
+  "seed_content": "Meet StudyPilot -- the AI study buddy that actually gets how you learn. Upload your notes, and it creates personalized practice quizzes, explains tricky concepts in plain English, and builds study schedules that flex around your life. Built by students, for students. No more staring at a textbook at 2am wondering what it all means.",
   "prediction_question": "What messaging approach will drive organic sharing among college students?",
   "demographic": "gen_z_digital_natives",
   "expected_behavior": "The system should find that authenticity and peer proof outperform polished marketing language for this demographic, and that humor/relatability drive sharing more than feature lists.",

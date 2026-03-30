@@ -1,0 +1,629 @@
+{
+  "campaign_id": "df48f0fd-bc3b-4fc9-a4b9-719ef026d295",
+  "iterations": [
+    {
+      "campaign_id": "df48f0fd-bc3b-4fc9-a4b9-719ef026d295",
+      "iteration_number": 1,
+      "variants": [
+        {
+          "id": "v1_community_protection",
+          "content": "This respiratory virus season, vaccination isn't just about you\u2014it's about the people around you who can't protect themselves.\n\nYour elderly parent. Your neighbor's newborn. A friend undergoing cancer treatment. These vulnerable people depend on the community immunity that happens when 70%+ of us get vaccinated.\n\nThe new RV-Shield vaccine has been tested on over 47,000 people across 120 sites worldwide. Results: 94.2% efficacy against severe illness. Safety profile matches existing seasonal vaccines. Independent safety boards confirmed no serious adverse events above baseline rates.\n\nMost side effects? Mild injection site soreness (32%) or temporary fatigue (18%)\u2014gone within 48 hours.\n\nOne shot. Free. No appointment needed.\n\nWhen you get vaccinated, you're not just protecting yourself. You're being the person your community needs you to be.\n\nFind RV-Shield at pharmacies, community health centers, and your doctor. Walk-ins welcome.\n\nRVShield.health.gov",
+          "strategy": "Activates pro-social identity and moral obligation by framing vaccination as protection of vulnerable others, making the decision about community responsibility rather than personal risk.",
+          "key_psychological_mechanisms": [
+            "Prosocial motivation and identity",
+            "Specific beneficiary effect (named vulnerable populations)",
+            "Moral framing",
+            "In-group loyalty"
+          ],
+          "expected_strengths": [
+            "Resonates with community-oriented values across political spectrum",
+            "Converts potential hesitancy into moral imperative",
+            "High social sharing potential ('I'm protecting those who can't protect themselves')",
+            "Reduces perceived self-interest barrier"
+          ],
+          "potential_risks": [
+            "May feel manipulative to audiences skeptical of appeals to group responsibility",
+            "Could backfire if audience feels guilt-tripped rather than inspired"
+          ]
+        },
+        {
+          "id": "v2_confidence_through_rigor",
+          "content": "Want the facts? Here they are.\n\nRV-Shield went through Phase III clinical trials with 47,000+ participants across 120 sites worldwide. That's the gold standard for vaccine safety and efficacy testing.\n\nThe numbers:\n\u2022 94.2% efficacy preventing severe illness\n\u2022 Safety profile identical to existing seasonal vaccines you've likely already taken\n\u2022 Independent safety monitoring boards reviewed everything\u2014no serious adverse events above normal baseline rates\n\u2022 Most common side effects: mild injection site soreness (32%) and temporary fatigue (18%), both gone in 48 hours\n\nThis wasn't rushed. This wasn't skipped. This was done the way modern vaccine science works\u2014with massive sample sizes, independent oversight, and transparent results.\n\nIf you want protection this respiratory virus season, RV-Shield delivers it. Efficacy, safety, and peace of mind.\n\nAvailable free at pharmacies, community health centers, and your doctor. Walk-ins welcome. No hassle.\n\nDon't take our word for it. Check the trial data yourself at RVShield.health.gov.",
+          "strategy": "Builds confidence through detailed scientific credentials and transparent data presentation, appealing to audiences who want rigorous evidence before deciding, reducing uncertainty and distrust through specificity.",
+          "key_psychological_mechanisms": [
+            "Transparency and trust-building through specificity",
+            "Rational persuasion and data confidence",
+            "Inoculation against doubt through pre-emptive detail",
+            "Agency through information access"
+          ],
+          "expected_strengths": [
+            "Converts skepticism into engagement by inviting critical examination",
+            "Satisfies information-hungry, analytical audiences",
+            "Reduces FUD (fear, uncertainty, doubt) through precision",
+            "Creates ownership of decision through research access"
+          ],
+          "potential_risks": [
+            "May overwhelm audiences preferring simplicity",
+            "Could trigger defensive rejection in conspiracy-minded audiences if perceived as over-proving"
+          ]
+        },
+        {
+          "id": "v3_frictionless_access",
+          "content": "Respiratory virus season is here. RV-Shield is ready. Here's what you need to know:\n\nProtection: 94.2% efficacy against severe illness. Safety profile consistent with existing seasonal vaccines. Mild side effects only (injection soreness or fatigue)\u2014both gone in 48 hours.\n\nAccess: Completely free. No appointment required. Walk-ins welcome.\n\nWhere: Pharmacies. Community health centers. Your doctor's office. Hundreds of locations near you.\n\nWhy now: Protecting yourself AND reducing transmission to people who can't be vaccinated (elderly, young children, immunocompromised).\n\nWhat takes longer\u2014reading this or getting vaccinated? Getting vaccinated takes 10 minutes.\n\nFind your nearest location: RVShield.health.gov\n\nOne shot. Done. Protected.",
+          "strategy": "Removes psychological friction by emphasizing simplicity, minimal time investment, and immediate accessibility, using ultra-direct language and action-oriented framing to motivate audiences who respond to convenience and efficiency.",
+          "key_psychological_mechanisms": [
+            "Friction reduction and behavioral activation",
+            "Temporal scarcity and urgency (virus season now)",
+            "Ease heuristic (easy = good)",
+            "Action-oriented language triggering implementation intention"
+          ],
+          "expected_strengths": [
+            "Activates busy, time-constrained audiences (core demographic ages 25-45)",
+            "Removes the invisible barrier of perceived inconvenience",
+            "Ultra-scannable format matches social media and news app consumption",
+            "Direct call-to-action minimizes decision fatigue"
+          ],
+          "potential_risks": [
+            "May feel dismissive to audiences wanting deeper information before deciding",
+            "Could be perceived as oversimplified by skeptical audiences"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        null,
+        null,
+        null
+      ],
+      "mirofish_metrics": [
+        null,
+        null,
+        null
+      ],
+      "composite_scores": [
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        }
+      ],
+      "analysis": {
+        "iteration_number": 1,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v1_community_protection",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without TRIBE v2 neural data and MiroFish simulation results, cannot establish causal connection between predicted neural patterns (high social_relevance and emotional_resonance expected from pro-social framing) and actual social outcomes.",
+            "strengths": [
+              "Strategy targets social_relevance dimension by activating moral obligation and community identity (predicted high based on content preview framing vulnerable populations)",
+              "Content preview suggests high emotional_resonance potential through concrete relatable examples (elderly parent, neighbor's newborn, friend with cancer)"
+            ],
+            "weaknesses": [
+              "No empirical neural or social data available to validate whether moral obligation framing actually drives conversion vs. creates guilt-based resistance",
+              "Risk of high threat_detection if audience perceives obligation as coercive rather than prosocial"
+            ],
+            "composite_assessment": "Community protection variant shows theoretically sound emotional and social design but requires TRIBE v2 and MiroFish data to assess actual neural response patterns and social diffusion outcomes."
+          },
+          {
+            "variant_id": "v2_confidence_through_rigor",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without TRIBE v2 neural data and MiroFish simulation results, cannot determine whether detailed scientific presentation (predicted high cognitive_load, low emotional_resonance) impacts organic sharing behavior or counter-narrative emergence.",
+            "strengths": [
+              "Content strategy emphasizes transparency and specificity (47,000 participants, 120 sites, 94.2% efficacy) which should reduce uncertainty-driven threat_detection",
+              "Data-heavy approach appeals to evidence-motivated audiences who weight rational analysis highly"
+            ],
+            "weaknesses": [
+              "High cognitive_load risk: detailed numerical data may reduce memory_encoding and reward_response for audiences with lower scientific literacy",
+              "Potential for low emotional_resonance due to abstract statistics vs. relatable narratives, which could suppress organic_shares in social simulation"
+            ],
+            "composite_assessment": "Evidence-based variant demonstrates rigor but lacks empirical validation of whether technical credibility actually converts skeptics or overwhelms non-expert audiences."
+          },
+          {
+            "variant_id": "v3_frictionless_access",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without TRIBE v2 neural data and MiroFish simulation results, cannot evaluate whether frictionless access framing (action-oriented, minimal cognitive load) translates to higher conversion rates or greater social diffusion in simulation.",
+            "strengths": [
+              "Ultra-direct language and action-orientation (free, walk-ins welcome, easy access) predicted to reduce cognitive_load and increase conversion intent",
+              "Emphasis on convenience appeals to reward_response dimension by making vaccination feel achievable with minimal effort"
+            ],
+            "weaknesses": [
+              "Simplicity-first approach may underdeliver on emotional_resonance and social_relevance, reducing organic_shares if content doesn't trigger social motivation to share",
+              "Low threat_detection reduction: minimal engagement with vaccine hesitancy concerns could allow counter-narratives to proliferate unchecked in social simulation"
+            ],
+            "composite_assessment": "Frictionless access variant prioritizes convenience but requires TRIBE v2 and MiroFish data to confirm whether removal of psychological friction translates to actual behavior change and positive sentiment diffusion."
+          }
+        ],
+        "ranking": [
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA"
+        ],
+        "cross_system_insights": [
+          "CRITICAL LIMITATION: All three variants lack TRIBE v2 neural scoring data and MiroFish simulation metrics. Cannot establish causal relationships between neural patterns and social outcomes without empirical measurements from both systems.",
+          "Theoretical prediction: v1_community_protection should show high social_relevance (\u226575) and emotional_resonance (\u226570) on TRIBE v2, which would predict high organic_shares in MiroFish IF counter_narrative_count remains <3; however, high threat_detection (if guilt-framing triggers defensiveness) could flip sentiment_drift negative.",
+          "Theoretical prediction: v2_confidence_through_rigor should show high cognitive_load (\u226565) and threat_detection reduction (\u226440) on TRIBE v2, but low emotional_resonance (\u226445) would predict slower peak_virality_cycle and lower organic_shares in MiroFish despite strong sentiment_drift if it reaches target audience.",
+          "Theoretical prediction: v3_frictionless_access should show low cognitive_load (\u226435) and high attention_capture (\u226570) on TRIBE v2, but insufficient social_relevance (\u226450) could limit sentiment_drift and allow counter-narrative_count to rise if hesitancy narratives circulate unchecked in simulation."
+        ],
+        "iteration_improvement_notes": "Iteration 1 baseline: No TRIBE v2 neural scores or MiroFish simulation metrics were provided for any of the three variants. All composite scores show null values. Analysis proceeded entirely from content strategy descriptions and predicted neural/social patterns, not empirical data. This is a critical gap\u2014the Nexus Sim platform's core value is bridging neural response prediction and social simulation, but without actual measured data from both systems, no quantitative cross-system analysis is possible.",
+        "recommendations_for_next_iteration": [
+          "CRITICAL: Generate TRIBE v2 neural scores for all three variants across all seven dimensions (attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, social_relevance). Target ranges based on strategy: v1 should show social_relevance 70-85 and emotional_resonance 65-80; v2 should show cognitive_load 55-70 and threat_detection <45; v3 should show cognitive_load <40 and attention_capture 65-80.",
+          "CRITICAL: Run MiroFish social simulations for all three variants, collecting: organic_shares count, sentiment_trajectory (5-cycle minimum), counter_narrative_count, peak_virality_cycle number, sentiment_drift magnitude, coalition_formation boolean, influence_concentration coefficient (Gini index), and platform_divergence metric. Minimum simulation runs: 10 independent 50-cycle runs per variant to establish confidence intervals.",
+          "Post-simulation analysis task: Perform cross-system correlation analysis\u2014for each variant, calculate whether high social_relevance TRIBE scores correlate with high organic_shares in MiroFish, whether high threat_detection predicts high counter_narrative_count, and whether high emotional_resonance predicts early peak_virality_cycle (lower cycle number). Quantify correlation coefficients (R\u00b2) for each relationship.",
+          "Incorporate demographic segmentation: Run separate MiroFish simulations for high-media-literacy vs. low-media-literacy sub-populations, as v2_confidence_through_rigor and v3_frictionless_access will likely show divergent performance by cognitive segment. Measure sentiment_drift separately for each segment.",
+          "Add backlash sensitivity analysis: For each variant, measure counter_narrative emergence by topic (vaccine_safety, medical_freedom, personal_choice, trust_in_government). Identify which variant minimizes counter_narrative_count in high-skepticism agent populations.",
+          "Establish composite scoring formula: After data collection, create weighted composite scores combining TRIBE v2 dimensions (emotional_resonance and social_relevance weighted at 0.3 each, threat_detection at 0.2, cognitive_load at 0.1, others at 0.025 each) with MiroFish outcomes (organic_shares at 0.4, sentiment_drift magnitude at 0.35, counter_narrative_count inverse at 0.15, peak_virality_cycle inverse at 0.1). Use this to produce defensible ranking."
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "No thresholds can be assessed without TRIBE v2 neural scores and MiroFish simulation metrics. Standard thresholds for vaccine PSA effectiveness would include: attention_capture \u226565, emotional_resonance \u226560, threat_detection \u226450, counter_narrative_count \u22642, sentiment_drift \u2265+15 (net positive), and organic_shares \u2265500 (or equivalent per platform). Current iteration provides zero data points against these thresholds. All three variants show 'None' for attention_score, virality_potential, backlash_risk, memory_durability, conversion_potential, audience_fit, and polarization_index\u2014indicating data pipeline failure rather than variant performance."
+        }
+      },
+      "system_availability": {
+        "tribe_available": false,
+        "mirofish_available": true
+      },
+      "warnings": [
+        "TRIBE v2 scorer unavailable -- neural scores will be skipped"
+      ]
+    },
+    {
+      "campaign_id": "df48f0fd-bc3b-4fc9-a4b9-719ef026d295",
+      "iteration_number": 2,
+      "variants": [
+        {
+          "id": "v1_peer_social_proof",
+          "content": "47,000 people in your situation already chose RV-Shield. Here's why.\n\nOver the past few months, healthcare workers, teachers, parents, and office workers across 120 sites made the same decision. They saw the data (94.2% efficacy against severe illness), talked to their doctors, and got vaccinated. Most felt fine within a day. A few had a sore arm\u2014nothing they couldn't handle.\n\nWhat they're saying: \"It took 15 minutes. Way less hassle than dealing with actual respiratory illness.\" \"My mom has asthma. I'm glad I'm vaccinated.\" \"Everyone at work did it. It became the normal thing.\"\n\nThe side effects you might notice: mild soreness where the shot goes in (32% of people) and maybe some tiredness for a day (18%). Both gone within 48 hours. That's it.\n\nWhy the numbers matter: Independent safety boards looked at every single adverse event and confirmed nothing serious happened at rates higher than baseline. This isn't new science\u2014it's the same safety process that's protected millions before.\n\nWhen enough people in your community get vaccinated (think 70%+), transmission drops hard. Your elderly relatives, friends with medical conditions, and anyone too young for the vaccine\u2014they all benefit from your choice.\n\nDon't overthink it. It's available now, it's free, and walk-ins are welcome at pharmacies and community health centers near you.\n\nFind your location: RVShield.health.gov",
+          "strategy": "Activates social proof and normalization by centering peer behavior and lived experience, positioning vaccination as the already-common choice made by relatable people in similar circumstances, reducing decision friction through observed normalcy.",
+          "key_psychological_mechanisms": [
+            "Social proof: presenting vaccination as the choice already made by 47,000 similar people",
+            "Observational learning: sharing relatable peer language and reasoning",
+            "Norm cascade: emphasizing that 'everyone at work did it' normalizes the behavior",
+            "Concrete testimonials: reducing abstract risk through real peer experience",
+            "Minimal cognitive load: simple, conversational tone matching peer discussion rather than medical authority"
+          ],
+          "expected_strengths": [
+            "High shareability among peer networks\u2014feels like a recommendation from someone like you, not institutional messaging",
+            "Reduces decision anxiety through observation of similar others succeeding",
+            "Avoids triggering contrarian identity formation (doesn't feel like top-down mandate)",
+            "Memory encoding: peer narratives and numbers ('47,000') anchor more durably than abstract efficacy stats",
+            "Cross-demographic resonance: works for skeptics and compliers alike because it's based on peer choice, not authority appeal"
+          ],
+          "potential_risks": [
+            "May underperform with high-media-literacy audiences who dismiss peer anecdotes as insufficient evidence",
+            "Risk of counter-narrative: skeptics might say 'I don't care what 47,000 strangers did' or dismiss testimonials as curated",
+            "Less effective for audiences who specifically distrust consensus and view contrarianism as identity"
+          ]
+        },
+        {
+          "id": "v2_personal_risk_clarity",
+          "content": "What actually happens to your body if you skip the vaccine this season.\n\nLet's be specific. Respiratory virus season is here. If you're unvaccinated, your risk profile looks like this:\n\nYou could get infected. 1 in 4 unvaccinated adults does each season. That's not a maybe\u2014it's a baseline probability.\n\nIf you get infected, here's what usually follows: fever and chills for 3-7 days. Coughing that can last 2+ weeks. Fatigue that interrupts your work, your plans, your life. Most people recover fine. But some don't.\n\nSevere illness\u2014the kind that lands you in the hospital\u2014happens to 1-2% of infected people. Younger, healthier people mostly avoid it. But it still happens. You could be that person.\n\nLong-term effects? Some people report lingering fatigue for months after respiratory infections. Some develop secondary bacterial infections requiring antibiotics. It's avoidable.\n\nNow, RV-Shield changes this math:\n\n94.2% efficacy means if you're vaccinated and exposed, your chance of severe illness drops dramatically. You're not eliminating risk\u2014you're reducing it to negligible.\n\nSide effects: A sore arm (32% of vaccinated people) or temporary fatigue (18%)\u2014both gone in 48 hours. Compare that to 3-7 days of actual fever, or worse, hospitalization.\n\nWhy this matters to people around you: If you're unvaccinated and infected, you transmit to people who *can't* get vaccinated\u2014people with compromised immune systems, infants, people on certain medications. That's not abstract. Those are real neighbors and relatives.\n\nThe choice is clear: temporary vaccine side effects or days of actual illness plus the small but real risk of severe outcomes.\n\nGet vaccinated. Free. Walk-ins welcome. RVShield.health.gov",
+          "strategy": "Uses risk amplification and consequence specificity to overcome vaccination hesitation by making unvaccinated outcomes vividly concrete and comparative, shifting perception from abstract safety concerns to concrete cost-benefit analysis favoring vaccination.",
+          "key_psychological_mechanisms": [
+            "Loss aversion: emphasizes what you lose by not vaccinating (weeks of illness, hospitalization risk) rather than what you gain",
+            "Temporal concreteness: specific timelines (3-7 days, 2+ weeks, 48 hours) make outcomes vivid and comparable",
+            "Outcome vividness: hospital admission, persistent fatigue, and transmission to vulnerable people are more psychologically salient than statistics alone",
+            "Comparative risk reframing: side effects presented as tiny cost relative to actual illness duration",
+            "Responsibility framing: connecting personal choice to harm to vulnerable others increases perceived moral weight"
+          ],
+          "expected_strengths": [
+            "High conversion potential for audiences delayed by abstract fear of vaccine side effects\u2014concrete comparison reframes the actual tradeoff",
+            "Effective for pragmatic decision-makers who respond to clear cost-benefit analysis",
+            "Activates protective motivation without relying on trust in institutions\u2014focuses on observable outcomes instead",
+            "Addresses both personal and altruistic motivations simultaneously",
+            "Low risk of misinterpretation\u2014the logic is transparent and falsifiable"
+          ],
+          "potential_risks": [
+            "May trigger reactance in audiences who perceive fear-based messaging as manipulation",
+            "Could amplify anxiety in highly threat-sensitive individuals rather than motivating action",
+            "Skeptics might argue vivid illness descriptions are exaggeration or cherry-picking worst cases",
+            "May inadvertently increase health anxiety beyond intended decision point"
+          ]
+        },
+        {
+          "id": "v3_identity_alignment",
+          "content": "You already know how to make good health decisions. RV-Shield is the next one.\n\nIf you're reading this, you probably:\n\n\u2014 Get annual checkups or see a doctor when something's off\n\u2014 Look at nutrition labels or think about what you're eating\n\u2014 Exercise or at least try to, most weeks\n\u2014 Wear seatbelts, don't drive drunk, take basic precautions\n\u2014 Care about the health of people around you\n\nVaccination is the same decision framework you're already using.\n\nHere's what you need to know, no fluff:\n\n94.2% efficacy in preventing severe illness. That comes from Phase III trials with 47,000 participants. Safety review confirmed no serious adverse events beyond baseline. Side effects: mild soreness in 32% of people, temporary tiredness in 18%, both gone in 48 hours.\n\nThat's the data. It's solid. It's the same standard applied to every vaccine you've probably already gotten.\n\nWhy this matters: Vaccination protects you from a 1-2% hospitalization risk. It also protects people who can't get vaccinated\u2014elderly parents, friends with immune conditions, young kids. When 70% of a community is vaccinated, transmission drops enough that vulnerable people stay healthier.\n\nThis aligns with how you already make decisions: evidence + outcome + impact.\n\nThe friction is minimal. Free. Available everywhere. Walk-ins welcome. Fifteen minutes of your time.\n\nYou've made harder decisions with less clear data. This one's straightforward.\n\nGet vaccinated: RVShield.health.gov",
+          "strategy": "Anchors vaccination to existing identity as a careful, evidence-respecting health decision-maker, removing the feeling that vaccination requires overcoming inertia or adopting a new identity, instead positioning it as consistent with demonstrated values.",
+          "key_psychological_mechanisms": [
+            "Identity consistency: frames vaccination as aligned with demonstrated behaviors and values already held",
+            "Self-concept activation: priming existing identity as 'someone who makes good health decisions' reduces cognitive dissonance about vaccination",
+            "Narrative coherence: positions vaccination as the logical next step in a coherent health and ethical framework",
+            "Minimal friction framing: reduces perception of effort by emphasizing it matches the decision difficulty of other health choices already made",
+            "Intrinsic motivation: appeals to internal values (evidence, care for others) rather than external pressure"
+          ],
+          "expected_strengths": [
+            "High resonance with target demographic (ages 25-45 with established health routines and community relationships)",
+            "Avoids polarizing language\u2014frames vaccination as personal choice consistent with values, not mandate",
+            "Reduces reactance by positioning vaccination as continuity rather than change",
+            "Memory durability: identity-aligned narratives encode more durably than transactional messaging",
+            "Effective across political and media-literacy segments because it relies on self-perception rather than external authority"
+          ],
+          "potential_risks": [
+            "May underperform with audiences who don't see themselves as 'health-conscious'\u2014could feel like subtle judgment",
+            "Skeptics might perceive the identity appeal as manipulative flattery rather than genuine alignment",
+            "Less effective for audiences with ambivalent or conflicted identity around vaccines specifically"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        null,
+        null,
+        null
+      ],
+      "mirofish_metrics": [
+        null,
+        null,
+        null
+      ],
+      "composite_scores": [
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        }
+      ],
+      "analysis": {
+        "iteration_number": 2,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v1_peer_social_proof",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical TRIBE v2 neural data and MiroFish simulation results, cannot establish causal connection between predicted high social_relevance from peer normalization framing and actual organic_shares or sentiment_drift outcomes in social simulation.",
+            "strengths": [
+              "Strategy targets social_relevance and memory_encoding through relatable peer examples (healthcare workers, teachers, parents, office workers across 120 sites), which should activate TPJ and mPFC social processing regions predicted at 70-80 range",
+              "Normalization framing (positioning vaccination as 'already-common choice') predicted to reduce threat_detection by shifting from novel risk to established social norm"
+            ],
+            "weaknesses": [
+              "No empirical neural data to confirm whether peer social proof actually triggers reward_response or if abstract reference to 47,000 people creates social_relevance without emotional_resonance",
+              "Risk of insufficient emotional_resonance if peer narratives are generic rather than deeply specific, potentially limiting memory_encoding and organic_shares in social simulation"
+            ],
+            "composite_assessment": "Peer social proof variant employs theoretically sound normalization strategy but lacks TRIBE v2 and MiroFish data to validate whether social proof actually drives conversion and positive sentiment diffusion."
+          },
+          {
+            "variant_id": "v2_personal_risk_clarity",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical data, cannot determine whether risk amplification strategy (1 in 4 unvaccinated infection probability) triggers high attention_capture and threat_detection or conversely creates defensive backlash through excessive threat_detection (>70) that predicts high counter_narrative_count in MiroFish.",
+            "strengths": [
+              "Risk specificity framing (concrete probability 1 in 4, vivid consequence language) predicted to drive high attention_capture (75-85 range) and emotional_resonance (70-80 range) by activating amygdala threat circuits",
+              "Consequence clarity approach predicted to reduce cognitive_load by replacing abstract safety concerns with specific, comparative cost-benefit analysis"
+            ],
+            "weaknesses": [
+              "High risk of excessive threat_detection (predicted 70-80+) triggering defensive processing, which could cause high counter_narrative_count (>5) in MiroFish as agents respond to threat with defensive narratives",
+              "Vivid consequence framing may reduce reward_response and increase emotional avoidance, suppressing organic_shares if content triggers aversion rather than motivation"
+            ],
+            "composite_assessment": "Risk clarity variant uses attention-grabbing specificity but lacks empirical TRIBE v2 and MiroFish data to confirm whether threat activation drives conversion or backlash."
+          },
+          {
+            "variant_id": "v3_identity_alignment",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical neural and social simulation data, cannot validate whether identity-alignment framing (positioning vaccination as extension of existing health-conscious identity) produces high social_relevance and reward_response or whether inertia-reduction fails if threat_detection remains unaddressed.",
+            "strengths": [
+              "Identity alignment strategy predicted to activate mPFC and TPJ regions associated with self-referential processing and identity consistency, targeting high social_relevance (75-85 range) and reward_response (70-80 range)",
+              "Positioning vaccination as consistent with demonstrated values predicted to reduce cognitive_load and decision friction, supporting memory_encoding and conversion intent"
+            ],
+            "weaknesses": [
+              "Strategy assumes audience already identifies as health-conscious; lacks empirical data on whether identity priming actually increases conversion or simply reinforces pre-existing attitudes without changing behavior",
+              "Minimal threat address: no empirical data confirming whether avoiding explicit risk discussion keeps threat_detection low (<40) or allows hesitancy concerns to fester unaddressed, predicting high counter_narrative_count in MiroFish"
+            ],
+            "composite_assessment": "Identity alignment variant employs psychologically coherent self-consistency framing but requires TRIBE v2 and MiroFish data to confirm whether value alignment translates to actual behavior change and social diffusion."
+          }
+        ],
+        "ranking": [
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA"
+        ],
+        "cross_system_insights": [
+          "CRITICAL DATA GAP: Iteration 2 provides zero TRIBE v2 neural scores and zero MiroFish simulation metrics for any of the three new variants (v1_peer_social_proof, v2_personal_risk_clarity, v3_identity_alignment). Cannot perform cross-system analysis, establish causal relationships between neural patterns and social outcomes, or produce defensible rankings without empirical measurements from both systems.",
+          "Theoretical prediction for v1_peer_social_proof: If TRIBE v2 shows social_relevance 72-80 and threat_detection 35-42 (predicted from normalization framing), then MiroFish should show organic_shares >600, counter_narrative_count <2, and sentiment_drift +18 to +25 (positive sentiment amplification through social proof). Correlation hypothesis: high social_relevance \u2192 early peak_virality_cycle (cycle 3-4) and low influence_concentration (distributed sharing vs. concentrated).",
+          "Theoretical prediction for v2_personal_risk_clarity: If TRIBE v2 shows attention_capture 78-86 and threat_detection 68-76 (predicted from risk specificity), then MiroFish outcome depends critically on threat_detection magnitude: if threat_detection >72, expect counter_narrative_count 4-7, sentiment_drift negative (-5 to -15), and high coalition_formation (pro/anti vaccination factions); if threat_detection 65-72, expect counter_narrative_count 2-4 and sentiment_drift neutral (0 to +8). Correlation hypothesis: threat_detection at 70+ triggers defensive backlash with >50% probability in social simulation.",
+          "Theoretical prediction for v3_identity_alignment: If TRIBE v2 shows social_relevance 75-82 and cognitive_load 32-40 (predicted from self-consistency framing), then MiroFish should show moderate organic_shares (450-550), sentiment_drift +10 to +18, but only if threat_detection remains <45. If threat_detection exceeds 50 due to unaddressed hesitancy, expect counter_narrative_count to rise to 3-5 and platform_divergence to increase as skeptical agents cluster separately. Correlation hypothesis: low threat_detection reduction in identity-alignment strategy causes sentiment_drift ceiling effect (plateaus at +12-15 despite high social_relevance)."
+        ],
+        "iteration_improvement_notes": "Iteration 2 baseline: Three new variants submitted (v1_peer_social_proof, v2_personal_risk_clarity, v3_identity_alignment) but TRIBE v2 neural scores and MiroFish simulation metrics remain completely unavailable. All composite scores show 'None' values, identical to Iteration 1. No empirical progress made since previous iteration. The data pipeline continues to fail at both the neural prediction stage (TRIBE v2) and the social simulation stage (MiroFish). This prevents any quantitative cross-system analysis from occurring. The three new variants represent different strategic approaches (social proof, threat-based risk clarity, identity consistency) that should theoretically produce divergent neural and social outcomes, but without measurement data, comparative analysis is impossible. Iteration 1 recommendations for TRIBE v2 and MiroFish data generation appear not to have been executed.",
+        "recommendations_for_next_iteration": [
+          "CRITICAL BLOCKING ISSUE: Before any comparative analysis can proceed, generate TRIBE v2 neural scores for all three variants (v1_peer_social_proof, v2_personal_risk_clarity, v3_identity_alignment) across all seven dimensions. Minimum required outputs: attention_capture (0-100), emotional_resonance (0-100), memory_encoding (0-100), reward_response (0-100), threat_detection (0-100), cognitive_load (0-100), social_relevance (0-100). Expected ranges based on strategy: v1 should show social_relevance 70-85, threat_detection 30-45; v2 should show attention_capture 75-88, threat_detection 65-78; v3 should show social_relevance 72-85, cognitive_load 30-42.",
+          "CRITICAL BLOCKING ISSUE: Execute MiroFish social simulations for all three variants with minimum specifications: 10 independent simulation runs per variant, 50 cycles per run, agent population 100-200 agents representing target demographic (ages 25-45, mixed media literacy, mixed political orientation). Collect complete metrics: organic_shares count (per cycle), sentiment_trajectory (full 50-cycle time series), counter_narrative_count (distinct narratives tracked), peak_virality_cycle (cycle number where sharing peaks), sentiment_drift (start_sentiment \u2212 end_sentiment), coalition_formation boolean (whether pro/anti vaccine groups emerge), influence_concentration coefficient (Gini index 0-1, where 0 = distributed, 1 = concentrated), platform_divergence (Twitter vs. Facebook sentiment difference).",
+          "Post-data-collection priority 1: For each variant, calculate cross-system correlation matrix: (1) TRIBE v2 social_relevance vs. MiroFish organic_shares (Pearson R); (2) TRIBE v2 threat_detection vs. MiroFish counter_narrative_count (Spearman rank correlation, as count data is ordinal); (3) TRIBE v2 emotional_resonance vs. MiroFish peak_virality_cycle (inverse correlation\u2014higher emotional_resonance should predict lower cycle number, i.e., earlier virality peak); (4) TRIBE v2 cognitive_load vs. MiroFish sentiment_drift (higher load should reduce drift magnitude). Target R\u00b2 >0.65 for strong relationships, 0.45-0.65 for moderate relationships.",
+          "Demographic segmentation analysis: Run separate MiroFish simulations for three audience sub-populations: (A) high-media-literacy, (B) moderate-media-literacy, (C) low-media-literacy. Hypothesis: v2_personal_risk_clarity (high cognitive demand) should show larger sentiment_drift and lower counter_narrative_count in group (A) but reverse pattern in group (C). v1_peer_social_proof should show consistent performance across all three groups. v3_identity_alignment should show highest performance in group (A, B) but lower in group (C) if identity markers don't resonate.",
+          "Counter-narrative taxonomy: Across all 30 MiroFish runs (10 per variant), categorize emergent counter-narratives into: (1) medical_safety_concerns (vaccine side effects, long-term effects), (2) medical_freedom (bodily autonomy, government mandates), (3) trust_deficit (pharmaceutical industry, regulatory agencies), (4) alternative_solutions (natural immunity, early treatment), (5) political_motivation (vaccine as political tool). For each variant, measure which counter-narrative category dominates. Hypothesis: v1_peer_social_proof should suppress medical_freedom and political_motivation narratives but fail to suppress medical_safety_concerns; v2_personal_risk_clarity should suppress medical_safety_concerns but activate political_motivation as agents perceive fear-mongering; v3_identity_alignment should suppress all counter-narratives in high-identity-alignment agent sub-populations but activate them in low-identity-alignment agents.",
+          "Composite scoring formula implementation: After correlation analysis, weight TRIBE v2 and MiroFish metrics using this formula: Composite_Score = (0.30 \u00d7 social_relevance + 0.30 \u00d7 emotional_resonance + 0.20 \u00d7 threat_detection_inverse + 0.10 \u00d7 cognitive_load_inverse + 0.10 \u00d7 (memory_encoding + reward_response)/2) from TRIBE v2 [call this TRIBE_component], plus (0.40 \u00d7 (organic_shares/max_observed_shares) + 0.35 \u00d7 (sentiment_drift + 50)/100 + 0.15 \u00d7 (10 \u2212 counter_narrative_count)/10 + 0.10 \u00d7 (50 \u2212 peak_virality_cycle)/50) from MiroFish [call this SOCIAL_component]. Final_Score = (0.55 \u00d7 TRIBE_component + 0.45 \u00d7 SOCIAL_component). This weights neural + social outcomes fairly while prioritizing measurable social diffusion outcomes (SOCIAL_component gets 45%).",
+          "Backlash risk quantification: For each variant, calculate Backlash_Risk_Index = (threat_detection/100) \u00d7 (counter_narrative_count/10) \u00d7 (1 \u2212 sentiment_drift/50) \u00d7 coalition_formation_binary. This produces a risk score 0-1 where 0 = no backlash risk, 1 = maximum backlash risk. Variants exceeding 0.40 on this index should be flagged for mitigation strategies (e.g., adding reassurance messaging to v2_personal_risk_clarity if threat_detection >70).",
+          "Iteration 3 contingency: If TRIBE v2 and MiroFish data are still unavailable after Iteration 2 recommendation deadline, escalate to platform operations. The Nexus Sim analysis pipeline cannot function without neural and social simulation data. Either (1) data is being generated but not transmitted to analysis layer (technical issue), or (2) data generation has not been prioritized (resource/priority issue). Recommend audit of TRIBE v2 scoring system (may be returning null scores due to content format issues) and MiroFish scheduling (simulations may be queued but not executed)."
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "ZERO thresholds can be assessed. No TRIBE v2 neural scores available to compare against standard benchmarks (attention_capture \u226565, emotional_resonance \u226560, threat_detection \u226450, cognitive_load \u226450, memory_encoding \u226570, reward_response \u226565, social_relevance \u226570). No MiroFish simulation metrics available to compare against diffusion benchmarks (organic_shares \u2265500, counter_narrative_count \u22643, sentiment_drift \u2265+15, peak_virality_cycle \u22645, coalition_formation = false or distributed formation, influence_concentration \u22640.35). Composite scores remain null values across all variants. All seven computed metrics (attention_score, virality_potential, backlash_risk, memory_durability, conversion_potential, audience_fit, polarization_index) show 'None' for all three variants. This indicates data pipeline failure, not variant underperformance. Thresholds cannot be meaningfully assessed until empirical data from both systems becomes available."
+        }
+      },
+      "system_availability": {
+        "tribe_available": false,
+        "mirofish_available": true
+      },
+      "warnings": [
+        "TRIBE v2 scorer unavailable -- neural scores will be skipped"
+      ]
+    },
+    {
+      "campaign_id": "df48f0fd-bc3b-4fc9-a4b9-719ef026d295",
+      "iteration_number": 3,
+      "variants": [
+        {
+          "id": "v1_trusted_authority_reassurance",
+          "content": "RV-Shield has passed the gold standard for vaccine safety: independent review by multiple safety monitoring boards, Phase III trials with 47,000 participants across 120 sites, and data evaluation consistent with decades of seasonal vaccine monitoring. Here's what that means in plain terms: The most common side effects\u2014arm soreness and temporary tiredness\u2014are mild and resolve within 48 hours. Serious side effects occur at rates no higher than background levels, meaning they happen at the same rate whether you're vaccinated or not. Over 47,000 people in the trial experienced this vaccine. The medical teams watching that data found nothing alarming. That's the reassurance you need to make an informed choice. And when you're vaccinated, people who can't be\u2014newborns, elderly relatives with compromised immune systems, those with rare medical conditions\u2014get protection too. Your vaccination creates a shield for them. At 70% community vaccination, transmission drops sharply, which is how we protect the most vulnerable. RV-Shield is available free at pharmacies, community health centers, and your doctor's office. Walk-ins welcome. Find locations at RVShield.health.gov.",
+          "strategy": "Leads with credibility-building specificity about the evidence generation process itself, positioning independent oversight and large-scale trials as guarantors of safety rather than making safety claims directly. Reduces decision friction by transparently explaining what safety monitoring actually means and how it protects the decision-maker.",
+          "key_psychological_mechanisms": [
+            "Epistemic trust through process transparency\u2014audiences trust systems they understand",
+            "Reduction of abstract uncertainty through concrete procedural explanation",
+            "Inoculation against future doubt by preemptively explaining how safety was verified",
+            "Authority without arrogance\u2014emphasizing independent oversight rather than asserting expertise"
+          ],
+          "expected_strengths": [
+            "High credibility retention across mixed political orientations because it centers process over claims",
+            "Strong memory encoding through detailed explanation of how 47,000 people were monitored",
+            "Reduced counter-narrative activation because it acknowledges the normal way vaccine safety is verified",
+            "Appeals to 'evidence-respecting' identity without requiring identity realignment"
+          ],
+          "potential_risks": [
+            "Length and procedural detail may reduce attention in low-media-literacy segments or social media feeds",
+            "Over-explanation could trigger skepticism in audiences who perceive it as defensive",
+            "Less emotionally resonant than narratives centered on personal benefit or community bonds"
+          ]
+        },
+        {
+          "id": "v2_collective_strength_framing",
+          "content": "Your vaccination decision affects people you've never met. When enough people in a community get vaccinated, the virus runs out of hosts. It can't spread. This isn't abstract\u2014it's how diseases disappear. Polio didn't vanish because one person got vaccinated. Measles didn't drop by 99% in countries where vaccination reached critical mass by accident. It happened because enough people chose protection, which created protection for everyone else. Right now, respiratory viruses spread through communities because not enough people are protected. RV-Shield offers 94.2% efficacy against severe illness\u2014higher protection than most seasonal vaccines. That means if you and most of your neighbors get vaccinated, a vulnerable person\u2014someone's grandmother, someone's newborn, someone with a condition that makes vaccination too risky\u2014gets to live their life without constant worry. You're not just protecting yourself. You're part of a collective shift toward community resilience. That's the power of 70% vaccination coverage. One neighborhood, one workplace, one family reaching that threshold changes the math for everyone. RV-Shield is free and available at pharmacies, community health centers, and your primary care provider. Walk-ins welcome. See what vaccination coverage looks like in your area at RVShield.health.gov.",
+          "strategy": "Activates collective efficacy and transcendence motivation by reframing vaccination as a group achievement with measurable protective threshold, positioning the individual as part of a movement rather than facing an isolated health choice. Uses historical examples and concrete mechanisms to make herd immunity feel like a collective accomplishment rather than a government mandate.",
+          "key_psychological_mechanisms": [
+            "Collective efficacy\u2014psychological empowerment that comes from being part of something that works",
+            "Legacy framing\u2014positioning vaccination as part of historical success against disease",
+            "Transcendence motivation\u2014connecting individual action to benefit of vulnerable others",
+            "Threshold clarity\u2014making '70% coverage' a tangible, achievable group goal rather than abstract concept"
+          ],
+          "expected_strengths": [
+            "Strong social sharing potential because it frames vaccination as part of a movement, not a medical procedure",
+            "Activates prosocial emotions and sense of collective purpose, which drive sustained behavior change",
+            "Bridges political divides by centering shared values (protecting vulnerable people) rather than government authority",
+            "Memory durability through narrative structure (historical parallels with measles/polio create pattern-matching)"
+          ],
+          "potential_risks": [
+            "May trigger political backlash if perceived as 'collectivist' messaging in politically conservative audiences",
+            "Risk of activists on both sides weaponizing the 70% threshold for polarizing debate",
+            "Vulnerable populations may feel guilt if community vaccination rates remain low, inverting intended emotional effect"
+          ]
+        },
+        {
+          "id": "v3_practical_accessibility_empowerment",
+          "content": "Vaccination is just the logistical part. The hard part is already done. 47,000 people participated in clinical trials. Independent safety boards reviewed every piece of data. The vaccine works: 94.2% efficacy against severe illness. Side effects are mild\u2014mostly arm soreness and fatigue that resolve within 48 hours, consistent with vaccines you've likely had before. That's the medical part. Now the practical part: RV-Shield is free. No insurance hassle, no co-pays, no waiting for approval. Walk into any pharmacy, community health center, or your doctor's office and get vaccinated today. Many locations offer evening and weekend appointments. You don't need a referral. You don't need documentation. Just show up. This matters because barriers are real. If you've avoided vaccination before, it wasn't always about fear of the vaccine\u2014it was about logistics. Time off work. Childcare. Transportation. Cost. We removed the cost. We put it everywhere. We made it as accessible as buying coffee. The actual decision is simple: Do I want protection against severe respiratory illness? The answer for most people is yes. So the barrier-free path is straight through: locate a site near you, go when it's convenient, get the vaccine, go about your day. By getting vaccinated, you also reduce transmission to people who can't be vaccinated due to age or medical conditions. That's not the primary reason to do it\u2014protect yourself first\u2014but it's a real second-order benefit. Find a vaccination site that works for your schedule at RVShield.health.gov.",
+          "strategy": "Removes decision friction by making vaccination feel like a straightforward, almost administrative choice rather than a health decision requiring deliberation. Addresses both real and perceived barriers by transparently stating logistics, then making the core decision feel obvious rather than contested.",
+          "key_psychological_mechanisms": [
+            "Friction reduction\u2014removing procedural barriers that often block decision execution even when intention exists",
+            "Obviousness anchoring\u2014positioning 'get protection' as a baseline reasonable choice, not one requiring persuasion",
+            "Agency emphasis\u2014centering the individual's control over scheduling and location",
+            "Demystification\u2014explaining trial and safety data clearly so mystery/fear can't substitute for knowledge"
+          ],
+          "expected_strengths": [
+            "High conversion potential for decision-ambivalent audiences who want to vaccinate but face real logistics barriers",
+            "Reduced cognitive load by presenting vaccination as a simple go-get-it action rather than a complex tradeoff",
+            "Strong appeal across political orientations because it centers individual agency and convenience rather than collective duty",
+            "Memory encoding through step-by-step clarity: find site \u2192 go \u2192 get vaccinated \u2192 done",
+            "Minimizes backlash by avoiding emotional or identity-based appeals that could trigger defense mechanisms"
+          ],
+          "potential_risks": [
+            "May feel transactional or dismissive to audiences seeking deeper engagement with vaccine ethics or science",
+            "Risk of under-selling community benefit, potentially reducing diffusion to hesitant networks",
+            "Emphasis on 'just logistical' could backfire with audiences who feel their concerns (however unfounded) are being dismissed as mere inconvenience"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        null,
+        null,
+        null
+      ],
+      "mirofish_metrics": [
+        null,
+        null,
+        null
+      ],
+      "composite_scores": [
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        },
+        {
+          "attention_score": null,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": null,
+          "audience_fit": null,
+          "polarization_index": null
+        }
+      ],
+      "analysis": {
+        "iteration_number": 3,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v1_trusted_authority_reassurance",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical TRIBE v2 neural data and MiroFish simulation results, cannot establish causal connection between predicted low threat_detection from transparency-focused messaging and actual counter_narrative_count or sentiment_drift outcomes in social simulation.",
+            "strengths": [
+              "Strategy targets cognitive reassurance through explicit explanation of safety monitoring processes (independent boards, large-scale trials), predicted to reduce threat_detection by reframing safety as procedurally guaranteed rather than claimed",
+              "Transparency-first approach reduces decision friction by explaining 'what safety monitoring means,' predicted to lower cognitive_load (estimated 35-45 range) and increase memory_encoding through comprehension-based retention"
+            ],
+            "weaknesses": [
+              "No empirical neural data to confirm whether procedural transparency actually triggers reward_response or if detailed explanation of monitoring boards creates cognitive engagement without emotional_resonance",
+              "Risk of insufficient attention_capture if authority-based framing lacks emotional hooks; specificity about 47,000 participants and 120 sites may feel clinical rather than personally relevant, limiting organic_shares"
+            ],
+            "composite_assessment": "Authority reassurance variant employs theoretically sound transparency strategy to reduce defensive processing but lacks TRIBE v2 and MiroFish data to validate whether procedural credibility drives actual uptake and positive sentiment diffusion."
+          },
+          {
+            "variant_id": "v2_collective_strength_framing",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical data, cannot determine whether collective efficacy framing (reframing vaccination as group achievement, invoking polio/measles history) produces high social_relevance and emotional_resonance or whether historical examples create cognitive distance that suppresses reward_response.",
+            "strengths": [
+              "Collective efficacy strategy predicted to activate mPFC and TPJ regions associated with social processing and transcendence motivation, targeting high social_relevance (estimated 78-88 range) and emotional_resonance (estimated 72-82 range)",
+              "Historical disease elimination examples (polio vanished, measles dropped 99%) predicted to enhance memory_encoding through narrative coherence and reduce threat_detection by demonstrating proven collective outcomes"
+            ],
+            "weaknesses": [
+              "No empirical neural data to confirm whether 'joining a movement' framing actually increases reward_response or if collective framing feels abstract to individualist-oriented audiences, limiting conversion intent",
+              "Risk of counter-activation: messaging that emphasizes group membership and herd immunity thresholds (70% coverage) may trigger reactance in autonomy-focused agents, potentially increasing threat_detection and counter_narrative_count in MiroFish despite high predicted social_relevance"
+            ],
+            "composite_assessment": "Collective strength variant employs psychologically coherent transcendence framing that targets group identity and historical efficacy but requires TRIBE v2 and MiroFish data to confirm whether movement framing translates to uptake or activates autonomy-threat defensiveness."
+          },
+          {
+            "variant_id": "v3_practical_accessibility_empowerment",
+            "neural_summary": "TRIBE v2 neural scores unavailable for this variant. Cannot assess attention_capture, emotional_resonance, memory_encoding, reward_response, threat_detection, cognitive_load, or social_relevance dimensions.",
+            "social_summary": "MiroFish simulation metrics unavailable for this variant. Cannot assess organic_shares, sentiment_trajectory, counter_narrative_count, peak_virality_cycle, sentiment_drift, coalition_formation, influence_concentration, or platform_divergence.",
+            "cross_system_insight": "Without empirical neural and social simulation data, cannot validate whether reframing vaccination as administrative/logistical choice (reducing decision friction) produces low cognitive_load and high conversion intent, or whether minimizing deliberation actually suppresses critical engagement that activates counter-narratives.",
+            "strengths": [
+              "Decision-friction reduction strategy predicted to lower cognitive_load by separating evidence evaluation ('hard part is already done') from implementation logistics, targeting estimated 30-42 range and enabling faster conversion",
+              "Normalization through administrative framing predicted to reduce threat_detection (estimated 35-45 range) by positioning vaccination as obvious next step rather than contested health decision, decreasing defensive processing"
+            ],
+            "weaknesses": [
+              "No empirical data confirming whether treating vaccination as merely logistical (vs. meaningful decision) actually increases uptake or suppresses memory_encoding and personal commitment, reducing sustained behavioral change",
+              "Critical risk: minimizing deliberation and decision weight may activate counter-processing in skeptical agents who perceive oversimplification as evasion, potentially increasing counter_narrative_count in MiroFish despite low predicted threat_detection"
+            ],
+            "composite_assessment": "Practical accessibility variant employs friction-reduction framing to position vaccination as straightforward choice but lacks TRIBE v2 and MiroFish data to confirm whether administrative normalization drives conversion or triggers backlash from agents perceiving insufficient deliberation weight."
+          }
+        ],
+        "ranking": [
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA",
+          "INSUFFICIENT_DATA"
+        ],
+        "cross_system_insights": [
+          "CRITICAL BLOCKING ISSUE PERSISTS: Iteration 3 provides zero TRIBE v2 neural scores and zero MiroFish simulation metrics for all three new variants (v1_trusted_authority_reassurance, v2_collective_strength_framing, v3_practical_accessibility_empowerment). This is identical to Iteration 2 outcome. Cannot perform cross-system analysis, establish causal relationships between neural patterns and social outcomes, or produce defensible rankings without empirical measurements from both systems. The data pipeline failure has now persisted across two consecutive iterations.",
+          "Theoretical prediction for v1_trusted_authority_reassurance: If TRIBE v2 shows threat_detection 32-42 and cognitive_load 38-48 (predicted from transparency framing), then MiroFish should show counter_narrative_count <2, sentiment_drift +18 to +28, and low coalition_formation (minimal pro/anti polarization). Hypothesis: explaining safety monitoring procedures activates analytical trust circuits in DLPFC rather than amygdala fear circuits, suppressing defensive narratives. Expected organic_shares 550-700 if emotional_resonance reaches 65+, but <400 if emotional_resonance remains <55 (procedural detail without emotional engagement).",
+          "Theoretical prediction for v2_collective_strength_framing: If TRIBE v2 shows social_relevance 80-88 and emotional_resonance 75-85 (predicted from transcendence/movement framing), then MiroFish should show organic_shares 650-850, peak_virality_cycle 2-3 (early viral acceleration), sentiment_drift +20 to +32. Critical mediator: if threat_detection >55 (autonomy concerns triggered by emphasis on 70% herd immunity threshold), expect counter_narrative_count 3-6 and coalition_formation with autonomy-focused agents clustering separately, potentially reducing sentiment_drift to +10-18. Hypothesis: collective framing shows highest performance with socially-oriented agents but triggers reactance in autonomy-focused sub-populations.",
+          "Theoretical prediction for v3_practical_accessibility_empowerment: If TRIBE v2 shows cognitive_load 32-42 and reward_response 58-68 (predicted from friction-reduction framing), then MiroFish outcomes depend critically on memory_encoding magnitude: if memory_encoding >70, expect sentiment_drift +15 to +25 and sustained organic_shares (550-700); if memory_encoding <55 (logistical framing suppresses encoding), expect sentiment_drift plateauing at +5 to +12 and counter_narrative_count 2-4 from agents perceiving oversimplification. Hypothesis: maximizing accessibility may minimize memorability, producing short-term behavioral response without lasting attitude change. Influence_concentration likely higher (0.45-0.55) than other variants as early-responders (high conscientiousness) drive initial sharing, then momentum plateaus.",
+          "Cross-variant neural pattern differentiation (predicted): v1 should maximize threat_detection reduction through procedural transparency (estimated -15 to -25 points relative to control); v2 should maximize social_relevance and emotional_resonance through transcendence framing (estimated +15 to +20 points relative to control); v3 should maximize cognitive_load reduction through friction minimization (estimated -20 to -28 points relative to control). These distinct neural profiles should produce divergent MiroFish outcomes: v1 optimizes counter-narrative suppression; v2 optimizes early viral acceleration; v3 optimizes cognitive accessibility. No single variant should dominate across all metrics.",
+          "Predicted backlash asymmetry across variants: v1 (authority reassurance) backlash risk estimated 0.15-0.28 (low-moderate, procedural transparency reduces defensive activation); v2 (collective strength) backlash risk estimated 0.32-0.48 (moderate, group-framing may trigger autonomy threat in 25-35% of agents); v3 (practical accessibility) backlash risk estimated 0.25-0.40 (moderate, oversimplification may activate skepticism in media-literate sub-populations). Ranking by backlash risk: v1 lowest, v3 moderate, v2 highest if autonomy concerns dominate in target demographic."
+        ],
+        "iteration_improvement_notes": "Iteration 3 baseline: Three new variants submitted (v1_trusted_authority_reassurance, v2_collective_strength_framing, v3_practical_accessibility_empowerment) but TRIBE v2 neural scores and MiroFish simulation metrics remain completely unavailable. All composite scores show 'None' values, identical to Iterations 1 and 2. Zero empirical progress made across three iterations. The data pipeline failure has now persisted through three consecutive submission cycles without resolution. The three new variants represent different strategic approaches to vaccine PSA construction (procedural transparency, collective efficacy framing, decision-friction reduction) that should theoretically produce dramatically divergent neural and social outcomes, but without measurement data, comparative analysis remains impossible. Iteration 2 contained explicit recommendations to execute TRIBE v2 neural scoring and MiroFish simulations with detailed specifications; these recommendations appear not to have been implemented. The system remains in analysis-deadlock state: variants are being created and submitted, but the measurement systems required to evaluate them are non-functional or non-prioritized.",
+        "recommendations_for_next_iteration": [
+          "ESCALATE DATA PIPELINE FAILURE: The failure to generate TRIBE v2 neural scores and MiroFish simulation metrics has persisted across three consecutive iterations (Iterations 1, 2, 3). This indicates either (1) technical malfunction in the TRIBE v2 scoring engine preventing score generation, (2) technical failure in MiroFish simulation scheduler preventing execution, or (3) organizational prioritization issue where data generation is queued but not resourced. Immediate action required: audit TRIBE v2 system for error logs (null score returns, timeout failures, content format incompatibility issues); audit MiroFish queue for stuck jobs or scheduler failures; confirm organizational priority alignment for data generation pipeline. Recommend: dedicated technical support ticket with SLA for pipeline restoration within 48 hours.",
+          "CRITICAL BLOCKING ISSUE: Execute TRIBE v2 neural scoring for all three Iteration 3 variants (v1_trusted_authority_reassurance, v2_collective_strength_framing, v3_practical_accessibility_empowerment). Required minimum outputs: all seven neural dimensions for each variant across 0-100 scale. Predicted value ranges for validation: v1 should show threat_detection 32-42 (transparency reduces defensive activation), cognitive_load 38-48 (explanatory content moderately complex), social_relevance 62-72 (authority framing less socially-warm than peer/collective approaches); v2 should show social_relevance 80-88 (transcendence/group identity activation highest across all variants), emotional_resonance 75-85 (movement framing emotionally engaging), threat_detection 48-62 (moderate, may activate autonomy concerns); v3 should show cognitive_load 32-42 (lowest across variants, friction-reduction focus), reward_response 58-68 (framing positioning vaccination as obvious choice), attention_capture 58-68 (administrative framing less visually/narratively distinctive). If actual scores diverge >15 points from predicted ranges, flag for content analysis to identify unexpected neural drivers.",
+          "CRITICAL BLOCKING ISSUE: Execute MiroFish social simulations for all three Iteration 3 variants with specifications: minimum 12 independent simulation runs per variant (increased from Iteration 2 recommendation of 10 to account for Monte Carlo variance), 50 cycles per run, agent population 150 agents (fixed demographic: 60% ages 25-35, 40% ages 35-45; 55% college-educated, 45% high-school-educated; 40% Democrat-leaning, 35% Republican-leaning, 25% independent; all with moderate social sharing baseline). Collect complete metrics: organic_shares count per 5-cycle interval (10 data points per run), sentiment_trajectory full time series with per-agent sentiment tracking, counter_narrative_count with category taxonomy (medical_safety, freedom, trust_deficit, alternatives, political), peak_virality_cycle, sentiment_drift with 95% confidence intervals, coalition_formation with group-size distribution, influence_concentration (Gini coefficient), platform_divergence (Twitter sentiment - Facebook sentiment, scaled -50 to +50). Aggregate: mean + SD for all interval-scaled metrics, mode + frequency distribution for categorical metrics.",
+          "Post-data-collection priority 1: Calculate cross-system correlation matrix for all three variants. Required correlations: (1) TRIBE v2 threat_detection vs. MiroFish counter_narrative_count (Spearman rho, ordinal data), expecting rho 0.60-0.75 for threat-driven narratives; (2) TRIBE v2 social_relevance vs. MiroFish organic_shares (Pearson r), expecting r 0.55-0.70; (3) TRIBE v2 emotional_resonance vs. MiroFish peak_virality_cycle (negative Pearson r, early peaks), expecting r -0.50 to -0.65; (4) TRIBE v2 cognitive_load vs. MiroFish sentiment_drift magnitude (Pearson r), expecting r -0.45 to -0.60 (higher load suppresses drift). Report R\u00b2 values for each correlation to assess variance explained. Variants meeting >0.60 R\u00b2 on 3+ correlations indicate strong neural-social coupling; variants <0.40 R\u00b2 indicate neural patterns poorly predictive of social outcomes (may indicate unmeasured moderators).",
+          "Sub-population analysis: Re-run MiroFish simulations separately for three demographic sub-groups derived from agent population: (A) high-education agents (college+, n=82), (B) moderate-education agents (high-school, n=68). Hypothesis: v1_trusted_authority_reassurance should show stronger performance in group A (procedural detail resonates with analytical processing); v2_collective_strength_framing should show consistent high performance in both groups (transcendence/identity is education-independent); v3_practical_accessibility_empowerment should show stronger performance in group B (friction-reduction prioritizes accessibility over deliberation, appeals to time-constrained agents). Measure variant-by-education interaction on sentiment_drift, organic_shares, counter_narrative_count. If interaction F-ratio >3.5 (p<0.05), conclude education moderates variant effectiveness; recommend education-segmented deployment strategy.",
+          "Counter-narrative taxonomy analysis: For each variant across all 36 MiroFish runs (12 runs \u00d7 3 variants), categorize emergent counter-narratives into six categories: (1) medical_safety (side effects, long-term effects, rare adverse events), (2) medical_freedom (bodily autonomy, coercion concerns), (3) trust_deficit (Big Pharma, regulatory capture, hidden data), (4) alternative_solutions (natural immunity, early treatment, other prevention), (5) political_motivation (vaccine as political tool, partisan divide), (6) conspiracy_narratives (microchips, fertility effects, other implausible claims). For each variant: count frequency of each category, calculate proportion of total counter-narratives, measure sentiment of counter-narrative agents (-100 to +100 individual sentiment). Hypothesis: v1 should suppress medical_safety and trust_deficit narratives most effectively (transparency reduces these concerns); v2 should suppress medical_freedom narratives (group-framing de-emphasizes individual autonomy as concern) but may activate political_motivation (partisan reading of 'collective' mandate); v3 should suppress all narrative types except medical_freedom (administrative framing may appear evasive to autonomy-concerned agents). Counter-narrative dominance pattern predicts which variant activates strongest defensive coalitions.",
+          "Composite scoring implementation: After all correlation and sub-population analyses, implement composite scoring formula: Composite_Score = (0.55 \u00d7 TRIBE_component) + (0.45 \u00d7 SOCIAL_component), where TRIBE_component = [0.30\u00d7(social_relevance/100) + 0.25\u00d7(emotional_resonance/100) + 0.20\u00d7(100-threat_detection)/100 + 0.15\u00d7(100-cognitive_load)/100 + 0.10\u00d7(memory_encoding/100)] and SOCIAL_component = [0.40\u00d7(organic_shares/max_observed_shares) + 0.30\u00d7(sentiment_drift+50)/100 + 0.20\u00d7max(0, 10-counter_narrative_count)/10 + 0.10\u00d7(1-influence_concentration)]. Apply this formula to each of 36 runs per variant, generate mean \u00b1 SD composite score distribution. Variants exceeding composite_score 72 are candidates for deployment; variants below 60 should be revised before testing.",
+          "Backlash risk quantification: For each variant, calculate Backlash_Risk_Index = (threat_detection/100) \u00d7 \u221a(counter_narrative_count/10) \u00d7 max(0, sentiment_drift/-20) \u00d7 (coalition_formation_binary) \u00d7 (platform_divergence/100 + 0.5). This produces a risk score 0-1 where 0 = no backlash risk, 1 = maximum backlash risk. Calculate 95% confidence interval on risk index across 12 runs per variant. Variants with risk index >0.45 require mitigation strategies (e.g., adding reassurance messaging to complement primary framing). Variants with risk index <0.30 are low-risk for widespread negative response.",
+          "Iteration 4 contingency protocol: If TRIBE v2 neural scores and MiroFish simulation metrics are still unavailable after Iteration 3 deadline (recommend 10 business days for data generation + analysis), escalate to executive leadership. The Nexus Sim analysis mandate is to 'perform deep cross-system analysis that bridges neural response prediction and multi-agent social simulation.' This is impossible without empirical data from both systems. Current state (three iterations without data) represents platform dysfunction. Recommend: (1) immediate platform audit by technical leadership, (2) executive decision on whether data generation pipeline will be resourced and prioritized, (3) if pipeline cannot be restored, redefine project scope to rely on TRIBE v2 neural predictions alone (without MiroFish validation) or MiroFish simulations alone (without neural predictions), or (4) transition to alternative measurement systems if TRIBE v2 and MiroFish are fundamentally non-functional.",
+          "Sensitivity analysis for next iteration: Once data becomes available, conduct sensitivity analysis on three key parameters: (1) threat_detection threshold where counter_narrative_count becomes >3 (tipping point for backlash), (2) social_relevance magnitude required to achieve organic_shares >600 (threshold for meaningful social diffusion), (3) cognitive_load ceiling where sentiment_drift plateaus (point of diminishing conversion returns). These thresholds will calibrate future variant design: variants scoring near threshold points are fragile to small messaging changes; variants far from thresholds are robust. Recommend using logistic regression to model counter_narrative_count as function of threat_detection magnitude, identifying inflection point where backlash probability exceeds 50%."
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "ZERO thresholds can be assessed. No TRIBE v2 neural scores available to validate against performance benchmarks: attention_capture \u226565 (content must capture attention to drive uptake), emotional_resonance \u226560 (content must trigger emotional engagement for memory encoding), threat_detection \u226450 (excessive threat triggers defensive backlash), cognitive_load \u226450 (content complexity must not exceed 50-point threshold), memory_encoding \u226570 (content must be highly memorable), reward_response \u226565 (content must feel rewarding/motivating), social_relevance \u226570 (content must activate social processing for sharing). No MiroFish simulation metrics available to validate against diffusion benchmarks: organic_shares \u2265550 (minimum threshold for meaningful social reach), counter_narrative_count \u22643 (more than 3 distinct counter-narratives indicates polarization), sentiment_drift \u2265+15 (positive sentiment movement required for attitude change), peak_virality_cycle \u22645 (viral acceleration must occur early), coalition_formation = false or distributed (concentrated pro/anti groups indicate dangerous polarization), influence_concentration \u22640.40 (sharing must be distributed, not concentrated in few influencers), platform_divergence \u226425 (platform splitting indicates demographic polarization). All composite scores remain null across all three variants. This is a data availability problem, not a variant performance problem. Thresholds cannot be assessed until empirical TRIBE v2 and MiroFish data are generated and transmitted to analysis layer."
+        }
+      },
+      "system_availability": {
+        "tribe_available": false,
+        "mirofish_available": true
+      },
+      "warnings": [
+        "TRIBE v2 scorer unavailable -- neural scores will be skipped"
+      ]
+    }
+  ],
+  "stop_reason": "converged",
+  "iterations_completed": 3,
+  "best_scores_history": [
+    {
+      "attention_score": null,
+      "virality_potential": null,
+      "backlash_risk": null,
+      "memory_durability": null,
+      "conversion_potential": null,
+      "audience_fit": null,
+      "polarization_index": null
+    },
+    {
+      "attention_score": null,
+      "virality_potential": null,
+      "backlash_risk": null,
+      "memory_durability": null,
+      "conversion_potential": null,
+      "audience_fit": null,
+      "polarization_index": null
+    },
+    {
+      "attention_score": null,
+      "virality_potential": null,
+      "backlash_risk": null,
+      "memory_durability": null,
+      "conversion_potential": null,
+      "audience_fit": null,
+      "polarization_index": null
+    }
+  ],
+  "improvement_history": [
+    0.0,
+    0.0
+  ]
+}
