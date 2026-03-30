@@ -160,9 +160,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- 5 JSON test briefs + validation run script and results checker (VAL-01, VAL-02)
+- [x] 09-01-PLAN.md -- 5 JSON test briefs + validation run script and results checker (VAL-01, VAL-02)
 - [x] 09-02-PLAN.md -- Comprehensive README documentation + demo video script (VAL-06, VAL-07)
-- [ ] 09-03-PLAN.md -- Execute all 5 scenarios, validate results, produce validation report (VAL-02, VAL-03, VAL-04, VAL-05)
+- [x] 09-03-PLAN.md -- Execute all 5 scenarios, validate results, produce validation report (VAL-02, VAL-03, VAL-04, VAL-05)
 
 ## Progress
 

@@ -105,10 +105,10 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 ### Validation
 
 - [ ] **VAL-01**: 5 demo scenario test briefs created (product launch, PSA, price increase, policy, Gen Z)
-- [ ] **VAL-02**: All 5 scenarios run end-to-end with results recorded
-- [ ] **VAL-03**: Iteration improvement in >= 4/5 scenarios
-- [ ] **VAL-04**: Cross-system reasoning (TRIBE + MiroFish) appears in all reports
-- [ ] **VAL-05**: Demographic changes meaningfully affect scores/dynamics
+- [x] **VAL-02**: All 5 scenarios run end-to-end with results recorded
+- [x] **VAL-03**: Iteration improvement in >= 4/5 scenarios
+- [x] **VAL-04**: Cross-system reasoning (TRIBE + MiroFish) appears in all reports
+- [x] **VAL-05**: Demographic changes meaningfully affect scores/dynamics
 - [x] **VAL-06**: README.md with setup instructions and architecture overview
 - [x] **VAL-07**: Demo video recorded (5-10 minutes)
 
@@ -216,10 +216,10 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | UI-12 | Phase 8 | Complete |
 | UI-13 | Phase 8 | Complete |
 | VAL-01 | Phase 9 | Pending |
-| VAL-02 | Phase 9 | Pending |
-| VAL-03 | Phase 9 | Pending |
-| VAL-04 | Phase 9 | Pending |
-| VAL-05 | Phase 9 | Pending |
+| VAL-02 | Phase 9 | Complete |
+| VAL-03 | Phase 9 | Complete |
+| VAL-04 | Phase 9 | Complete |
+| VAL-05 | Phase 9 | Complete |
 | VAL-06 | Phase 9 | Complete |
 | VAL-07 | Phase 9 | Complete |
 

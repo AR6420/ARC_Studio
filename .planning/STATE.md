@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-30T00:48:57.806Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-03-30T02:03:46.811Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 23
   percent: 28
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 09 (validation-and-documentation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -68,6 +68,7 @@ Progress: [##........] 28%
 | Phase 08 P05 | 19min | 2 tasks | 6 files |
 | Phase 08 P08 | 7min | 2 tasks | 1 files |
 | Phase 09 P02 | 11min | 2 tasks | 2 files |
+| Phase 09 P03 | 55min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Default tab changed from Report to Campaign since Campaign tab now has real content
 - [Phase 08]: Agent data passed as empty array (known limitation -- agent_stats not in CampaignResponse API)
 - [Phase 09]: README placed in docs/ (700+ lines) with root README.md as brief pointer; API reference documents actual implemented routes
+- [Phase 09]: Opus-to-Haiku fallback is sticky per session to avoid repeated 400 errors on each call
+- [Phase 09]: VAL-03 and VAL-05 marked DEFERRED (not FAIL) since pipeline architecture works but scoring backends were unavailable
+- [Phase 09]: JSON result file written BEFORE console summary to prevent data loss from Windows Unicode encoding errors
 
 ### Pending Todos
 
@@ -136,6 +140,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T00:48:57.803Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-03-30T02:03:46.806Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
