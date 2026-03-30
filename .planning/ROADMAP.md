@@ -157,7 +157,12 @@ Plans:
   2. Iteration improvement occurs in at least 4 out of 5 scenarios (later iterations score higher than earlier ones)
   3. Cross-system reasoning referencing both TRIBE and MiroFish appears in all 5 reports, and changing demographics meaningfully changes scores and simulation dynamics
   4. README with setup instructions and architecture overview exists, and a 5-10 minute demo video is recorded
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md -- 5 JSON test briefs + validation run script and results checker (VAL-01, VAL-02)
+- [ ] 09-02-PLAN.md -- Comprehensive README documentation + demo video script (VAL-06, VAL-07)
+- [ ] 09-03-PLAN.md -- Execute all 5 scenarios, validate results, produce validation report (VAL-02, VAL-03, VAL-04, VAL-05)
 
 ## Progress
 
@@ -175,4 +180,4 @@ Decimal phases (if inserted) execute between their surrounding integers.
 | 6. Optimization Loop | 0/3 | Planning complete | - |
 | 7. Report Generation | 0/2 | Planning complete | - |
 | 8. UI Dashboard | 0/8 | Planning complete | - |
-| 9. Validation and Documentation | 0/? | Not started | - |
+| 9. Validation and Documentation | 0/3 | Planning complete | - |
