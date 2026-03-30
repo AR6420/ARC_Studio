@@ -1,0 +1,10 @@
+{
+  "name": "Gen Z Product Marketing (Young Digital Audience)",
+  "seed_content": "Launch copy for a new AI-powered study tool targeting college students.",
+  "prediction_question": "What messaging approach will drive organic sharing among college students?",
+  "demographic": "gen_z_digital_natives",
+  "expected_behavior": "The system should find that authenticity and peer proof outperform polished marketing language for this demographic, and that humor/relatability drive sharing more than feature lists.",
+  "agent_count": 40,
+  "max_iterations": 3,
+  "thresholds": null
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Public Health PSA (General Population)",
+  "seed_content": "Protect yourself and your community this respiratory virus season. The new RV-Shield vaccine has completed Phase III clinical trials with over 47,000 participants across 120 sites worldwide. Results show 94.2% efficacy in preventing severe illness, with a safety profile consistent with existing seasonal vaccines. The most common side effects were mild soreness at the injection site (32%) and temporary fatigue (18%), both resolving within 48 hours. Independent safety monitoring boards reviewed all data and confirmed no serious adverse events above baseline rates. By getting vaccinated, you are not just protecting yourself -- you are helping shield those around you who cannot be vaccinated due to age or medical conditions. Community vaccination rates above 70% significantly reduce transmission, protecting vulnerable neighbors, elderly family members, and young children. The vaccine is available at no cost at pharmacies, community health centers, and your primary care provider. Walk-ins are welcome. Visit RVShield.health.gov for locations near you.",
+  "prediction_question": "Will this PSA drive vaccine uptake or create anti-vaccine backlash?",
+  "demographic": "general_consumer_us",
+  "expected_behavior": "The system should detect that clinical trial statistics trigger cognitive load in non-scientific audiences, and that community protection framing activates social relevance more than personal protection framing.",
+  "agent_count": 40,
+  "max_iterations": 3,
+  "thresholds": null
+}
