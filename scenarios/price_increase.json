@@ -1,0 +1,10 @@
+{
+  "name": "Price Increase Announcement (Enterprise Customers)",
+  "seed_content": "Starting Q3, NexaVault pricing will increase by 18% to support expanded infrastructure and new security features.",
+  "prediction_question": "How should we frame this price increase to minimize churn and negative sentiment?",
+  "demographic": "enterprise_decision_makers",
+  "expected_behavior": "The system should find that leading with value addition (new features) before mentioning price scores better on reward response and lower on threat detection than leading with the price change.",
+  "agent_count": 40,
+  "max_iterations": 3,
+  "thresholds": null
+}

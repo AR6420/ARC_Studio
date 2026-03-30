@@ -1,0 +1,10 @@
+{
+  "name": "Policy Announcement (Civic Audience)",
+  "seed_content": "The Federal Data Privacy Protection Act takes effect January 1st. Under the new regulation, any company that collects personal data from US residents must honor deletion requests within 30 calendar days. This applies to all businesses with annual revenue exceeding $25 million or that process data from more than 100,000 individuals. Companies must provide a clear, accessible mechanism for users to submit deletion requests -- buried settings pages and multi-step phone trees will no longer suffice. Upon receiving a valid request, organizations must delete the individual's personal data from all primary systems and direct third-party data partners to do the same. Verification of deletion must be provided to the requestor within 5 business days of completion. Non-compliance penalties start at $10,000 per violation, with willful violations carrying fines up to $50,000 per incident. The regulation includes a 90-day grace period for small businesses to implement compliant systems. A dedicated enforcement office within the FTC will handle complaints and audits. Consumer advocacy groups have praised the regulation as long overdue, while industry associations have raised concerns about implementation timelines and costs.",
+  "prediction_question": "How will different political constituencies react to this regulation?",
+  "demographic": "policy_aware_public",
+  "expected_behavior": "The system should detect coalition formation along predictable lines (pro-privacy vs. pro-business) and identify framing strategies that minimize polarization.",
+  "agent_count": 40,
+  "max_iterations": 3,
+  "thresholds": null
+}
