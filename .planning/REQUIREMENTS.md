@@ -109,8 +109,8 @@ Requirements for Phase 1 POC. Each maps to roadmap phases.
 - [ ] **VAL-03**: Iteration improvement in >= 4/5 scenarios
 - [ ] **VAL-04**: Cross-system reasoning (TRIBE + MiroFish) appears in all reports
 - [ ] **VAL-05**: Demographic changes meaningfully affect scores/dynamics
-- [ ] **VAL-06**: README.md with setup instructions and architecture overview
-- [ ] **VAL-07**: Demo video recorded (5-10 minutes)
+- [x] **VAL-06**: README.md with setup instructions and architecture overview
+- [x] **VAL-07**: Demo video recorded (5-10 minutes)
 
 ## v2 Requirements
 
@@ -220,8 +220,8 @@ Deferred to Phase 2. Tracked but not in current roadmap.
 | VAL-03 | Phase 9 | Pending |
 | VAL-04 | Phase 9 | Pending |
 | VAL-05 | Phase 9 | Pending |
-| VAL-06 | Phase 9 | Pending |
-| VAL-07 | Phase 9 | Pending |
+| VAL-06 | Phase 9 | Complete |
+| VAL-07 | Phase 9 | Complete |
 
 **Coverage:**
 - v1 requirements: 78 total
