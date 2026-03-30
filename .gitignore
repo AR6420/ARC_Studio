@@ -38,6 +38,9 @@ data/*.sqlite
 # TRIBE v2 cache (TTS audio, WhisperX artifacts)
 tribe_scorer/cache/
 
+# TRIBE v2 Python 3.11 venv (not the system Python)
+tribe_scorer/.venv/
+
 # Models (large files)
 models/
 *.bin
