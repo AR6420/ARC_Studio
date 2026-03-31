@@ -6,11 +6,23 @@ requires ~8-10 GB of VRAM when running on CUDA.
 """
 
 import logging
+import os
 import pathlib
 import sys
 from pathlib import Path
 
 import torch
+
+# CRITICAL: Force CPU BEFORE any neuralset/whisperx imports.
+# neuralset.extractors.base.__init__ reads torch.cuda.is_available() at class
+# instantiation time to set self.device. If CUDA appears available, every
+# extractor instance defaults to device="cuda" and later calls model.to("cuda")
+# which fails with CPU-only PyTorch (RTX 5070 Ti sm_120 needs PyTorch 2.8+).
+# This patch MUST run before neuralset is imported (which happens when
+# tribev2.TribeModel is imported in load_model below).
+if os.environ.get("TRIBE_DEVICE", "").lower() == "cpu":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    torch.cuda.is_available = lambda: False
 
 # Windows fix: TRIBE v2 checkpoint was saved on Linux with PosixPath objects.
 # torch.load on Windows cannot deserialize PosixPath — patch it to WindowsPath.

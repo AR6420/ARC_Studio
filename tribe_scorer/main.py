@@ -11,6 +11,15 @@ synchronous; each endpoint offloads the blocking work to a thread-pool
 executor so the async event loop is not blocked.
 """
 
+import os
+
+# CRITICAL: Force CPU before ANY torch/neuralset imports.
+# Must be the very first thing that runs. See model_loader.py for rationale.
+if os.environ.get("TRIBE_DEVICE", "").lower() == "cpu":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    import torch
+    torch.cuda.is_available = lambda: False
+
 import asyncio
 import logging
 import sys
