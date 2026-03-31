@@ -58,7 +58,7 @@ class TribeClient:
             resp = await self._client.post(
                 "/api/score",
                 json={"text": text},
-                timeout=120.0,  # GPU inference can take 10-30 seconds
+                timeout=300.0,  # CPU inference takes 30-90s per text
             )
             resp.raise_for_status()
             data = resp.json()
