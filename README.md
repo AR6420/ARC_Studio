@@ -1,8 +1,26 @@
-# Nexus Sim
+# A.R.C Studio
 
-Content optimization platform combining **neural response prediction** (TRIBE v2), **multi-agent social simulation** (MiroFish-Offline), and **LLM-driven iterative optimization** (Claude) into a single feedback loop.
+**Audience Response Cortex Studio**
 
-Submit content → generate variants → score neurally → simulate socially → analyze cross-system → iterate until better.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
+[![Status: Phase 1 POC](https://img.shields.io/badge/status-Phase%201%20POC-orange.svg)]()
+
+A self-optimizing campaign studio that predicts how audiences will react before you publish — combining neural response prediction, multi-agent social simulation, and LLM-driven iterative optimization.
+
+![A.R.C Studio Architecture](docs/architecture.png)
+
+## What It Does
+
+A.R.C Studio closes the gap between "we think this will work" and "here's what the data says." You paste in a piece of content — a product launch announcement, a public health PSA, a policy draft, a marketing campaign — select your target audience, and the system takes it from there.
+
+First, it generates multiple content variants using Claude Haiku, each exploring a different persuasion strategy. Then each variant runs through two independent evaluation systems: **TRIBE v2**, Meta FAIR's brain-encoding model, predicts neural responses across seven dimensions (attention, emotion, memory, reward, threat, cognitive load, social relevance) by simulating how a human brain would process the content. **MiroFish**, a multi-agent social simulation engine, spawns 20-40 AI agents with demographically-tuned personas and watches how they share, discuss, react to, and push back against each variant across simulated social platforms.
+
+Claude Opus then analyzes the results from both systems together — identifying *why* certain neural activation patterns led to specific social outcomes — and feeds that analysis back into variant generation for the next iteration. The loop continues until quality thresholds are met or improvement plateaus. The end result: optimized content, a ranked comparison of approaches, and a layered report explaining what works, what doesn't, and why.
+
+## Why It's Novel
+
+This is the first integration of three specific technologies into a single feedback loop: Meta FAIR's TRIBE v2 (released March 2025, a brain-encoding model that predicts fMRI-level neural responses from text), MiroFish-Offline (a local fork of the multi-agent social simulation engine built on CAMEL-AI's OASIS framework), and Claude Opus as the orchestrating reasoning layer. The cognitive-social bridge — using neural prediction to inform agent personas and using simulation outcomes to refine neural targeting — doesn't exist anywhere else. Each system alone is useful; the cross-system reasoning between them is what produces insights neither could generate independently.
 
 ## Validation Results
 
@@ -14,11 +32,11 @@ The feedback loop demonstrably improves content across iterations:
 
 | Scenario | Demographic | Iter 1 Avg | Iter 2 Avg | Change | MiroFish |
 |----------|-------------|-----------|-----------|--------|----------|
-| Product Launch | Tech Professionals | 41.1 | 44.0 | **+2.9** | ✓ shares: 6→10 |
-| Gen Z Marketing | Gen Z Digital Natives | 43.1 | 69.0 | **+25.9** | ✓ shares: 8→12 |
-| Policy Announcement | Policy-Aware Public | 45.6 | 48.2 | **+2.6** | ✓ virality: 72→90 |
-| Price Increase | Enterprise Decision-Makers | 70.0 | 70.0 | +0.0 | ✗ unavailable |
-| Public Health PSA | General Consumer | 70.0 | 70.0 | +0.0 | ✗ unavailable |
+| Product Launch | Tech Professionals | 41.1 | 44.0 | **+2.9** | shares: 6->10 |
+| Gen Z Marketing | Gen Z Digital Natives | 43.1 | 69.0 | **+25.9** | shares: 8->12 |
+| Policy Announcement | Policy-Aware Public | 45.6 | 48.2 | **+2.6** | virality: 72->90 |
+| Price Increase | Enterprise Decision-Makers | 70.0 | 70.0 | +0.0 | unavailable |
+| Public Health PSA | General Consumer | 70.0 | 70.0 | +0.0 | unavailable |
 
 **3/5 scenarios improved** when both systems provided data. The 2 flat scenarios had MiroFish unavailable (ontology generation timeout), so composite scores only reflected TRIBE neural dimensions — which are deterministic per text.
 
@@ -35,7 +53,7 @@ The improvement mechanism works through cross-system feedback:
 For example, in the **Gen Z Marketing** scenario (+25.9 improvement):
 - Iter 1 scored 43.1 — high attention but low virality
 - The cross-system analysis identified that high cognitive load (technical language) suppressed sharing among digital natives
-- Iter 2 variants used simpler language with emotional hooks → virality jumped from 54 to peak scores, driving the composite from 43.1 to 69.0
+- Iter 2 variants used simpler language with emotional hooks -> virality jumped from 54 to peak scores, driving the composite from 43.1 to 69.0
 
 ### Cross-System Reasoning
 
@@ -48,31 +66,31 @@ Score variance across demographics: **13.0** (threshold: >5.0). Different audien
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    React Dashboard                       │
-│  Campaign Form → Progress (SSE) → Results (3 tabs)      │
-└──────────────────────┬──────────────────────────────────┘
-                       │ REST API
-┌──────────────────────▼──────────────────────────────────┐
-│              Orchestrator (FastAPI)                       │
-│  Campaign CRUD · Variant Generation · Composite Scoring  │
-│  Optimization Loop · Report Generation · SSE Streaming   │
-│  SQLite persistence · Graceful degradation               │
-├─────────────┬────────────────────┬──────────────────────┤
-│  Claude API │   TRIBE v2 Scorer  │  MiroFish-Offline    │
-│  (Haiku +   │   (LLaMA 3.2-3B   │  (Neo4j + Ollama +   │
-│   Opus)     │    brain encoding) │   Claude Haiku agents)│
-└─────────────┴────────────────────┴──────────────────────┘
++---------------------------------------------------------+
+|                    React Dashboard                       |
+|  Campaign Form -> Progress (SSE) -> Results (3 tabs)    |
++------------------------+--------------------------------+
+                         | REST API
++------------------------v--------------------------------+
+|              Orchestrator (FastAPI)                       |
+|  Campaign CRUD . Variant Generation . Composite Scoring  |
+|  Optimization Loop . Report Generation . SSE Streaming   |
+|  SQLite persistence . Graceful degradation               |
++--------------+-----------------+------------------------+
+|  Claude API  |  TRIBE v2 Scorer |  MiroFish-Offline     |
+|  (Haiku +    |  (LLaMA 3.2-3B   |  (Neo4j + Ollama +    |
+|   Opus)      |   brain encoding) |   Claude Haiku agents)|
++--------------+-----------------+------------------------+
 ```
 
-### Services
+### Service Topology
 
 | Service | Port | Role |
 |---------|------|------|
 | Orchestrator | 8000 | FastAPI — campaign pipeline, API, SSE |
-| TRIBE v2 | 8001 | Neural scoring — text→TTS→WhisperX→LLaMA→brain encoding |
+| TRIBE v2 | 8001 | Neural scoring — text->TTS->WhisperX->LLaMA->brain encoding |
 | MiroFish | 5001 | Social simulation — multi-agent with Claude Haiku |
-| LiteLLM | 4000 | OpenAI→Anthropic proxy for MiroFish agents |
+| LiteLLM | 4000 | OpenAI->Anthropic proxy for MiroFish agents |
 | Neo4j | 7687 | Knowledge graph for MiroFish |
 | Ollama | 11434 | Local embeddings (nomic-embed-text) |
 | UI | 5173 | React + Vite dev server |
@@ -178,13 +196,13 @@ ARC_Studio/
 
 | Score | Formula | What it measures |
 |-------|---------|-----------------|
-| Attention | 0.6×attention + 0.4×emotion | Will people notice this? |
-| Virality | (emotion × social) / cognitive × share_rate | Will people share this? |
-| Backlash Risk | threat / (reward + social) × counter_narratives | Will this blow up negatively? |
-| Memory | memory × emotion × sentiment_stability | Will people remember this? |
-| Conversion | reward × attention / threat | Will people take action? |
+| Attention | 0.6*attention + 0.4*emotion | Will people notice this? |
+| Virality | (emotion * social) / cognitive * share_rate | Will people share this? |
+| Backlash Risk | threat / (reward + social) * counter_narratives | Will this blow up negatively? |
+| Memory | memory * emotion * sentiment_stability | Will people remember this? |
+| Conversion | reward * attention / threat | Will people take action? |
 | Audience Fit | demographic-weighted composite | How well does this match the audience? |
-| Polarization | coalitions × platform_divergence × (1 - stability) | Does this unify or divide? |
+| Polarization | coalitions * platform_divergence * (1 - stability) | Does this unify or divide? |
 
 ## API Endpoints
 
@@ -213,3 +231,34 @@ ARC_Studio/
 - Iteration improvement demonstrated in 3/5 scenarios (MiroFish availability dependent)
 
 See [docs/README.md](docs/README.md) for full documentation.
+
+## Roadmap
+
+**Phase 1** (current): Text-only optimization, single-user local deployment, working POC with validated feedback loop across 5 demo scenarios.
+
+**Phase 2**: Full multimodal inputs (audio + video via TRIBE v2's complete trimodal pipeline), expanded demographic personalization, hosted deployment option, and calibration against real-world campaign performance data.
+
+**Phase 3**: General-purpose simulation platform — extending beyond campaign optimization to any "how will humans respond to X" question.
+
+## Contributing
+
+Contributions are welcome. Whether it's a bug fix, a new demographic profile, improved scoring formulas, or documentation — open an issue or submit a PR.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and PR guidelines.
+
+## License
+
+[AGPL-3.0](LICENSE)
+
+This project is licensed under the GNU Affero General Public License v3.0, matching MiroFish-Offline's license. This means derivative works must also be open-source — protecting the project from being absorbed into closed commercial products without contributing back.
+
+## Acknowledgments
+
+- **Meta FAIR** for [TRIBE v2](https://github.com/facebookresearch/tribe), the brain-encoding model that makes neural response prediction possible
+- **nikmcfly** and the MiroFish team for [MiroFish-Offline](https://github.com/nikmcfly/MiroFish-Offline), the multi-agent social simulation engine
+- **CAMEL-AI** for the [OASIS](https://github.com/camel-ai/oasis) simulation framework that MiroFish builds on
+- **Anthropic** for Claude, which serves as both the orchestrating reasoning layer and the agent backbone
+
+## Author
+
+**Adarsh Reddy Balanolla** — [GitHub](https://github.com/AR6420)
