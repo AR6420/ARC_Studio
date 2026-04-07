@@ -55,7 +55,7 @@ def _create_test_app(tmp_db_path: str) -> FastAPI:
     from orchestrator.api.health import router as health_router
 
     application = FastAPI(
-        title="Nexus Sim Orchestrator",
+        title="A.R.C Studio Orchestrator",
         description="Content optimization pipeline orchestrating TRIBE v2, MiroFish, and Claude",
         version="0.1.0",
         lifespan=test_lifespan,
@@ -115,5 +115,5 @@ async def test_app_title(test_client: AsyncClient):
     response = await test_client.get("/openapi.json")
     assert response.status_code == 200
     data = response.json()
-    assert data["info"]["title"] == "Nexus Sim Orchestrator"
+    assert data["info"]["title"] == "A.R.C Studio Orchestrator"
     assert data["info"]["version"] == "0.1.0"

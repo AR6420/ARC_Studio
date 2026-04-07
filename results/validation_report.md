@@ -1,4 +1,4 @@
-# Nexus Sim Validation Report
+# A.R.C Studio Validation Report
 
 **Date:** 2026-03-29
 **Scenarios Run:** 5/5

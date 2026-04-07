@@ -17,7 +17,7 @@ from typing import Any
 # ── System prompt ─────────────────────────────────────────────────────────────
 
 RESULT_ANALYSIS_SYSTEM = """\
-You are the analytical core of the Nexus Sim content optimization platform. \
+You are the analytical core of the A.R.C Studio content optimization platform. \
 Your role is to perform deep cross-system analysis that bridges neural response \
 prediction (TRIBE v2) and multi-agent social simulation (MiroFish).
 

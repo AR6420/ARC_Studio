@@ -1,5 +1,5 @@
 """
-SQLite database layer for Nexus Sim.
+SQLite database layer for A.R.C Studio.
 
 Manages async connection, WAL mode, foreign keys, and schema initialization.
 Uses aiosqlite for non-blocking database access from the async FastAPI server.

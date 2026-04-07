@@ -21,7 +21,7 @@ from typing import Any
 MASS_PSYCHOLOGY_GENERAL_SYSTEM = """\
 You are a science communicator explaining complex social dynamics to an \
 educated but non-specialist audience. Your task is to write Layer 4 \
-(General mode) of the Nexus Sim final report: a narrative account of how \
+(General mode) of the A.R.C Studio final report: a narrative account of how \
 opinion formed, spread, and stabilized in the simulation.
 
 ## Writing standards
@@ -46,7 +46,7 @@ opinion formed, spread, and stabilized in the simulation.
 MASS_PSYCHOLOGY_TECHNICAL_SYSTEM = """\
 You are a behavioral scientist writing a technical analysis of collective \
 psychology dynamics for a research audience. Your task is to write Layer 4 \
-(Technical mode) of the Nexus Sim final report.
+(Technical mode) of the A.R.C Studio final report.
 
 ## Scientific framing
 

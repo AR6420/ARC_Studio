@@ -1,6 +1,6 @@
 # Results.md — Objectives, expected outputs, and success criteria
 
-## Project: Nexus Sim (Phase 1 POC)
+## Project: A.R.C Studio (Phase 1 POC)
 ## Stack: Claude Opus + MiroFish-Offline + TRIBE v2
 ## Scope: Non-commercial, single-user, private repo
 

@@ -88,7 +88,7 @@ def _create_test_app() -> FastAPI:
     from orchestrator.api.reports import router as reports_router
 
     application = FastAPI(
-        title="Nexus Sim Orchestrator",
+        title="A.R.C Studio Orchestrator",
         version="0.1.0",
     )
 

@@ -1,5 +1,5 @@
 """
-Automated validation runner for Nexus Sim demo scenarios.
+Automated validation runner for A.R.C Studio demo scenarios.
 
 Reads all JSON test briefs from scenarios/ directory and invokes the
 orchestrator CLI for each one, collecting results in results/ directory.
@@ -96,7 +96,7 @@ def run_scenario(scenario: dict, results_dir: str = "results", dry_run: bool = F
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run Nexus Sim validation scenarios",
+        description="Run A.R.C Studio validation scenarios",
     )
     parser.add_argument(
         "--scenario",

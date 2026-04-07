@@ -1,5 +1,5 @@
 """
-Report retrieval and export API endpoints for Nexus Sim.
+Report retrieval and export API endpoints for A.R.C Studio.
 
 Provides:
 - GET /campaigns/{id}/report: Full report as JSON (ReportResponse)
@@ -324,6 +324,6 @@ def _render_markdown_report(
 
     # Footer
     sections.append("---")
-    sections.append("*Exported from Nexus Sim*")
+    sections.append("*Exported from A.R.C Studio*")
 
     return "\n".join(sections)

@@ -1,5 +1,5 @@
 """
-MiroFish social simulation runner for the Nexus Sim orchestrator.
+MiroFish social simulation runner for the A.R.C Studio orchestrator.
 
 Orchestrates sequential MiroFish simulations for content variants and computes
 8 structured metrics from raw simulation output (posts, actions, timeline,

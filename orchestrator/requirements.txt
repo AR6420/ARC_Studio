@@ -1,4 +1,4 @@
-# Nexus Sim — Orchestrator dependencies
+# A.R.C Studio — Orchestrator dependencies
 # Python 3.11+
 
 # ── Web framework ─────────────────────────────────────────────────────────────

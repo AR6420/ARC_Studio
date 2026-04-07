@@ -1,5 +1,5 @@
 """
-Campaign runner for Nexus Sim -- the heart of the orchestration pipeline.
+Campaign runner for A.R.C Studio -- the heart of the orchestration pipeline.
 
 Wires all engine components into a single-iteration pipeline:
   1. Pre-flight health check (system availability)
@@ -320,6 +320,8 @@ class CampaignRunner:
         all_iteration_results: list[dict[str, Any]] = []
         stop_reason = "max_iterations"
 
+        loop_error: Exception | None = None
+
         try:
             for iteration in range(1, max_iterations + 1):
                 # Emit iteration_start event
@@ -397,17 +399,30 @@ class CampaignRunner:
                         stop_reason = "converged"
                         break
 
-            # Generate final report (D-02: after final iteration)
-            if self._report_generator:
-                try:
+        except Exception as e:
+            logger.error("Campaign %s failed during iteration loop: %s", campaign_id, e)
+            loop_error = e
+            stop_reason = "error"
+            if progress_callback:
+                await progress_callback({
+                    "event": "campaign_error",
+                    "campaign_id": campaign_id,
+                    "error": str(e),
+                })
+
+        # Generate report from whatever data was saved (even after partial failure).
+        # Iterations are persisted to DB inside run_single_iteration before the
+        # analysis step, so we may have usable data even if the loop errored out.
+        if self._report_generator:
+            try:
+                all_iterations_db = await self._store.get_iterations(campaign_id)
+                if all_iterations_db:
                     if progress_callback:
                         await progress_callback({
                             "event": "report_generating",
                             "campaign_id": campaign_id,
                         })
 
-                    # Gather all iterations and analyses from DB for the report
-                    all_iterations_db = await self._store.get_iterations(campaign_id)
                     all_analyses_db = await self._store._get_analyses(campaign_id)
 
                     report = await self._report_generator.generate_report(
@@ -425,17 +440,30 @@ class CampaignRunner:
                             "campaign_id": campaign_id,
                         })
                     logger.info("Report generated for campaign %s", campaign_id)
-                except Exception as e:
-                    logger.error("Report generation failed for campaign %s: %s", campaign_id, e)
-                    if progress_callback:
-                        await progress_callback({
-                            "event": "report_failed",
-                            "campaign_id": campaign_id,
-                            "error": str(e),
-                        })
-                    # Do NOT re-raise -- campaign data is already saved (per Pitfall 5)
+                else:
+                    logger.warning("No iteration data saved for campaign %s; skipping report generation", campaign_id)
+            except Exception as report_err:
+                logger.error("Report generation failed for campaign %s: %s", campaign_id, report_err)
+                if progress_callback:
+                    await progress_callback({
+                        "event": "report_failed",
+                        "campaign_id": campaign_id,
+                        "error": str(report_err),
+                    })
+                # Do NOT re-raise -- campaign data is already saved (per Pitfall 5)
 
-            # Campaign completed -- set final status
+        # Set final status based on whether the loop succeeded
+        if loop_error:
+            await self._store.update_campaign_status(campaign_id, "failed", error=str(loop_error))
+            if progress_callback:
+                await progress_callback({
+                    "event": "campaign_complete",
+                    "campaign_id": campaign_id,
+                    "stop_reason": stop_reason,
+                    "iterations_completed": len(all_iteration_results),
+                })
+            raise loop_error
+        else:
             await self._store.update_campaign_status(campaign_id, "completed")
 
             # Emit campaign_complete event
@@ -455,17 +483,6 @@ class CampaignRunner:
                 "best_scores_history": best_scores_history,
                 "improvement_history": improvement_history,
             }
-
-        except Exception as e:
-            logger.error("Campaign %s failed during multi-iteration loop: %s", campaign_id, e)
-            await self._store.update_campaign_status(campaign_id, "failed", error=str(e))
-            if progress_callback:
-                await progress_callback({
-                    "event": "campaign_error",
-                    "campaign_id": campaign_id,
-                    "error": str(e),
-                })
-            raise
 
 
 def _get_weights(demographic: str) -> dict[str, float]:

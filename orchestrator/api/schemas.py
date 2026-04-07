@@ -1,5 +1,5 @@
 """
-Pydantic v2 schemas for the Nexus Sim orchestrator API.
+Pydantic v2 schemas for the A.R.C Studio orchestrator API.
 
 Defines all request/response contracts for campaigns, iterations, analyses,
 health checks, and demographics. Score models (TribeScores, MirofishMetrics,
@@ -184,6 +184,7 @@ class HealthResponse(BaseModel):
     orchestrator: str  # always "ok"
     tribe_scorer: ServiceHealth
     mirofish: ServiceHealth
+    litellm: ServiceHealth | None = None  # LLM proxy used by MiroFish
     database: ServiceHealth
 
 

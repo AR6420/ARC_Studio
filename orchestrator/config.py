@@ -68,6 +68,10 @@ class Settings(BaseSettings):
         default="http://localhost:5000",
         description="Base URL for the MiroFish social simulation service.",
     )
+    litellm_url: str = Field(
+        default="http://localhost:4000",
+        description="Base URL for the LiteLLM proxy (used by MiroFish for LLM calls).",
+    )
 
     # ── Neo4j ───────────────────────────────────────────────────────────────────
     neo4j_uri: str = Field(

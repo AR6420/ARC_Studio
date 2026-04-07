@@ -91,12 +91,21 @@ def load_model(model_path: str, device: str, cache_folder: str) -> None:
         # Ensure forward slashes for HuggingFace repo IDs on Windows
         model_path = model_path.replace("\\", "/")
 
+    # The shipped config.yaml sets num_workers=20 for cluster training.  On
+    # Windows (spawn-based multiprocessing) each worker re-imports torch and
+    # the main module, easily exhausting the paging file.  For single-item
+    # inference we don't need parallel data loading at all.
+    config_override: dict = {}
+    if sys.platform == "win32":
+        config_override["data.num_workers"] = 0
+
     logger.info("Loading TRIBE v2 from '%s' onto device '%s'…", model_path, device)
     try:
         model = TribeModel.from_pretrained(
             model_path,
             cache_folder=cache_folder,
             device=device,
+            config_update=config_override or None,
         )
     except Exception as exc:
         raise RuntimeError(f"Failed to load TRIBE v2 model: {exc}") from exc

@@ -1,5 +1,5 @@
 """
-Cross-system result analyzer for Nexus Sim.
+Cross-system result analyzer for A.R.C Studio.
 
 Uses Claude Opus to perform deep analysis that bridges TRIBE v2 neural scores
 and MiroFish simulation metrics. The analysis MUST reference BOTH systems'

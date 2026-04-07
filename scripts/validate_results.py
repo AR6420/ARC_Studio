@@ -1,5 +1,5 @@
 """
-Results validation checker for Nexus Sim demo scenarios.
+Results validation checker for A.R.C Studio demo scenarios.
 
 Reads result JSON files from results/ directory and checks three quality criteria:
   1. Iteration improvement (VAL-03): 4/5 scenarios must show score improvement
@@ -168,7 +168,7 @@ def check_demographic_sensitivity(results: list[dict]) -> tuple[bool, float, str
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate Nexus Sim scenario results against quality criteria",
+        description="Validate A.R.C Studio scenario results against quality criteria",
     )
     parser.add_argument(
         "--results-dir",

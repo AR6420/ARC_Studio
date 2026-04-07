@@ -1,6 +1,6 @@
 # Planning.md — Sprint breakdown, dependencies, and milestones
 
-## Project: Nexus Sim (Phase 1 POC)
+## Project: A.R.C Studio (Phase 1 POC)
 ## Timeline: 8 weeks (flexible — solo developer with Claude Code)
 ## Build tool: Claude Code with GSD skill
 

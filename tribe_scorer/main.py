@@ -23,6 +23,7 @@ if os.environ.get("TRIBE_DEVICE", "").lower() == "cpu":
 import asyncio
 import logging
 import sys
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -59,12 +60,55 @@ logging.basicConfig(
 _startup_error: str | None = None
 
 
+def _clean_stale_inflight_records() -> None:
+    """Clean stale inflight records from exca cache on startup.
+
+    The exca caching library tracks "in-flight" operations in SQLite databases.
+    If the TRIBE service crashes or is killed during inference, these records
+    are left behind.  On Windows, exca's liveness check (os.kill(pid, 0))
+    raises OSError instead of ProcessLookupError for dead PIDs, which prevents
+    the library from auto-cleaning stale records.
+
+    This function deletes ALL inflight records at startup, since any records
+    from a previous process are by definition stale (this is a fresh start).
+    """
+    import glob
+    import sqlite3
+
+    pattern = os.path.join(settings.cache_folder, "**", "inflight.db")
+    db_files = glob.glob(pattern, recursive=True)
+
+    total_cleaned = 0
+    for db_path in db_files:
+        try:
+            conn = sqlite3.connect(db_path, timeout=5)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM inflight")
+            count = cursor.fetchone()[0]
+            if count > 0:
+                cursor.execute("DELETE FROM inflight")
+                conn.commit()
+                total_cleaned += count
+                logger.info("Cleaned %d stale inflight records from %s", count, db_path)
+            conn.close()
+        except Exception as exc:
+            logger.warning("Could not clean inflight DB %s: %s", db_path, exc)
+
+    if total_cleaned > 0:
+        logger.info("Total stale inflight records cleaned: %d", total_cleaned)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _startup_error
     loop = asyncio.get_event_loop()
+
+    # Clean stale inflight records from previous crashed sessions.
+    # Must run BEFORE model loading since model loading also uses the cache.
+    _clean_stale_inflight_records()
+
     try:
-        logger.info("Loading TRIBE v2 model (this may take 30–60 s)…")
+        logger.info("Loading TRIBE v2 model (this may take 30-60 s)...")
         await loop.run_in_executor(
             None,
             lambda: load_model(
@@ -73,7 +117,7 @@ async def lifespan(app: FastAPI):
                 cache_folder=settings.cache_folder,
             ),
         )
-        logger.info("TRIBE v2 model loaded. Seeding baseline…")
+        logger.info("TRIBE v2 model loaded. Seeding baseline...")
         await loop.run_in_executor(
             None,
             lambda: build_baseline_from_model(get_model(), score_text),
@@ -178,6 +222,13 @@ class HealthResponse(BaseModel):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# Serialize model access: the TRIBE model (LLaMA 3.2-3B) and its exca cache
+# are NOT thread-safe. If FastAPI dispatches overlapping requests to the
+# thread pool, concurrent model.predict() or cache access can crash.
+# This lock ensures only one inference runs at a time.
+_inference_lock = threading.Lock()
+
+
 def _require_model() -> Any:
     """Return the loaded model or raise 503 if unavailable."""
     model = get_model()
@@ -189,25 +240,12 @@ def _require_model() -> Any:
     return model
 
 
-def _run_single_score(text: str) -> ScoreResponse:
-    """Blocking inference for one text. Runs inside a thread executor."""
-    model = _require_model()
-    t_start = time.perf_counter()
-
-    try:
-        vertex_activations = score_text(text, model)
-    except (ValueError, RuntimeError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Inference failed: {exc}",
-        )
-
+def _score_response_from_activations(
+    vertex_activations, normalizer, elapsed_ms: float
+) -> ScoreResponse:
+    """Convert vertex activations to a ScoreResponse."""
     raw_activations = extract_roi_activations(vertex_activations)
-    normalizer = get_normalizer()
     scores = normalizer.normalize(raw_activations)
-
-    elapsed_ms = (time.perf_counter() - t_start) * 1000.0
-
     return ScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -220,6 +258,32 @@ def _run_single_score(text: str) -> ScoreResponse:
     )
 
 
+def _run_single_score(text: str) -> ScoreResponse:
+    """Blocking inference for one text. Runs inside a thread executor."""
+    model = _require_model()
+    t_start = time.perf_counter()
+
+    with _inference_lock:
+        try:
+            vertex_activations = score_text(text, model)
+        except (ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Inference failed: {exc}",
+            )
+        except Exception as exc:
+            logger.error("Unexpected inference error: %s: %s", type(exc).__name__, exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unexpected inference error: {type(exc).__name__}: {exc}",
+            )
+
+    elapsed_ms = (time.perf_counter() - t_start) * 1000.0
+    return _score_response_from_activations(
+        vertex_activations, get_normalizer(), elapsed_ms
+    )
+
+
 def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
     """Blocking inference for a batch of texts. Runs inside a thread executor."""
     model = _require_model()
@@ -228,13 +292,23 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
 
     for text in texts:
         t_start = time.perf_counter()
-        try:
-            vertex_activations = score_text(text, model)
-        except (ValueError, RuntimeError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Inference failed for one of the texts: {exc}",
-            )
+        with _inference_lock:
+            try:
+                vertex_activations = score_text(text, model)
+            except (ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Inference failed for one of the texts: {exc}",
+                )
+            except Exception as exc:
+                logger.error(
+                    "Unexpected batch inference error: %s: %s",
+                    type(exc).__name__, exc,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Unexpected inference error: {type(exc).__name__}: {exc}",
+                )
         raw_activations = extract_roi_activations(vertex_activations)
         elapsed_ms = (time.perf_counter() - t_start) * 1000.0
 

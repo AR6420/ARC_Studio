@@ -206,7 +206,7 @@ function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
     refetch,
   } = useReport(campaign.id);
 
-  if (campaign.status !== 'completed') {
+  if (campaign.status !== 'completed' && campaign.status !== 'failed') {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">

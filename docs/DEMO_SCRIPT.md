@@ -1,4 +1,4 @@
-# Nexus Sim Demo Recording Script
+# A.R.C Studio Demo Recording Script
 
 **Target duration:** 7-8 minutes
 **Format:** Screen recording with voiceover narration
@@ -19,7 +19,7 @@
 
 **Talking points:**
 
-- "This is Nexus Sim, a content optimization platform that uses three AI systems working together."
+- "This is A.R.C Studio, a content optimization platform that uses three AI systems working together."
 - "The core idea: instead of asking one AI to generate content, we run a feedback loop between neural response prediction, multi-agent social simulation, and LLM-driven analysis."
 - "The system generates content variants, scores them neurally using a brain prediction model, simulates how real audiences would react in a social environment, analyzes the combined data, and iterates until the content is measurably better."
 - "Let me show you how it works."
@@ -219,7 +219,7 @@ python -m orchestrator.cli \
 
 **Talking points:**
 
-- "To recap: Nexus Sim combines three AI systems -- neural response prediction with TRIBE v2, multi-agent social simulation with MiroFish, and cross-system analysis with Claude Opus -- into an iterative feedback loop."
+- "To recap: A.R.C Studio combines three AI systems -- neural response prediction with TRIBE v2, multi-agent social simulation with MiroFish, and cross-system analysis with Claude Opus -- into an iterative feedback loop."
 - "Each iteration produces measurably better content, and the system explains why certain neural patterns lead to specific social outcomes."
 - "This is a Phase 1 proof of concept. The core thesis -- that iterative feedback between neural and social systems produces better content than single-pass generation -- is what we set out to validate."
 - "Thank you for watching."

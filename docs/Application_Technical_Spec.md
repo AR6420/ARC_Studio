@@ -1,6 +1,6 @@
 # Application_Technical_Spec.md — System architecture and technical design
 
-## Project: Nexus Sim (Phase 1 POC)
+## Project: A.R.C Studio (Phase 1 POC)
 ## Architecture: Modular monorepo with Docker service boundaries
 ## Language: Python (backend), TypeScript (frontend)
 
@@ -251,7 +251,7 @@ Each ROI's activation is averaged, then normalized to 0-100 using percentile ran
 
 **This is a Git submodule.** We fork MiroFish-Offline, make minimal modifications, and include it as a submodule. This keeps our changes isolated and makes upstream merges possible.
 
-**Modifications to MiroFish-Offline for Nexus Sim:**
+**Modifications to MiroFish-Offline for A.R.C Studio:**
 
 1. **LLM endpoint:** Change `.env` to point at LiteLLM proxy (port 4000) instead of local Ollama for the main LLM. Embeddings stay on local Ollama.
 

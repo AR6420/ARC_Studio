@@ -1,5 +1,5 @@
 /**
- * Base fetch wrapper for the Nexus Sim orchestrator API.
+ * Base fetch wrapper for the A.R.C Studio orchestrator API.
  *
  * All API calls go through apiFetch() which handles:
  * - Base URL resolution (env var or localhost:8000 default)

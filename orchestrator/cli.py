@@ -1,5 +1,5 @@
 """
-CLI entry point for running Nexus Sim campaigns from the command line.
+CLI entry point for running A.R.C Studio campaigns from the command line.
 
 Usage:
     python -m orchestrator.cli --seed-content "Your content here..." --prediction-question "How will the audience react?" --demographic tech_professionals
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run a Nexus Sim campaign from the command line",
+        description="Run a A.R.C Studio campaign from the command line",
         prog="python -m orchestrator.cli",
     )
     content_group = parser.add_mutually_exclusive_group(required=True)
@@ -73,7 +73,7 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     db = Database(str(settings.database_path_absolute))
     await db.connect()
 
-    tribe_http = httpx.AsyncClient(base_url=settings.tribe_scorer_url, timeout=120.0)
+    tribe_http = httpx.AsyncClient(base_url=settings.tribe_scorer_url, timeout=300.0)
     mirofish_http = httpx.AsyncClient(base_url=settings.mirofish_url, timeout=300.0)
 
     try:
@@ -81,7 +81,7 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         store = CampaignStore(db)
         claude = ClaudeClient()
         tribe_client = TribeClient(tribe_http)
-        mirofish_client = MirofishClient(mirofish_http)
+        mirofish_client = MirofishClient(mirofish_http, litellm_url=settings.litellm_url)
 
         variant_gen = VariantGenerator(claude)
         tribe_scoring = TribeScoringPipeline(tribe_client)

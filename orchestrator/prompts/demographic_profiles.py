@@ -1,5 +1,5 @@
 """
-Preset demographic configurations for Nexus Sim.
+Preset demographic configurations for A.R.C Studio.
 
 Six demographic presets as defined in Results.md section 2.1 and the tech spec.
 Each preset contains everything needed to:

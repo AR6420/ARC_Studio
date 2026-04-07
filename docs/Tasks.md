@@ -1,6 +1,6 @@
 # Tasks.md — Actionable task checklist
 
-## Project: Nexus Sim (Phase 1 POC)
+## Project: A.R.C Studio (Phase 1 POC)
 ## Instructions: Each task is sized for one Claude Code session (30-90 min). Check off as completed. Add notes in the Notes column for anything Claude Code should know for dependent tasks.
 
 ---
@@ -133,7 +133,7 @@
 | 3.C.1 | Scaffold React + Vite + TypeScript project in ui/. Install dependencies: tailwindcss, recharts, react-query, axios | [ ] | |
 | 3.C.2 | Create ui/src/api/client.ts: Axios instance pointing at VITE_API_BASE_URL. Create api/campaigns.ts with all API call functions. | [ ] | |
 | 3.C.3 | Create ui/src/api/types.ts: TypeScript types matching ALL Pydantic schemas from orchestrator | [ ] | Keep in sync with orchestrator/api/schemas.py. |
-| 3.C.4 | Create layout components: Sidebar (campaign history list), Header (Nexus Sim title), Layout (sidebar + main content) | [ ] | |
+| 3.C.4 | Create layout components: Sidebar (campaign history list), Header (A.R.C Studio title), Layout (sidebar + main content) | [ ] | |
 | 3.C.5 | Create NewCampaign page: seed content textarea with file upload, prediction question input, demographic selector (6 preset cards + custom text), config panel (agent slider, iteration slider, threshold toggles + inputs), time estimate display, Run button | [ ] | |
 | 3.C.6 | Create DemographicSelector component: 6 cards with preset name + short description. "Custom" card expands to textarea. | [ ] | |
 | 3.C.7 | Create ConfigPanel component: agent count slider (20-200, step 10), max iterations slider (1-10), threshold toggle + input for each of 7 composite scores, time estimate (calls /api/estimate on change) | [ ] | |

@@ -1,5 +1,5 @@
 /**
- * Campaign list page -- the main landing page of the Nexus Sim dashboard.
+ * Campaign list page -- the main landing page of the A.R.C Studio dashboard.
  *
  * Displays all campaigns in a responsive card grid with status badges,
  * prediction questions, demographics, dates, and iteration counts.

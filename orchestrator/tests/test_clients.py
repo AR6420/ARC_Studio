@@ -7,6 +7,7 @@ custom transport handler that returns predetermined responses.
 """
 
 import json
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -23,13 +24,16 @@ from orchestrator.clients.tribe_client import TribeClient, TRIBE_SCORE_DIMENSION
 # ---------------------------------------------------------------------------
 
 
-def _make_tribe_client(handler) -> TribeClient:
-    """Build a TribeClient backed by a mock transport handler."""
+def _make_tribe_client(handler, *, max_retries: int = 0) -> TribeClient:
+    """Build a TribeClient backed by a mock transport handler.
+
+    max_retries defaults to 0 for fast tests (no retry backoff delays).
+    """
     transport = httpx.MockTransport(handler)
     async_client = httpx.AsyncClient(
         transport=transport, base_url="http://localhost:8001"
     )
-    return TribeClient(async_client)
+    return TribeClient(async_client, max_retries=max_retries, retry_backoff_base=0.0)
 
 
 def _tribe_health_ok_handler(request: httpx.Request) -> httpx.Response:
@@ -320,9 +324,20 @@ def _mirofish_poll_never_completes_handler(request: httpx.Request) -> httpx.Resp
 class TestMirofishHealthCheck:
     @pytest.mark.asyncio
     async def test_mirofish_health_check_ok(self):
-        """Health check returns True when MiroFish returns 200."""
+        """Health check returns True when MiroFish and LiteLLM are healthy."""
         client = _make_mirofish_client(_mirofish_health_ok_handler)
-        result = await client.health_check()
+
+        # Mock the LiteLLM check (uses a separate httpx.AsyncClient internally)
+        mock_llm_response = httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "hi"}}]},
+        )
+        with patch("orchestrator.clients.mirofish_client.httpx.AsyncClient") as mock_cls:
+            mock_ctx = AsyncMock()
+            mock_ctx.post = AsyncMock(return_value=mock_llm_response)
+            mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            mock_cls.return_value.__aexit__ = AsyncMock(return_value=None)
+            result = await client.health_check()
         assert result is True
 
     @pytest.mark.asyncio
@@ -330,6 +345,20 @@ class TestMirofishHealthCheck:
         """Health check returns False when MiroFish is unreachable."""
         client = _make_mirofish_client(_mirofish_connection_error_handler)
         result = await client.health_check()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_mirofish_health_check_llm_401(self):
+        """Health check returns False when LiteLLM returns 401 (expired key)."""
+        client = _make_mirofish_client(_mirofish_health_ok_handler)
+
+        mock_llm_response = httpx.Response(401, json={"error": "unauthorized"})
+        with patch("orchestrator.clients.mirofish_client.httpx.AsyncClient") as mock_cls:
+            mock_ctx = AsyncMock()
+            mock_ctx.post = AsyncMock(return_value=mock_llm_response)
+            mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            mock_cls.return_value.__aexit__ = AsyncMock(return_value=None)
+            result = await client.health_check()
         assert result is False
 
 

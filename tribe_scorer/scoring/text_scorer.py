@@ -6,11 +6,17 @@ inference pipeline, and averaging the per-TR predictions into a single
 ``(n_vertices,)`` array.
 """
 
+import concurrent.futures
 import logging
 import tempfile
 from pathlib import Path
 
 import numpy as np
+
+# Maximum time (seconds) to wait for a single text's inference pipeline.
+# If the pipeline hangs (e.g., on certain cache operations or I/O), we
+# fall back to pseudo-scoring rather than blocking forever.
+_INFERENCE_TIMEOUT = 180  # 3 minutes — generous for CPU inference
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +62,26 @@ def score_text(text: str, model) -> np.ndarray:
         tmp.write(text)
         tmp_path = tmp.name
 
-    try:
-        logger.debug("Running get_events_dataframe on temp file '%s'", tmp_path)
-        events = model.get_events_dataframe(text_path=tmp_path)
+    def _run_pipeline(path, mdl):
+        """Run the full TTS → WhisperX → predict pipeline (blocking)."""
+        events = mdl.get_events_dataframe(text_path=path)
+        p, s = mdl.predict(events, verbose=False)
+        return p, s
 
-        logger.debug("Running predict()…")
-        preds, segments = model.predict(events, verbose=False)
-        # preds: (n_segments, n_vertices)
+    try:
+        logger.info("Running TRIBE inference pipeline (timeout=%ds)...", _INFERENCE_TIMEOUT)
+        # Run in a thread with a timeout so the pipeline can't hang forever.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_pipeline, tmp_path, model)
+            preds, segments = future.result(timeout=_INFERENCE_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        logger.warning(
+            "TRIBE v2 pipeline timed out after %ds. Falling back to "
+            "pseudo-scores.",
+            _INFERENCE_TIMEOUT,
+        )
+        Path(tmp_path).unlink(missing_ok=True)
+        return _pseudo_score_from_text(text)
     except Exception as exc:
         logger.warning(
             "TRIBE v2 full pipeline failed (%s). Falling back to "

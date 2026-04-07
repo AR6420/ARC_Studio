@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**Nexus Sim** — Content optimization platform combining neural response prediction (TRIBE v2), multi-agent social simulation (MiroFish-Offline), and LLM-driven iterative optimization (Claude) into a single feedback loop. Phase 1 POC: single-user, local machine, non-commercial.
+**A.R.C Studio** — Content optimization platform combining neural response prediction (TRIBE v2), multi-agent social simulation (MiroFish-Offline), and LLM-driven iterative optimization (Claude) into a single feedback loop. Phase 1 POC: single-user, local machine, non-commercial.
 
 ### Constraints
 

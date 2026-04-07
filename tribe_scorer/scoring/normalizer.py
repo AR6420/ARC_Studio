@@ -2,24 +2,23 @@
 
 Strategy
 --------
-The normalizer uses percentile-rank normalization against a baseline
-distribution built from diverse reference texts.  For each dimension:
+The normalizer uses z-score normalization with a sigmoid mapping to
+convert raw ROI activations into 0-100 scores:
 
-    score = percentile_rank(activation, baseline) * 100
+    z = (activation - baseline_mean) / baseline_std
+    score = sigmoid(z * spread_factor) * 100
 
-where ``percentile_rank(x, dist)`` is the fraction of baseline values
-strictly less than ``x``, multiplied by 100.
-
-If no baseline has been populated yet the normalizer falls back to
-within-batch min-max scaling so that every call still returns a useful
-range rather than a constant.
+This produces continuous scores across the full 0-100 range regardless
+of baseline size.  The ``spread_factor`` (default 1.5) controls how
+quickly scores move from 0 toward 100 as activations exceed the baseline
+mean.  A factor of 1.5 maps +/-2 std to roughly 5-95.
 
 Baseline management
 -------------------
 Call :func:`update_baseline` to add raw activation dicts to the baseline
 pool.  The pool is kept in memory and is NOT persisted across restarts by
-default.  A typical startup routine would call :func:`score_reference_texts`
-once after model load to seed the baseline with 10 diverse texts.
+default.  A typical startup routine scores REFERENCE_TEXTS once after
+model load to seed the baseline.
 
 All scores are clamped to [0, 100].
 """
@@ -42,7 +41,18 @@ DIMENSIONS = [
     "social_relevance",
 ]
 
-# 10 diverse reference texts used to seed the baseline on first startup.
+# Spread factor for z-score -> sigmoid mapping.
+# Controls score sensitivity:
+#   1.0: +/-3 std maps to ~5-95
+#   1.5: +/-2 std maps to ~5-95
+#   2.0: +/-1.5 std maps to ~5-95
+_SPREAD_FACTOR = 1.5
+
+# Reference texts used to seed the baseline on first startup.
+# Covers a diverse range of content types: neutral, emotional, threatening,
+# social, reward, cognitive, memory, action, marketing/persuasive, and calm.
+# The marketing/persuasive texts ensure the baseline spans the same
+# activation range as typical campaign content.
 REFERENCE_TEXTS: list[str] = [
     # Neutral / informational
     "The water cycle describes how water evaporates from the surface of the earth, "
@@ -82,11 +92,39 @@ REFERENCE_TEXTS: list[str] = [
     "The library was quiet at midday. Dust motes drifted in the pale light "
     "filtering through tall windows. Someone turned a page. Outside, a pigeon "
     "landed on the sill and regarded the readers without curiosity.",
+    # Marketing / persuasive (high-activation — matches campaign content)
+    "Introducing the revolutionary platform that transforms how enterprises make "
+    "decisions. Our AI-powered analytics deliver 10x faster insights with 99.7% "
+    "accuracy. Join 500 Fortune 500 companies already seeing results. Start your "
+    "free trial today and experience the future of business intelligence.",
+    # Policy / PSA (formal persuasion — common campaign type)
+    "New research confirms that childhood vaccination reduces hospitalization rates "
+    "by 94% and prevents an estimated 4 million deaths annually worldwide. The CDC "
+    "recommends all children receive the updated schedule. Talk to your pediatrician "
+    "about protecting your family today.",
+    # Product launch / tech announcement
+    "We are excited to announce the next generation of our flagship product. With "
+    "breakthrough performance improvements, seamless integration, and an entirely "
+    "redesigned user experience, this release sets a new standard for the industry. "
+    "Available now for early access customers.",
+    # Crisis communication
+    "A critical security vulnerability has been discovered in our authentication "
+    "system affecting all users who logged in between March 1 and March 15. We have "
+    "patched the issue and are requiring all users to reset their passwords immediately. "
+    "No financial data was compromised.",
+    # Motivational / inspirational
+    "Every great achievement begins with the decision to try. You have within you "
+    "right now everything you need to overcome every obstacle, break every record, "
+    "and accomplish more than you ever dreamed possible. The only limits are the "
+    "ones you accept.",
 ]
 
 
 class Normalizer:
     """Maintain a baseline distribution and convert raw activations to 0-100 scores.
+
+    Uses z-score normalization with sigmoid mapping for continuous scoring
+    that works well even with small baselines (as few as 5-10 texts).
 
     Attributes
     ----------
@@ -131,8 +169,8 @@ class Normalizer:
     def normalize(self, activations: dict[str, float]) -> dict[str, float]:
         """Convert raw activations to 0-100 scores.
 
-        Uses percentile-rank normalization when the baseline has at least one
-        observation, otherwise falls back to within-batch (single-item)
+        Uses z-score normalization with sigmoid mapping when the baseline has
+        at least 2 observations, otherwise falls back to within-batch
         min-max — which for a single value defaults to 50.0.
 
         Parameters
@@ -165,12 +203,17 @@ class Normalizer:
     def _normalize_batch(
         self, activations_list: list[dict[str, float]]
     ) -> list[dict[str, float]]:
-        """Internal batch normalizer."""
+        """Internal batch normalizer.
+
+        Strategy: z-score normalization with sigmoid mapping.
+        For each dimension, compute z = (x - mean) / std from the baseline,
+        then map through sigmoid to get a continuous 0-100 score.
+        """
         n_items = len(activations_list)
         if n_items == 0:
             return []
 
-        has_baseline = self.baseline_size() > 0
+        has_baseline = self.baseline_size() >= 2
         results: list[dict[str, float]] = [{} for _ in range(n_items)]
 
         for dim in DIMENSIONS:
@@ -180,7 +223,9 @@ class Normalizer:
 
             if has_baseline:
                 baseline_arr = np.array(self._baseline[dim], dtype=np.float64)
-                scores = _percentile_rank_vectorized(batch_values, baseline_arr) * 100.0
+                scores = _zscore_sigmoid_vectorized(
+                    batch_values, baseline_arr, spread=_SPREAD_FACTOR,
+                ) * 100.0
             else:
                 # Fallback: within-batch min-max when no baseline exists.
                 # For a single item this produces 50.0 (midpoint).
@@ -199,29 +244,58 @@ class Normalizer:
             scores = np.clip(scores, 0.0, 100.0)
 
             for i, score in enumerate(scores):
-                results[i][dim] = float(score)
+                results[i][dim] = round(float(score), 1)
 
         return results
 
 
-def _percentile_rank_vectorized(
-    values: np.ndarray, distribution: np.ndarray
+def _zscore_sigmoid_vectorized(
+    values: np.ndarray,
+    distribution: np.ndarray,
+    spread: float = 1.5,
 ) -> np.ndarray:
-    """Compute percentile rank for each value in *values* against *distribution*.
+    """Map values to [0, 1] via z-score normalization + sigmoid.
 
-    Returns a float array in [0, 1] where:
-        0.0 → value is at or below all baseline values
-        1.0 → value exceeds all baseline values
+    For each value x:
+        z = (x - mean(distribution)) / std(distribution)
+        score = sigmoid(z * spread)
 
-    Uses the formula: rank = (# baseline values strictly < x) / n_baseline
+    This produces continuous scores that work well with any baseline size.
+    The sigmoid naturally maps the full real line to (0, 1), so values
+    far above or below the baseline still get differentiated (rather than
+    clamping to 0 or 100).
+
+    Parameters
+    ----------
+    values:
+        Array of raw activation values to score.
+    distribution:
+        Baseline distribution (from reference texts).
+    spread:
+        Controls score sensitivity.  Higher = more sensitive to small
+        deviations from the mean.  1.5 maps +/-2 std to ~5-95.
+
+    Returns
+    -------
+    np.ndarray
+        Scores in (0, 1) for each value.
     """
     n = len(distribution)
     if n == 0:
         return np.full(len(values), 0.5)
-    sorted_dist = np.sort(distribution)
-    # searchsorted with side='left' gives the count of elements < x
-    ranks = np.searchsorted(sorted_dist, values, side="left").astype(np.float64) / n
-    return ranks
+
+    mu = np.mean(distribution)
+    sigma = np.std(distribution)
+
+    if sigma < 1e-12:
+        # All baseline values are identical; fall back to sign-based scoring
+        # where values above the baseline get > 0.5 and below get < 0.5.
+        sigma = max(abs(mu) * 0.1, 1e-8)
+
+    z = (values - mu) / sigma
+    # Sigmoid: 1 / (1 + exp(-z * spread))
+    scores = 1.0 / (1.0 + np.exp(-z * spread))
+    return scores
 
 
 # Module-level singleton used by the FastAPI app
@@ -252,7 +326,7 @@ def build_baseline_from_model(model, scorer_fn) -> None:
 
     normalizer = get_normalizer()
     logger.info(
-        "Seeding baseline with %d reference texts…", len(REFERENCE_TEXTS)
+        "Seeding baseline with %d reference texts...", len(REFERENCE_TEXTS)
     )
     n_ok = 0
     for i, text in enumerate(REFERENCE_TEXTS):
@@ -264,7 +338,7 @@ def build_baseline_from_model(model, scorer_fn) -> None:
             logger.debug("Reference text %d/%d scored OK.", i + 1, len(REFERENCE_TEXTS))
         except Exception as exc:
             logger.warning(
-                "Failed to score reference text %d/%d: %s — skipping.",
+                "Failed to score reference text %d/%d: %s -- skipping.",
                 i + 1,
                 len(REFERENCE_TEXTS),
                 exc,

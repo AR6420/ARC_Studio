@@ -37,7 +37,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-bold tracking-tight text-foreground">
-            Nexus Sim
+            A.R.C Studio
           </span>
           <span className="text-[0.65rem] font-medium tracking-wider uppercase text-muted-foreground">
             Content Lab

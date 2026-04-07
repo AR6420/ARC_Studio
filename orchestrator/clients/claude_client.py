@@ -1,5 +1,5 @@
 """
-Claude API client for Nexus Sim orchestrator.
+Claude API client for A.R.C Studio orchestrator.
 
 Wraps the Anthropic AsyncAnthropic SDK with:
 - Dynamic credential loading (env var > credentials file)
@@ -25,8 +25,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_CREDENTIALS_PATH = "C:/Users/adars/.claude/.credentials.json"
 
 # Retry configuration
-MAX_RETRIES = 3
-BACKOFF_BASE = 1.0  # seconds — doubles each retry: 1s, 2s, 4s
+MAX_RETRIES = 5
+BACKOFF_BASE = 2.0  # seconds — doubles each retry: 2s, 4s, 8s, 16s, 32s
+RATE_LIMIT_BACKOFF = 30.0  # longer initial backoff for 429 rate limits
 
 # HTTP status codes that trigger a retry
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
@@ -98,6 +99,8 @@ class ClaudeClient:
     API key resolution order:
     1. ANTHROPIC_API_KEY environment variable (if non-empty)
     2. claudeAiOauth.accessToken from the credentials file
+
+    On 401 refresh: credentials file is always preferred (env var may be stale).
     """
 
     def __init__(self) -> None:
@@ -110,22 +113,33 @@ class ClaudeClient:
         self._haiku_model: str = os.environ.get(
             "CLAUDE_HAIKU_MODEL", "claude-haiku-4-5-20251001"
         )
+        self._env_key_failed: bool = False
         self._client: AsyncAnthropic = self._build_client()
         self._opus_fallback_active: bool = False
 
     def _resolve_api_key(self) -> str:
         """
         Determine the API key to use.
-        Priority: ANTHROPIC_API_KEY env var > credentials file.
+
+        Normal priority: ANTHROPIC_API_KEY env var > credentials file.
+        After a 401 refresh: credentials file is tried first (env var may be stale).
+
         Raises RuntimeError if no key is found.
         """
-        env_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-        if env_key:
-            return env_key
+        if not self._env_key_failed:
+            env_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            if env_key:
+                return env_key
 
         file_key = _load_api_key_from_credentials(self._credentials_path)
         if file_key:
             return file_key
+
+        # If env key was skipped due to prior failure, try it as last resort
+        if self._env_key_failed:
+            env_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            if env_key:
+                return env_key
 
         raise RuntimeError(
             "No Anthropic API key found. Set ANTHROPIC_API_KEY environment variable "
@@ -141,8 +155,12 @@ class ClaudeClient:
         """
         Re-read credentials and rebuild the Anthropic client.
         Called when a 401 is received (OAuth token may have rotated).
+
+        Marks the env var key as failed so that _resolve_api_key prefers
+        the credentials file on rebuild -- the env var is likely stale.
         """
-        logger.info("Refreshing Anthropic client credentials (token may have rotated)")
+        logger.info("Refreshing Anthropic client credentials (env key may be stale, preferring credentials file)")
+        self._env_key_failed = True
         self._client = self._build_client()
 
     async def _call(
@@ -195,7 +213,17 @@ class ClaudeClient:
 
                 # Handle retryable errors with backoff
                 if status in RETRYABLE_STATUS_CODES and attempt < MAX_RETRIES:
-                    wait = BACKOFF_BASE * (2 ** attempt)
+                    # Use longer backoff for rate limits (429)
+                    if status == 429:
+                        # Check for Retry-After header
+                        retry_after = getattr(exc, 'response', None)
+                        if retry_after and hasattr(retry_after, 'headers'):
+                            retry_after = retry_after.headers.get('retry-after')
+                        else:
+                            retry_after = None
+                        wait = float(retry_after) if retry_after else RATE_LIMIT_BACKOFF * (1.5 ** attempt)
+                    else:
+                        wait = BACKOFF_BASE * (2 ** attempt)
                     logger.warning(
                         "Anthropic API returned %d on attempt %d/%d; "
                         "retrying in %.1fs (model=%s)",
@@ -267,10 +295,12 @@ class ClaudeClient:
                 max_tokens=max_tokens,
             )
         except APIStatusError as exc:
-            if exc.status_code == 400:
+            if exc.status_code in (400, 429):
+                reason = "not accessible" if exc.status_code == 400 else "rate-limited"
                 logger.warning(
-                    "Opus model returned 400 (likely not accessible with current token); "
-                    "falling back to Haiku for this and subsequent calls"
+                    "Opus model returned %d (%s); "
+                    "falling back to Haiku for this and subsequent calls",
+                    exc.status_code, reason,
                 )
                 self._opus_fallback_active = True
                 return await self._call(

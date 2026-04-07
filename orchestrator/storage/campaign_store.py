@@ -1,5 +1,5 @@
 """
-Campaign CRUD operations for Nexus Sim.
+Campaign CRUD operations for A.R.C Studio.
 
 Handles campaign lifecycle (create, get, list, delete, status updates)
 and iteration/analysis persistence with JSON column serialization (D-08).

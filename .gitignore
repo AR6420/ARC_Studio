@@ -39,7 +39,8 @@ data/*.db-wal
 data/*.db-shm
 data/*.sqlite
 
-# TRIBE v2 cache (TTS audio, WhisperX artifacts)
+# TRIBE v2 / inference cache
+cache/
 tribe_scorer/cache/
 
 # TRIBE v2 Python 3.11 venv (not the system Python)

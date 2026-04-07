@@ -1,6 +1,6 @@
-# Nexus Sim
+# A.R.C Studio
 
-Nexus Sim is a content optimization platform that combines neural response prediction (TRIBE v2), multi-agent social simulation (MiroFish-Offline), and LLM-driven iterative optimization (Claude Opus) into a single feedback loop. A user submits content -- a product launch, PSA, policy draft, or any text-based communication -- and the system generates variants, scores them neurally, simulates social propagation, analyzes cross-system results, and iterates until quality thresholds are met.
+A.R.C Studio is a content optimization platform that combines neural response prediction (TRIBE v2), multi-agent social simulation (MiroFish-Offline), and LLM-driven iterative optimization (Claude Opus) into a single feedback loop. A user submits content -- a product launch, PSA, policy draft, or any text-based communication -- and the system generates variants, scores them neurally, simulates social propagation, analyzes cross-system results, and iterates until quality thresholds are met.
 
 **Core value proposition:** The iterative feedback loop between neural scoring and social simulation produces measurably better content than single-pass generation, with cross-system reasoning that explains WHY certain neural patterns lead to specific social outcomes.
 
@@ -26,7 +26,7 @@ Nexus Sim is a content optimization platform that combines neural response predi
 
 ## Architecture Overview
 
-Nexus Sim is a modular monorepo with four main modules communicating over REST on localhost.
+A.R.C Studio is a modular monorepo with four main modules communicating over REST on localhost.
 
 ### Three-System Feedback Loop
 
@@ -496,7 +496,7 @@ ARC_Studio/
 |
 |-- mirofish/                  # MiroFish-Offline (Git submodule)
 |   |-- backend/               # Flask app, Neo4j integration, agent simulation
-|   |-- frontend/              # Vue.js frontend (not used by Nexus Sim)
+|   |-- frontend/              # Vue.js frontend (not used by A.R.C Studio)
 |
 |-- ui/                        # React + Vite + TypeScript dashboard
 |   |-- src/

@@ -53,17 +53,63 @@ class MirofishClient:
     poll -> sim/start -> poll -> extract results.
     """
 
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        litellm_url: str = "http://localhost:4000",
+    ) -> None:
         self._client = client
+        self._litellm_url = litellm_url.rstrip("/")
 
     async def health_check(self) -> bool:
-        """Check if MiroFish backend is healthy."""
+        """
+        Check if MiroFish backend AND its LLM proxy (LiteLLM) are healthy.
+
+        MiroFish requires a working LLM for ontology generation and agent
+        behavior. A MiroFish Flask server that's up but has no LLM connectivity
+        will fail at the first pipeline step (ontology/generate), causing all
+        simulation metrics to be None.
+        """
+        # Check MiroFish Flask server
         try:
             resp = await self._client.get("/health", timeout=10.0)
-            return resp.status_code == 200
+            if resp.status_code != 200:
+                logger.warning("MiroFish health check failed: HTTP %d", resp.status_code)
+                return False
         except Exception as e:
             logger.warning("MiroFish health check failed: %s", e)
             return False
+
+        # Check LiteLLM proxy (MiroFish's LLM backend)
+        try:
+            async with httpx.AsyncClient() as check_client:
+                llm_resp = await check_client.post(
+                    f"{self._litellm_url}/v1/chat/completions",
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "messages": [{"role": "user", "content": "hi"}],
+                        "max_tokens": 1,
+                    },
+                    timeout=15.0,
+                )
+                if llm_resp.status_code == 401:
+                    logger.warning(
+                        "MiroFish LLM proxy (LiteLLM) returned 401 -- "
+                        "ANTHROPIC_API_KEY is missing or expired. "
+                        "Run: scripts/refresh-env.sh --restart"
+                    )
+                    return False
+                if llm_resp.status_code != 200:
+                    logger.warning(
+                        "MiroFish LLM proxy (LiteLLM) returned HTTP %d",
+                        llm_resp.status_code,
+                    )
+                    return False
+        except Exception as e:
+            logger.warning("MiroFish LLM proxy (LiteLLM) check failed: %s", e)
+            return False
+
+        return True
 
     async def run_simulation(
         self,

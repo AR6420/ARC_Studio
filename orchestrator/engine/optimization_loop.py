@@ -1,5 +1,5 @@
 """
-Optimization loop helpers for Nexus Sim.
+Optimization loop helpers for A.R.C Studio.
 
 Pure functions and a TimeEstimator class that support the multi-iteration
 optimization loop in CampaignRunner.run_campaign():

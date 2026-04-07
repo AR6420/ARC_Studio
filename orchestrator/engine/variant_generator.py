@@ -1,5 +1,5 @@
 """
-Content variant generator for Nexus Sim.
+Content variant generator for A.R.C Studio.
 
 Uses Claude Haiku to generate N distinct content variants from a campaign brief
 and demographic profile. Each variant takes a meaningfully different strategic

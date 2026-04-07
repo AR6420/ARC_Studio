@@ -1,5 +1,5 @@
 """
-Report generation engine for Nexus Sim.
+Report generation engine for A.R.C Studio.
 
 Produces all 4 report layers after the final campaign iteration:
   Layer 1: Verdict (plain English via Claude Opus)
@@ -97,6 +97,11 @@ class ReportGenerator:
         """
         Orchestrate all 4 report layers.
 
+        Each layer is attempted independently so that failures in LLM-dependent
+        layers (verdict, psychology) don't prevent programmatic layers (scorecard,
+        deep analysis) from being generated.  A partial report with scorecard and
+        deep analysis is far more useful than no report at all.
+
         Returns dict with keys: verdict, scorecard, deep_analysis,
         mass_psychology_general, mass_psychology_technical.
         """
@@ -131,42 +136,62 @@ class ReportGenerator:
             all_met, _ = check_thresholds(best_scores, campaign.thresholds)
             thresholds_met = all_met
 
-        # Layer 1: Verdict (Opus call)
-        logger.info("Generating Layer 1: Verdict")
-        verdict = await self._generate_verdict(
-            campaign=campaign,
-            final_variants_with_scores=final_variants_with_scores,
-            winning_variant=winning_variant,
-            thresholds_met=thresholds_met,
-            iterations_run=iterations_run,
-        )
+        # Layer 1: Verdict (Opus call -- may fail if LLM unavailable)
+        verdict: str | None = None
+        try:
+            logger.info("Generating Layer 1: Verdict")
+            verdict = await self._generate_verdict(
+                campaign=campaign,
+                final_variants_with_scores=final_variants_with_scores,
+                winning_variant=winning_variant,
+                thresholds_met=thresholds_met,
+                iterations_run=iterations_run,
+            )
+        except Exception as e:
+            logger.error("Layer 1 (Verdict) failed: %s", e)
 
-        # Layer 2: Scorecard (programmatic + Opus summary)
-        logger.info("Generating Layer 2: Scorecard")
-        scorecard = self._assemble_scorecard(
-            campaign=campaign,
-            all_iterations=all_iterations,
-            best_scores_history=best_scores_history,
-            stop_reason=stop_reason,
-            thresholds_met=thresholds_met,
-            final_variants_with_scores=final_variants_with_scores,
-            winning_variant=winning_variant,
-        )
+        # Layer 2: Scorecard (programmatic -- should always succeed)
+        scorecard = None
+        try:
+            logger.info("Generating Layer 2: Scorecard")
+            scorecard = self._assemble_scorecard(
+                campaign=campaign,
+                all_iterations=all_iterations,
+                best_scores_history=best_scores_history,
+                stop_reason=stop_reason,
+                thresholds_met=thresholds_met,
+                final_variants_with_scores=final_variants_with_scores,
+                winning_variant=winning_variant,
+            )
+        except Exception as e:
+            logger.error("Layer 2 (Scorecard) failed: %s", e)
 
-        # Layer 3: Deep analysis (pure data, no LLM)
-        logger.info("Generating Layer 3: Deep Analysis")
-        deep_analysis = self._assemble_deep_analysis(
-            all_iterations=all_iterations,
-            all_analyses=all_analyses,
-        )
+        # Layer 3: Deep analysis (pure data, no LLM -- should always succeed)
+        deep_analysis = None
+        try:
+            logger.info("Generating Layer 3: Deep Analysis")
+            deep_analysis = self._assemble_deep_analysis(
+                all_iterations=all_iterations,
+                all_analyses=all_analyses,
+            )
+        except Exception as e:
+            logger.error("Layer 3 (Deep Analysis) failed: %s", e)
 
-        # Layer 4: Mass psychology (2 Opus calls)
-        logger.info("Generating Layer 4: Mass Psychology")
-        psych_general, psych_technical = await self._generate_psychology(
-            campaign=campaign,
-            final_variants_with_scores=final_variants_with_scores,
-            winning_variant=winning_variant,
-        )
+        # Layer 4: Mass psychology (2 Opus calls -- may fail if LLM unavailable)
+        psych_general: str | None = None
+        psych_technical: str | None = None
+        try:
+            logger.info("Generating Layer 4: Mass Psychology")
+            psych_general, psych_technical = await self._generate_psychology(
+                campaign=campaign,
+                final_variants_with_scores=final_variants_with_scores,
+                winning_variant=winning_variant,
+            )
+        except Exception as e:
+            logger.error("Layer 4 (Mass Psychology) failed: %s", e)
+
+        layers_generated = sum(1 for x in [verdict, scorecard, deep_analysis, psych_general] if x is not None)
+        logger.info("Report assembled: %d/4 layers generated", layers_generated)
 
         return {
             "verdict": verdict,
@@ -448,6 +473,7 @@ class ReportGenerator:
                 "variant_id": v.get("variant_id", "unknown"),
                 "rank": rank,
                 "strategy": v.get("strategy", ""),
+                "composite_average": round(_adjusted_avg(scores), 1),
                 "composite_scores": scores,
                 "color_coding": color_coding,
             })

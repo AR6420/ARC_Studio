@@ -1,5 +1,5 @@
 """
-Campaign CRUD endpoints for the Nexus Sim API.
+Campaign CRUD endpoints for the A.R.C Studio API.
 
 Provides POST/GET/DELETE operations for campaigns via the CampaignStore.
 """

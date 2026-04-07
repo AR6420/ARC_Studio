@@ -1,13 +1,14 @@
 """
-Health check and demographics endpoints for the Nexus Sim API.
+Health check and demographics endpoints for the A.R.C Studio API.
 
-Provides system health monitoring (pings TRIBE, MiroFish, database)
+Provides system health monitoring (pings TRIBE, MiroFish, LiteLLM, database)
 and demographic preset listing for the UI.
 """
 
 import logging
 import time
 
+import httpx
 from fastapi import APIRouter, Request
 from orchestrator.api.schemas import (
     HealthResponse,
@@ -15,6 +16,7 @@ from orchestrator.api.schemas import (
     DemographicsResponse,
     DemographicInfo,
 )
+from orchestrator.config import settings
 from orchestrator.prompts.demographic_profiles import list_profiles
 
 logger = logging.getLogger(__name__)
@@ -25,7 +27,11 @@ router = APIRouter(tags=["system"])
 async def health_check(request: Request):
     """
     Check health of all downstream services.
-    Per ORCH-05: pings TRIBE v2, MiroFish, and database.
+    Per ORCH-05: pings TRIBE v2, MiroFish, LiteLLM, and database.
+
+    MiroFish health now includes LLM proxy check -- if MiroFish Flask is up
+    but LiteLLM is down/unauthorized, mirofish status reports "unavailable"
+    with a warning that simulations will fail.
     """
     tribe_client = request.app.state.tribe_client
     mirofish_client = request.app.state.mirofish_client
@@ -36,10 +42,23 @@ async def health_check(request: Request):
     tribe_ok = await tribe_client.health_check()
     tribe_latency = (time.monotonic() - tribe_start) * 1000
 
-    # Check MiroFish
+    # Check MiroFish (includes LLM proxy check)
     mirofish_start = time.monotonic()
     mirofish_ok = await mirofish_client.health_check()
     mirofish_latency = (time.monotonic() - mirofish_start) * 1000
+
+    # Check LiteLLM separately for diagnostics
+    litellm_start = time.monotonic()
+    litellm_ok = False
+    try:
+        async with httpx.AsyncClient() as check_client:
+            llm_resp = await check_client.get(
+                f"{settings.litellm_url}/health", timeout=5.0
+            )
+            litellm_ok = llm_resp.status_code == 200
+    except Exception:
+        pass
+    litellm_latency = (time.monotonic() - litellm_start) * 1000
 
     # Check Database
     db_start = time.monotonic()
@@ -59,6 +78,10 @@ async def health_check(request: Request):
         mirofish=ServiceHealth(
             status="ok" if mirofish_ok else "unavailable",
             latency_ms=round(mirofish_latency, 1) if mirofish_ok else None,
+        ),
+        litellm=ServiceHealth(
+            status="ok" if litellm_ok else "unavailable",
+            latency_ms=round(litellm_latency, 1) if litellm_ok else None,
         ),
         database=ServiceHealth(
             status="ok" if db_ok else "unavailable",

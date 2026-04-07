@@ -1,5 +1,5 @@
 """
-Composite score calculator for Nexus Sim.
+Composite score calculator for A.R.C Studio.
 
 Implements all 7 composite score formulas from Results.md section 3.2,
 combining TRIBE v2 neural scores and MiroFish simulation metrics into
