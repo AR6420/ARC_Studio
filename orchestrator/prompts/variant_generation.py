@@ -50,6 +50,8 @@ of the same theme.
 proof, another with fear reduction, another with reward framing, etc.
 - All variants must satisfy any stated constraints exactly.
 - Content must be complete and polished — not a draft or outline.
+- Each variant's content MUST be between 100 and 250 words. This is a hard limit. Do not \
+exceed 250 words per variant.
 - Variant IDs use the format: v1_strategy_name, v2_strategy_name, etc.
 """
 

@@ -23,9 +23,12 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Per-request timeout for scoring: CPU inference takes 30-90s per text,
-# budget 300s to handle load and cold cache.
-SCORE_TIMEOUT = 300.0
+# Per-request timeout for scoring: long content (500+ words) takes 40-60 min
+# per text through the full TTS+WhisperX+LLaMA pipeline on GPU.
+SCORE_TIMEOUT = 7200.0
+
+# Per-text budget for batch scoring — 3 long variants can take 2+ hours total.
+BATCH_PER_TEXT_TIMEOUT = 7200.0
 
 # Retry configuration for transient failures
 MAX_RETRIES = 2
@@ -212,7 +215,7 @@ class TribeClient:
 
         # Batch timeout: each text takes 30-90s on CPU.
         # Budget 120s per text to handle cold cache + overhead.
-        batch_timeout = max(SCORE_TIMEOUT, len(texts) * 120.0)
+        batch_timeout = max(SCORE_TIMEOUT, len(texts) * BATCH_PER_TEXT_TIMEOUT)
 
         async def _request(timeout: float) -> httpx.Response:
             return await self._client.post(
