@@ -6,10 +6,14 @@ agent interview API. Per UI-08: agent interview capability.
 """
 
 import logging
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 
 from orchestrator.api.schemas import AgentChatRequest, AgentChatResponse
+
+# Only allow alphanumeric, hyphens, and underscores in agent IDs
+_AGENT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,128}$")
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,9 @@ async def chat_agent(
     forwards them to MiroFish POST /api/agent/{agent_id}/chat, and
     returns the agent's response.
     """
+    if not _AGENT_ID_RE.match(agent_id):
+        raise HTTPException(status_code=400, detail="Invalid agent_id format")
+
     mirofish = request.app.state.mirofish_client
     result = await mirofish.chat_agent(agent_id, body.message)
 

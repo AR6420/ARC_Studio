@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         ),
     )
     claude_credentials_path: str = Field(
-        default="C:/Users/adars/.claude/.credentials.json",
+        default=str(Path.home() / ".claude" / ".credentials.json"),
         description="Path to the Claude credentials JSON file (OAuth token fallback).",
     )
     claude_opus_model: str = Field(

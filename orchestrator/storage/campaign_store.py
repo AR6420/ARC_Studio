@@ -191,6 +191,8 @@ class CampaignStore:
 
         params.append(campaign_id)
 
+        # SECURITY: `updates` must only contain hardcoded column fragments.
+        # Never append user-supplied strings to this list.
         await self._db.conn.execute(
             f"UPDATE campaigns SET {', '.join(updates)} WHERE id = ?",
             params,

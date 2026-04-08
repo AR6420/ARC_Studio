@@ -57,7 +57,7 @@ with open(env_file, 'w') as f:
         f.write(f'ANTHROPIC_API_KEY={token}\n')
 " "$ENV_FILE" "$TOKEN"
 
-echo "Updated ANTHROPIC_API_KEY in .env (token: ${TOKEN:0:20}...)"
+echo "Updated ANTHROPIC_API_KEY in .env"
 
 if [ "$RESTART_LITELLM" = true ]; then
     echo "Recreating LiteLLM container to pick up new key..."

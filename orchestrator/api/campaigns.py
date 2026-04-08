@@ -44,7 +44,7 @@ async def create_campaign(request: Request, body: CampaignCreateRequest):
                 )
             except Exception as e:
                 logger.error("Background campaign %s failed: %s", cid, e)
-                await queue.put({"event": "campaign_error", "campaign_id": cid, "error": str(e)})
+                await queue.put({"event": "campaign_error", "campaign_id": cid, "error": "Campaign failed — check server logs"})
             finally:
                 app.state.running_tasks.pop(cid, None)
 

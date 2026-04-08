@@ -63,3 +63,12 @@ tribe_scorer/vendor/tribev2/weights/
 # Ollama data (managed by Docker volume)
 ollama_data/
 tribe_scorer/vendor/tribev2/
+
+# Internal docs (local only)
+docs/
+
+# Campaign results (generated output, not source)
+results/
+
+# Claude Code agent memory (nested instances)
+**/.claude/

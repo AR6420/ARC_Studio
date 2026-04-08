@@ -90,7 +90,7 @@ def _refresh_litellm_api_key() -> None:
                     f.write(line)
             if not found:
                 f.write(f"ANTHROPIC_API_KEY={token}\n")
-        logger.info("Updated ANTHROPIC_API_KEY in .env (token: %s...)", token[:20])
+        logger.info("Updated ANTHROPIC_API_KEY in .env")
     except Exception as e:
         logger.warning("Could not update .env with fresh API key: %s", e)
         return
@@ -228,8 +228,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=["http://localhost:5173"],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Accept"],
     )
 
     # Mount routers

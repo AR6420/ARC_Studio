@@ -215,7 +215,7 @@ class HealthResponse(BaseModel):
     gpu_memory_used_gb: float | None
     gpu_memory_total_gb: float | None
     baseline_size: int
-    startup_error: str | None
+    startup_failed: bool
 
 
 # ---------------------------------------------------------------------------
@@ -275,7 +275,7 @@ def _run_single_score(text: str) -> ScoreResponse:
             logger.error("Unexpected inference error: %s: %s", type(exc).__name__, exc)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Unexpected inference error: {type(exc).__name__}: {exc}",
+                detail="Internal inference error — check server logs",
             )
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
@@ -307,7 +307,7 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
                 )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Unexpected inference error: {type(exc).__name__}: {exc}",
+                    detail="Internal inference error — check server logs",
                 )
         raw_activations = extract_roi_activations(vertex_activations)
         elapsed_ms = (time.perf_counter() - t_start) * 1000.0
@@ -409,7 +409,7 @@ async def health() -> HealthResponse:
         gpu_memory_used_gb=gpu_mem_used,
         gpu_memory_total_gb=gpu_mem_total,
         baseline_size=get_normalizer().baseline_size(),
-        startup_error=_startup_error,
+        startup_failed=_startup_error is not None,
     )
 
 

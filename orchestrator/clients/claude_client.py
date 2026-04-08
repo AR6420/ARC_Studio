@@ -21,8 +21,8 @@ from anthropic import AsyncAnthropic, APIStatusError, APIConnectionError
 
 logger = logging.getLogger(__name__)
 
-# Default credential file path (Windows)
-DEFAULT_CREDENTIALS_PATH = "C:/Users/adars/.claude/.credentials.json"
+# Default credential file path (resolved via ~ for portability)
+DEFAULT_CREDENTIALS_PATH = str(Path.home() / ".claude" / ".credentials.json")
 
 # Retry configuration
 MAX_RETRIES = 5
