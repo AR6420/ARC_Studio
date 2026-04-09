@@ -107,6 +107,32 @@ async def lifespan(app: FastAPI):
     # Must run BEFORE model loading since model loading also uses the cache.
     _clean_stale_inflight_records()
 
+    # GPU pre-flight check: refuse to load on CUDA if insufficient VRAM.
+    # Prevents silent OOM → pseudo-score fallback during inference.
+    _MIN_FREE_VRAM_GB = 6.0
+    if settings.tribe_device == "cuda" and torch.cuda.is_available():
+        try:
+            free_bytes, total_bytes = torch.cuda.mem_get_info(0)
+            free_gb = free_bytes / (1024 ** 3)
+            total_gb = total_bytes / (1024 ** 3)
+            used_gb = total_gb - free_gb
+            logger.info(
+                "GPU pre-flight: %.1f GB free / %.1f GB total (%.1f GB used)",
+                free_gb, total_gb, used_gb,
+            )
+            if free_gb < _MIN_FREE_VRAM_GB:
+                _startup_error = (
+                    f"Insufficient GPU memory: {free_gb:.1f} GB free, need {_MIN_FREE_VRAM_GB:.0f} GB. "
+                    f"Likely culprits: Ollama (taskkill //F //IM ollama.exe), "
+                    f"Cursor/VS Code GPU process, browser hardware acceleration. "
+                    f"Free GPU memory and restart, or set TRIBE_DEVICE=cpu in .env."
+                )
+                logger.error("GPU PRE-FLIGHT FAILED: %s", _startup_error)
+                yield
+                return
+        except Exception as exc:
+            logger.warning("GPU pre-flight check failed (non-fatal): %s", exc)
+
     try:
         logger.info("Loading TRIBE v2 model (this may take 30-60 s)...")
         await loop.run_in_executor(
@@ -218,6 +244,7 @@ class HealthResponse(BaseModel):
     gpu_name: str | None
     gpu_memory_used_gb: float | None
     gpu_memory_total_gb: float | None
+    gpu_memory_free_gb: float | None
     baseline_size: int
     startup_failed: bool
 
@@ -394,6 +421,7 @@ async def health() -> HealthResponse:
     gpu_name: str | None = None
     gpu_mem_used: float | None = None
     gpu_mem_total: float | None = None
+    gpu_mem_free: float | None = None
 
     if gpu_available:
         try:
@@ -401,6 +429,7 @@ async def health() -> HealthResponse:
             mem_info = torch.cuda.mem_get_info(0)
             # mem_get_info returns (free, total) in bytes
             free_bytes, total_bytes = mem_info
+            gpu_mem_free = round(free_bytes / (1024 ** 3), 2)
             gpu_mem_used = round((total_bytes - free_bytes) / (1024 ** 3), 2)
             gpu_mem_total = round(total_bytes / (1024 ** 3), 2)
         except Exception:
@@ -415,6 +444,7 @@ async def health() -> HealthResponse:
         gpu_name=gpu_name,
         gpu_memory_used_gb=gpu_mem_used,
         gpu_memory_total_gb=gpu_mem_total,
+        gpu_memory_free_gb=gpu_mem_free,
         baseline_size=get_normalizer().baseline_size(),
         startup_failed=_startup_error is not None,
     )
