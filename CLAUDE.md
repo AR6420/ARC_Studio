@@ -33,10 +33,8 @@ bash tribe_scorer/start.sh     # Start scorer (loads model ~60s, then seeds base
 
 ### Orchestrator API (system Python, port 8000)
 ```bash
-# Via uvicorn directly:
-cd orchestrator && python -m uvicorn api:app --port 8000
-# Or via factory:
-cd orchestrator && python -m uvicorn api:create_app --factory --port 8000
+# IMPORTANT: Run from project root, not from inside orchestrator/
+python -m uvicorn orchestrator.api:create_app --factory --port 8000
 ```
 
 ### UI (port 5173)

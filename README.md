@@ -168,8 +168,8 @@ cd ui && npm install && cd ..
 bash tribe_scorer/start.sh
 # Wait ~5 min for model load + baseline seeding
 
-# Terminal 2: Orchestrator API
-cd orchestrator && python -m uvicorn api:create_app --factory --port 8000
+# Terminal 2: Orchestrator API (run from project root)
+python -m uvicorn orchestrator.api:create_app --factory --port 8000
 
 # Terminal 3: UI
 cd ui && npm run dev
