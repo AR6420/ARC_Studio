@@ -48,6 +48,17 @@ class MirofishRunner:
         """
         results: list[dict[str, Any] | None] = []
 
+        # Pre-check LiteLLM token before starting any simulations.
+        # Catches expired OAuth tokens early instead of failing silently per-variant.
+        token_ok = await self._client.verify_llm_token()
+        if not token_ok:
+            logger.error(
+                "MiroFish LLM token is invalid and auto-refresh failed. "
+                "ALL MiroFish simulations will be skipped. "
+                "Run: scripts/refresh-env.sh --restart"
+            )
+            return [None] * len(variants)
+
         for i, variant in enumerate(variants):
             variant_id = variant.get("id", f"variant_{i}")
             content = variant.get("content", "")

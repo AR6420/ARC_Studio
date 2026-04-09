@@ -111,6 +111,77 @@ class MirofishClient:
 
         return True
 
+    async def verify_llm_token(self) -> bool:
+        """Quick LiteLLM token validation. Returns True if token is valid.
+
+        If the token is expired (401), attempts to refresh from Claude
+        credentials and restart the LiteLLM container. Returns False only
+        if refresh also fails.
+        """
+        try:
+            async with httpx.AsyncClient() as check_client:
+                resp = await check_client.post(
+                    f"{self._litellm_url}/v1/chat/completions",
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "messages": [{"role": "user", "content": "hi"}],
+                        "max_tokens": 1,
+                    },
+                    timeout=15.0,
+                )
+                if resp.status_code == 200:
+                    return True
+                if resp.status_code == 401:
+                    logger.warning(
+                        "LiteLLM token expired (401). Attempting auto-refresh..."
+                    )
+                    return await self._attempt_token_refresh()
+                logger.warning(
+                    "LiteLLM token check returned HTTP %d", resp.status_code
+                )
+                return False
+        except Exception as e:
+            logger.warning("LiteLLM token check failed: %s", e)
+            return False
+
+    async def _attempt_token_refresh(self) -> bool:
+        """Refresh the LiteLLM API key from Claude credentials and restart container."""
+        import asyncio
+
+        try:
+            # Import and call the refresh function from orchestrator
+            from orchestrator.api import _refresh_litellm_api_key
+            _refresh_litellm_api_key()
+            # Wait for LiteLLM container to restart and become healthy
+            await asyncio.sleep(15)
+            # Re-verify
+            async with httpx.AsyncClient() as check_client:
+                resp = await check_client.post(
+                    f"{self._litellm_url}/v1/chat/completions",
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "messages": [{"role": "user", "content": "hi"}],
+                        "max_tokens": 1,
+                    },
+                    timeout=15.0,
+                )
+                if resp.status_code == 200:
+                    logger.info("LiteLLM token refreshed successfully")
+                    return True
+                logger.error(
+                    "LiteLLM token refresh failed — still getting HTTP %d. "
+                    "Run scripts/refresh-env.sh --restart manually.",
+                    resp.status_code,
+                )
+                return False
+        except Exception as e:
+            logger.error(
+                "LiteLLM token auto-refresh failed: %s. "
+                "Run scripts/refresh-env.sh --restart manually.",
+                e,
+            )
+            return False
+
     async def run_simulation(
         self,
         content: str,
