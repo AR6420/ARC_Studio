@@ -42,6 +42,7 @@ class TribeScores(BaseModel):
     threat_detection: float
     cognitive_load: float
     social_relevance: float
+    is_pseudo_score: bool = False
 
 
 class MirofishMetrics(BaseModel):

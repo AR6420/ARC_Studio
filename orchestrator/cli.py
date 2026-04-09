@@ -268,8 +268,11 @@ def _print_single_iteration(result: dict[str, Any]) -> None:
         # TRIBE scores
         tribe = tribe_scores[i] if i < len(tribe_scores) and tribe_scores[i] else None
         if tribe:
-            print("  TRIBE v2 scores:")
+            pseudo_marker = " [PSEUDO - NOT REAL BRAIN-ENCODING]" if tribe.get("is_pseudo_score") else ""
+            print(f"  TRIBE v2 scores{pseudo_marker}:")
             for dim, score in tribe.items():
+                if dim == "is_pseudo_score":
+                    continue
                 print(f"    {dim}: {score:.1f}")
         else:
             print("  TRIBE v2 scores: N/A")

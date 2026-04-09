@@ -170,6 +170,8 @@ def build_result_analysis_prompt(
         lines.append("**TRIBE v2 neural scores (0-100):**")
         if tribe:
             for dim, score in tribe.items():
+                if dim == "is_pseudo_score":
+                    continue
                 lines.append(f"  - {dim}: {score}")
         else:
             lines.append("  (neural scoring unavailable for this variant)")

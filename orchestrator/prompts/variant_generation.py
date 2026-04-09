@@ -128,7 +128,7 @@ def build_variant_generation_prompt(
                 )
                 lines.append(f"Composite scores: {scores_str}")
             if tribe:
-                tribe_str = ", ".join(f"{k}: {v}" for k, v in tribe.items())
+                tribe_str = ", ".join(f"{k}: {v}" for k, v in tribe.items() if k != "is_pseudo_score")
                 lines.append(f"Neural scores (TRIBE v2): {tribe_str}")
             if mirofish:
                 mf_str = ", ".join(

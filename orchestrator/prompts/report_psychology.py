@@ -236,6 +236,8 @@ def build_mass_psychology_technical_prompt(
     lines.append("## Neurological substrate (TRIBE v2 scores, 0-100 normalized)")
     if tribe_scores:
         for dim, score in tribe_scores.items():
+            if dim == "is_pseudo_score":
+                continue
             lines.append(f"  {dim}: {score}")
     else:
         lines.append("  (neural scores unavailable)")

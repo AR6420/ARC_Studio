@@ -61,6 +61,7 @@ def _extract_scores(data: dict[str, Any]) -> dict[str, float] | None:
             list(data.keys()),
         )
         return None
+    scores["is_pseudo_score"] = bool(data.get("is_pseudo_score", False))
     return scores
 
 
@@ -197,6 +198,8 @@ class TribeClient:
                 "TRIBE scored text in %.0fms inference time",
                 inference_ms,
             )
+            if scores.get("is_pseudo_score"):
+                logger.warning("TRIBE returned PSEUDO-SCORES (not real brain-encoding) for this text")
         return scores
 
     async def score_texts_batch(self, texts: list[str]) -> list[dict[str, float] | None]:
@@ -240,6 +243,8 @@ class TribeClient:
         results: list[dict[str, float] | None] = []
         for score_data in score_list:
             scores = _extract_scores(score_data)
+            if scores and scores.get("is_pseudo_score"):
+                logger.warning("TRIBE returned PSEUDO-SCORES (not real brain-encoding) for this text")
             results.append(scores)
 
         scored = sum(1 for r in results if r is not None)

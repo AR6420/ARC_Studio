@@ -176,6 +176,8 @@ def compute_composite_scores(
     if tribe:
         weighted_scores = []
         for dim, score in tribe.items():
+            if dim == "is_pseudo_score":
+                continue
             weight = cognitive_weights.get(dim, 1.0)
             weighted_scores.append(score * weight)
         if weighted_scores:

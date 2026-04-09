@@ -33,6 +33,7 @@ export interface TribeScores {
   threat_detection: number;
   cognitive_load: number;
   social_relevance: number;
+  is_pseudo_score?: boolean;
 }
 
 export interface MirofishMetrics {

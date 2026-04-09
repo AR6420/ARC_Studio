@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 FSAVERAGE5_N_VERTICES = 20484
 
 
-def score_text(text: str, model) -> np.ndarray:
+def score_text(text: str, model) -> tuple[np.ndarray, bool]:
     """Run TRIBE v2 inference on *text* and return mean vertex activations.
 
     Parameters
@@ -36,10 +36,13 @@ def score_text(text: str, model) -> np.ndarray:
 
     Returns
     -------
-    np.ndarray
-        1-D float32 array of shape ``(n_vertices,)`` — typically 20 484
-        entries for fsaverage5.  Values are the mean predicted activation
-        across all kept time-segments.
+    tuple[np.ndarray, bool]
+        A 2-tuple of:
+        - 1-D float32 array of shape ``(n_vertices,)`` — typically 20 484
+          entries for fsaverage5.  Values are the mean predicted activation
+          across all kept time-segments.
+        - ``is_pseudo``: True if the array is a text-feature approximation
+          (fallback), False if it comes from real brain-encoding inference.
 
     Raises
     ------
@@ -81,15 +84,15 @@ def score_text(text: str, model) -> np.ndarray:
             _INFERENCE_TIMEOUT,
         )
         Path(tmp_path).unlink(missing_ok=True)
-        return _pseudo_score_from_text(text)
+        return (_pseudo_score_from_text(text), True)
     except Exception as exc:
         logger.warning(
-            "TRIBE v2 full pipeline failed (%s). Falling back to "
+            "TRIBE v2 full pipeline failed (%s: %s). Falling back to "
             "text-feature-based pseudo-scores for POC validation.",
-            exc,
+            type(exc).__name__, exc,
         )
         Path(tmp_path).unlink(missing_ok=True)
-        return _pseudo_score_from_text(text)
+        return (_pseudo_score_from_text(text), True)
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -107,7 +110,7 @@ def score_text(text: str, model) -> np.ndarray:
         float(avg_pred.min()),
         float(avg_pred.max()),
     )
-    return avg_pred
+    return (avg_pred, False)
 
 
 def _pseudo_score_from_text(text: str) -> np.ndarray:

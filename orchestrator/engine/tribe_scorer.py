@@ -82,13 +82,19 @@ class TribeScoringPipeline:
                 variant_id = variants[variant_idx].get("id", f"variant_{variant_idx}")
                 results[variant_idx] = scores
                 if scores:
+                    pseudo_tag = " [PSEUDO]" if scores.get("is_pseudo_score") else ""
                     logger.info(
-                        "TRIBE scores for %s: attention=%.1f, emotion=%.1f, memory=%.1f",
-                        variant_id,
+                        "TRIBE scores for %s%s: attention=%.1f, emotion=%.1f, memory=%.1f",
+                        variant_id, pseudo_tag,
                         scores.get("attention_capture", 0),
                         scores.get("emotional_resonance", 0),
                         scores.get("memory_encoding", 0),
                     )
+                    if scores.get("is_pseudo_score"):
+                        logger.warning(
+                            "Variant %s received PSEUDO-SCORES — results are text-feature approximations, NOT real brain-encoding predictions",
+                            variant_id,
+                        )
                 else:
                     logger.warning("TRIBE batch returned None for variant %s", variant_id)
         else:
@@ -109,13 +115,19 @@ class TribeScoringPipeline:
                 results[variant_idx] = scores
 
                 if scores:
+                    pseudo_tag = " [PSEUDO]" if scores.get("is_pseudo_score") else ""
                     logger.info(
-                        "TRIBE scores for %s: attention=%.1f, emotion=%.1f, memory=%.1f",
-                        variant_id,
+                        "TRIBE scores for %s%s: attention=%.1f, emotion=%.1f, memory=%.1f",
+                        variant_id, pseudo_tag,
                         scores.get("attention_capture", 0),
                         scores.get("emotional_resonance", 0),
                         scores.get("memory_encoding", 0),
                     )
+                    if scores.get("is_pseudo_score"):
+                        logger.warning(
+                            "Variant %s received PSEUDO-SCORES — results are text-feature approximations, NOT real brain-encoding predictions",
+                            variant_id,
+                        )
                 else:
                     logger.warning("TRIBE scoring returned None for variant %s", variant_id)
 

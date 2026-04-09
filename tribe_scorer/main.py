@@ -193,6 +193,10 @@ class ScoreResponse(BaseModel):
         ..., ge=0.0,
         description="Total inference time in milliseconds.",
     )
+    is_pseudo_score: bool = Field(
+        default=False,
+        description="True if scores are text-feature approximations, not real brain-encoding predictions.",
+    )
 
 
 class BatchScoreRequest(BaseModel):
@@ -241,7 +245,7 @@ def _require_model() -> Any:
 
 
 def _score_response_from_activations(
-    vertex_activations, normalizer, elapsed_ms: float
+    vertex_activations, normalizer, elapsed_ms: float, is_pseudo: bool = False
 ) -> ScoreResponse:
     """Convert vertex activations to a ScoreResponse."""
     raw_activations = extract_roi_activations(vertex_activations)
@@ -255,6 +259,7 @@ def _score_response_from_activations(
         cognitive_load=scores["cognitive_load"],
         social_relevance=scores["social_relevance"],
         inference_time_ms=round(elapsed_ms, 2),
+        is_pseudo_score=is_pseudo,
     )
 
 
@@ -265,7 +270,7 @@ def _run_single_score(text: str) -> ScoreResponse:
 
     with _inference_lock:
         try:
-            vertex_activations = score_text(text, model)
+            vertex_activations, is_pseudo = score_text(text, model)
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -280,7 +285,7 @@ def _run_single_score(text: str) -> ScoreResponse:
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     return _score_response_from_activations(
-        vertex_activations, get_normalizer(), elapsed_ms
+        vertex_activations, get_normalizer(), elapsed_ms, is_pseudo
     )
 
 
@@ -294,7 +299,7 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
         t_start = time.perf_counter()
         with _inference_lock:
             try:
-                vertex_activations = score_text(text, model)
+                vertex_activations, is_pseudo = score_text(text, model)
             except (ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -313,11 +318,12 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
         elapsed_ms = (time.perf_counter() - t_start) * 1000.0
 
         # Collect raw_activations list for batch normalization later
-        results.append((raw_activations, elapsed_ms))
+        results.append((raw_activations, elapsed_ms, is_pseudo))
 
     # Normalize the whole batch together for consistent relative scaling
     raw_list = [r[0] for r in results]
     elapsed_list = [r[1] for r in results]
+    pseudo_list = [r[2] for r in results]
     score_dicts = normalizer.normalize_batch(raw_list)
 
     return [
@@ -330,6 +336,7 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
             cognitive_load=sd["cognitive_load"],
             social_relevance=sd["social_relevance"],
             inference_time_ms=round(elapsed_list[i], 2),
+            is_pseudo_score=pseudo_list[i],
         )
         for i, sd in enumerate(score_dicts)
     ]

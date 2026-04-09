@@ -123,11 +123,14 @@ class TestTribeScoreText:
 
         assert result is not None
         assert isinstance(result, dict)
-        assert len(result) == 7
+        assert len(result) == 8  # 7 dimensions + is_pseudo_score
         # Verify all 7 dimensions present
         for dim in TRIBE_SCORE_DIMENSIONS:
             assert dim in result
             assert isinstance(result[dim], float)
+        # Verify is_pseudo_score flag present
+        assert "is_pseudo_score" in result
+        assert isinstance(result["is_pseudo_score"], bool)
         # Verify metadata excluded
         assert "inference_time_ms" not in result
         # Verify specific values

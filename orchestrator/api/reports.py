@@ -250,7 +250,7 @@ def _render_markdown_report(
                 if tribe:
                     t_headers = ["Dimension", "Score"]
                     t_rows = [[k, f"{val:.1f}" if isinstance(val, float) else str(val)]
-                              for k, val in tribe.items()]
+                              for k, val in tribe.items() if k != "is_pseudo_score"]
                     sections.append("TRIBE Scores:")
                     sections.append("")
                     sections.append(_markdown_table(t_headers, t_rows))

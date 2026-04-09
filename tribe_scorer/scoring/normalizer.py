@@ -331,7 +331,9 @@ def build_baseline_from_model(model, scorer_fn) -> None:
     n_ok = 0
     for i, text in enumerate(REFERENCE_TEXTS):
         try:
-            vertex_activations = scorer_fn(text, model)
+            result = scorer_fn(text, model)
+            # score_text returns (ndarray, is_pseudo) tuple
+            vertex_activations = result[0] if isinstance(result, tuple) else result
             activations = extract_roi_activations(vertex_activations)
             normalizer.update_baseline(activations)
             n_ok += 1
