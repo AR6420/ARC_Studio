@@ -16,7 +16,7 @@ import numpy as np
 # Maximum time (seconds) to wait for a single text's inference pipeline.
 # If the pipeline hangs (e.g., on certain cache operations or I/O), we
 # fall back to pseudo-scoring rather than blocking forever.
-_INFERENCE_TIMEOUT = 180  # 3 minutes — generous for CPU inference
+_INFERENCE_TIMEOUT = 3600  # 60 minutes — real GPU inference (TTS+WhisperX+LLaMA word embeddings) scales with text length
 
 logger = logging.getLogger(__name__)
 
