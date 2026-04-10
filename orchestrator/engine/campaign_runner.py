@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Awaitable, Callable, TYPE_CHECKING
 
-from orchestrator.api.schemas import SystemAvailability
+from orchestrator.api.schemas import DataCompleteness, SystemAvailability
 
 if TYPE_CHECKING:
     from orchestrator.engine.report_generator import ReportGenerator
@@ -245,6 +245,30 @@ class CampaignRunner:
                 },
             )
 
+            # Step 6c: Compute data_completeness (Landmine 5)
+            tribe_real = sum(
+                1 for t in tribe_scores_list if t and not t.get("is_pseudo_score")
+            )
+            tribe_pseudo = sum(
+                1 for t in tribe_scores_list if t and t.get("is_pseudo_score")
+            )
+            mirofish_ok = any(m is not None for m in mirofish_metrics_list)
+
+            missing: set[str] = set()
+            for comp in composite_scores_list:
+                if comp:
+                    for key, val in comp.items():
+                        if val is None:
+                            missing.add(key)
+
+            data_completeness = DataCompleteness(
+                tribe_available=any(t is not None for t in tribe_scores_list),
+                mirofish_available=mirofish_ok,
+                tribe_real_score_count=tribe_real,
+                tribe_pseudo_score_count=tribe_pseudo,
+                missing_composite_dimensions=sorted(missing),
+            )
+
             # Update status to completed (skip if caller manages status)
             if manage_status:
                 await self._store.update_campaign_status(campaign_id, "completed")
@@ -261,6 +285,7 @@ class CampaignRunner:
                     "tribe_available": availability.tribe_available,
                     "mirofish_available": availability.mirofish_available,
                 },
+                "data_completeness": data_completeness,
                 "warnings": availability.warnings,
             }
 
