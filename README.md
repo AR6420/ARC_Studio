@@ -163,6 +163,9 @@ cd ui && npm install && cd ..
 
 ### Run
 
+# One-command startup (recommended)
+bash scripts/start_all.sh
+
 ```bash
 # Terminal 1: TRIBE v2 scorer
 bash tribe_scorer/start.sh
