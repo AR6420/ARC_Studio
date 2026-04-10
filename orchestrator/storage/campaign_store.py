@@ -49,6 +49,32 @@ class CampaignStore:
     def __init__(self, db: Database):
         self._db = db
 
+    # ── Startup maintenance ──────────────────────────────────────────────────
+
+    async def cleanup_orphaned_campaigns(self) -> int:
+        """
+        Mark all campaigns still in 'running' status as 'failed'.
+
+        Called at orchestrator startup to clear phantom campaigns left behind
+        by a previous crash.  Returns the count of rows updated.
+        """
+        now = _now_iso()
+        cursor = await self._db.conn.execute(
+            """
+            UPDATE campaigns
+            SET status = 'failed',
+                error = 'Orphaned — no heartbeat (cleaned on startup)',
+                completed_at = ?
+            WHERE status = 'running'
+            """,
+            (now,),
+        )
+        await self._db.conn.commit()
+        count = cursor.rowcount
+        if count:
+            logger.info("Marked %d orphaned 'running' campaign(s) as 'failed'", count)
+        return count
+
     # ── Campaign CRUD ────────────────────────────────────────────────────────
 
     async def create_campaign(

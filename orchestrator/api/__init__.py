@@ -155,6 +155,12 @@ async def lifespan(app: FastAPI):
 
     app.state.db = db
     app.state.campaign_store = CampaignStore(db)
+
+    # Clean up any campaigns left in 'running' state from a previous crash
+    cleaned = await app.state.campaign_store.cleanup_orphaned_campaigns()
+    if cleaned:
+        logger.info("Cleaned %d orphaned 'running' campaigns on startup", cleaned)
+
     app.state.tribe_client = TribeClient(tribe_http)
     app.state.mirofish_client = MirofishClient(
         mirofish_http, litellm_url=settings.litellm_url
