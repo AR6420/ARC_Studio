@@ -29,12 +29,14 @@ import { AgentGrid } from '@/components/simulation/agent-grid';
 import { AgentInterview } from '@/components/simulation/agent-interview';
 import { ProgressStream } from '@/components/progress/progress-stream';
 import { formatRelative } from '@/utils/formatters';
+import { getScoreColor, INVERTED_SCORES } from '@/utils/colors';
 import type { AgentData } from '@/components/simulation/agent-grid';
 import type {
   CampaignResponse,
   CompositeScores,
   IterationRecord,
   DataCompleteness,
+  ScorecardVariant,
 } from '@/api/types';
 
 const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
@@ -46,6 +48,96 @@ const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
   'backlash_risk',
   'polarization_index',
 ];
+
+// ─── Build per-iteration scorecards from deep_analysis ─────────────────
+//
+// scorecard.variants only carries the FINAL iteration's ranking. The
+// deep_analysis payload, however, has full per-variant composite scores
+// for every iteration. We reshape those into the ScorecardVariant shape
+// so the scorecard table can swap in per-iteration data when the user
+// clicks an iteration pill.
+//
+// Mirrors report_generator._rank_variants: sorts by adjusted average
+// (inverted metrics flipped) and color-codes cells with getScoreColor.
+
+function adjustedAverage(
+  scores: Record<string, number | null | undefined>,
+): number {
+  const values: number[] = [];
+  for (const [key, val] of Object.entries(scores)) {
+    if (val == null) continue;
+    values.push(INVERTED_SCORES.has(key) ? 100 - val : val);
+  }
+  return values.length > 0
+    ? values.reduce((a, b) => a + b, 0) / values.length
+    : 0;
+}
+
+function buildPerIterationVariants(
+  deepAnalysis: Record<string, unknown> | null | undefined,
+): Map<number, ScorecardVariant[]> {
+  const result = new Map<number, ScorecardVariant[]>();
+  if (!deepAnalysis) return result;
+
+  const source = Array.isArray(deepAnalysis.iterations)
+    ? (deepAnalysis.iterations as unknown[])
+    : Array.isArray(deepAnalysis)
+      ? (deepAnalysis as unknown[])
+      : [];
+
+  for (const rawIter of source) {
+    if (!rawIter || typeof rawIter !== 'object') continue;
+    const iter = rawIter as Record<string, unknown>;
+    const iterNum =
+      typeof iter.iteration === 'number'
+        ? iter.iteration
+        : typeof iter.iteration_number === 'number'
+          ? (iter.iteration_number as number)
+          : null;
+    if (iterNum == null) continue;
+
+    const rawVariants = Array.isArray(iter.variants)
+      ? (iter.variants as unknown[])
+      : [];
+
+    const withAvg = rawVariants
+      .map((rv) => {
+        if (!rv || typeof rv !== 'object') return null;
+        const v = rv as Record<string, unknown>;
+        const composite_scores = (v.composite_scores ?? {}) as Record<
+          string,
+          number | null
+        >;
+        if (Object.keys(composite_scores).length === 0) return null;
+        return {
+          variant_id: (v.variant_id ?? v.id ?? 'unknown') as string,
+          strategy: (v.strategy ?? '') as string,
+          composite_scores,
+          avg: adjustedAverage(composite_scores),
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => b.avg - a.avg);
+
+    const ranked: ScorecardVariant[] = withAvg.map((v, idx) => {
+      const color_coding: Record<string, string> = {};
+      for (const [key, val] of Object.entries(v.composite_scores)) {
+        if (val != null) color_coding[key] = getScoreColor(key, val);
+      }
+      return {
+        variant_id: v.variant_id,
+        rank: idx + 1,
+        strategy: v.strategy,
+        composite_scores: v.composite_scores,
+        color_coding,
+      };
+    });
+
+    if (ranked.length > 0) result.set(iterNum, ranked);
+  }
+
+  return result;
+}
 
 // ─── Data completeness status line ──────────────────────────────────────
 
@@ -341,13 +433,11 @@ function ReportTabContent({
   campaign,
   selectedIteration,
   availableIterations,
-  variantIterationMap,
   onSelectIteration,
 }: {
   campaign: CampaignResponse;
   selectedIteration: number;
   availableIterations: number[];
-  variantIterationMap: Map<string, number>;
   onSelectIteration: (i: number) => void;
 }) {
   const {
@@ -357,6 +447,16 @@ function ReportTabContent({
     error,
     refetch,
   } = useReport(campaign.id);
+
+  // Reshape the deep_analysis payload into ranked per-iteration variants.
+  // Memoised on report.deep_analysis so we only do this once per report load.
+  const perIterationVariants = useMemo(
+    () =>
+      buildPerIterationVariants(
+        (report?.deep_analysis as Record<string, unknown> | undefined) ?? null,
+      ),
+    [report?.deep_analysis],
+  );
 
   if (campaign.status !== 'completed' && campaign.status !== 'failed') {
     return (
@@ -408,7 +508,7 @@ function ReportTabContent({
         scorecard={report.scorecard ?? null}
         selectedIteration={selectedIteration}
         onSelectIteration={onSelectIteration}
-        variantIterationMap={variantIterationMap}
+        perIterationVariants={perIterationVariants}
         availableIterations={availableIterations}
       />
       <DeepAnalysis
@@ -515,15 +615,6 @@ export default function CampaignDetail() {
     }
   }, [availableIterations, latestIteration, selectedIteration]);
 
-  // variant_id → iteration_number map for scorecard filtering.
-  const variantIterationMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const it of campaign?.iterations ?? []) {
-      map.set(it.variant_id, it.iteration_number);
-    }
-    return map;
-  }, [campaign?.iterations]);
-
   const handleInterviewAgent = (agentId: string, agentName: string) =>
     setInterviewAgent({ id: agentId, name: agentName });
 
@@ -575,7 +666,6 @@ export default function CampaignDetail() {
             campaign={campaign}
             selectedIteration={selectedIteration}
             availableIterations={availableIterations}
-            variantIterationMap={variantIterationMap}
             onSelectIteration={setSelectedIteration}
           />
         </TabsContent>

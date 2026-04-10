@@ -5,10 +5,12 @@
  * color_coding strings (green/amber/red) per Pitfall 8 so UI and
  * backend agree on which variant is best.
  *
- * Supports iteration-scoped filtering: when selectedIteration is
- * provided along with a variantIterationMap, the variants array is
- * filtered to only rows whose variant_id maps to that iteration.
- * Falls back to showing all variants if the filter produces nothing.
+ * Per-iteration data: scorecard.variants only carries the final
+ * iteration's ranking. When the caller provides a perIterationVariants
+ * map (reshaped from deep_analysis by campaign-detail) and a
+ * selectedIteration, the table swaps in that iteration's ranked
+ * variants and recomputes the winner as the top-ranked row for that
+ * iteration.
  */
 
 import { useMemo } from 'react';
@@ -25,9 +27,9 @@ interface ScorecardTableProps {
   selectedIteration?: number;
   /** Called when user clicks an iteration trajectory button. */
   onSelectIteration?: (iteration: number) => void;
-  /** variant_id → iteration_number map, used to filter scorecard variants. */
-  variantIterationMap?: Map<string, number>;
-  /** Iterations the user can actively pick (from campaign.iterations). */
+  /** Iteration → ranked variants (reshaped from deep_analysis). */
+  perIterationVariants?: Map<number, ScorecardVariant[]>;
+  /** Iterations the user can actively pick. */
   availableIterations?: number[];
 }
 
@@ -44,44 +46,46 @@ export function ScorecardTable({
   className,
   selectedIteration,
   onSelectIteration,
-  variantIterationMap,
+  perIterationVariants,
   availableIterations,
 }: ScorecardTableProps) {
-  const { displayVariants, filteredToIteration, filterEmpty } = useMemo(() => {
+  const { displayVariants, winnerId, scopedIteration, fellBack } = useMemo(() => {
     if (!scorecard) {
       return {
         displayVariants: [] as ScorecardVariant[],
-        filteredToIteration: null as number | null,
-        filterEmpty: false,
+        winnerId: undefined as string | undefined,
+        scopedIteration: null as number | null,
+        fellBack: false,
       };
     }
+    // Try the per-iteration view first.
     if (
       selectedIteration != null &&
-      variantIterationMap &&
-      variantIterationMap.size > 0
+      perIterationVariants &&
+      perIterationVariants.has(selectedIteration)
     ) {
-      const filtered = scorecard.variants.filter(
-        (v) => variantIterationMap.get(v.variant_id) === selectedIteration,
-      );
-      if (filtered.length > 0) {
+      const variants = perIterationVariants.get(selectedIteration)!;
+      if (variants.length > 0) {
+        const sorted = [...variants].sort((a, b) => a.rank - b.rank);
         return {
-          displayVariants: [...filtered].sort((a, b) => a.rank - b.rank),
-          filteredToIteration: selectedIteration,
-          filterEmpty: false,
+          displayVariants: sorted,
+          winnerId: sorted[0]?.variant_id,
+          scopedIteration: selectedIteration,
+          fellBack: false,
         };
       }
-      return {
-        displayVariants: [...scorecard.variants].sort((a, b) => a.rank - b.rank),
-        filteredToIteration: null,
-        filterEmpty: true,
-      };
     }
+    // Fallback: the final iteration's scorecard.variants.
     return {
       displayVariants: [...scorecard.variants].sort((a, b) => a.rank - b.rank),
-      filteredToIteration: null,
-      filterEmpty: false,
+      winnerId: scorecard.winning_variant_id,
+      scopedIteration: null,
+      fellBack:
+        selectedIteration != null &&
+        perIterationVariants != null &&
+        !perIterationVariants.has(selectedIteration),
     };
-  }, [scorecard, selectedIteration, variantIterationMap]);
+  }, [scorecard, selectedIteration, perIterationVariants]);
 
   if (!scorecard) {
     return (
@@ -95,15 +99,17 @@ export function ScorecardTable({
   }
 
   const scoreKeys =
-    scorecard.variants.length > 0
-      ? Object.keys(scorecard.variants[0].composite_scores)
-      : [];
+    displayVariants.length > 0
+      ? Object.keys(displayVariants[0].composite_scores)
+      : scorecard.variants.length > 0
+        ? Object.keys(scorecard.variants[0].composite_scores)
+        : [];
 
   return (
     <div className={cn('space-y-5', className)}>
-      <SectionHeader winningVariantId={scorecard.winning_variant_id} />
+      <SectionHeader winningVariantId={winnerId} />
 
-      {/* Iteration selector — derived from availableIterations (from campaign) */}
+      {/* Iteration selector */}
       {availableIterations && availableIterations.length > 1 && onSelectIteration && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
@@ -116,12 +122,14 @@ export function ScorecardTable({
                 <button
                   key={it}
                   type="button"
-                  onClick={() => onSelectIteration(it)}
+                  onClick={() => {
+                    if (!isActive) onSelectIteration(it);
+                  }}
                   aria-pressed={isActive}
                   className={cn(
                     'inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-[0.7rem] tabular-nums transition-colors',
                     isActive
-                      ? 'border-primary/60 bg-primary/15 text-primary'
+                      ? 'border-primary/60 bg-primary/15 text-primary cursor-default'
                       : 'border-border bg-transparent text-muted-foreground hover:border-foreground/30 hover:text-foreground',
                   )}
                 >
@@ -130,14 +138,14 @@ export function ScorecardTable({
               );
             })}
           </div>
-          {filterEmpty && (
+          {scopedIteration != null && (
             <span className="font-mono text-[0.62rem] text-muted-foreground">
-              · no per-iteration scorecard data; showing all variants
+              · {displayVariants.length} variants from iteration {scopedIteration}
             </span>
           )}
-          {filteredToIteration != null && (
+          {fellBack && (
             <span className="font-mono text-[0.62rem] text-muted-foreground">
-              · showing iteration {filteredToIteration}
+              · no data for that iteration; showing final ranking
             </span>
           )}
         </div>
@@ -169,11 +177,10 @@ export function ScorecardTable({
           </thead>
           <tbody>
             {displayVariants.map((variant) => {
-              const isWinner =
-                variant.variant_id === scorecard.winning_variant_id;
+              const isWinner = variant.variant_id === winnerId;
               return (
                 <tr
-                  key={variant.variant_id}
+                  key={`${scopedIteration ?? 'final'}-${variant.variant_id}`}
                   className={cn(
                     'border-b border-border/60 transition-colors hover:bg-foreground/[0.025]',
                     isWinner && 'bg-primary/[0.04] shadow-[inset_2px_0_0_var(--primary)]',
@@ -268,6 +275,10 @@ export function ScorecardTable({
                 const iterNum = (e.iteration as number) ?? idx + 1;
                 const isActive = selectedIteration === iterNum;
                 const interactive = typeof onSelectIteration === 'function';
+                const topScore =
+                  typeof e.top_score === 'number'
+                    ? (e.top_score as number)
+                    : undefined;
                 const contents = (
                   <>
                     <span
@@ -277,9 +288,9 @@ export function ScorecardTable({
                     >
                       i{iterNum}
                     </span>
-                    {e.top_score != null && (
+                    {topScore != null && (
                       <span className="tabular-nums text-foreground/85">
-                        {formatScore(e.top_score as number)}
+                        {formatScore(topScore)}
                       </span>
                     )}
                   </>
@@ -289,12 +300,14 @@ export function ScorecardTable({
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => onSelectIteration!(iterNum)}
+                      onClick={() => {
+                        if (!isActive) onSelectIteration!(iterNum);
+                      }}
                       aria-pressed={isActive}
                       className={cn(
                         'inline-flex items-baseline gap-1.5 border px-2 py-0.5 font-mono text-[0.66rem] transition-colors',
                         isActive
-                          ? 'border-primary/60 bg-primary/[0.10]'
+                          ? 'border-primary/60 bg-primary/15 cursor-default'
                           : 'border-border bg-surface-1 hover:border-foreground/30',
                       )}
                     >

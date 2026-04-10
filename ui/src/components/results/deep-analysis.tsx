@@ -46,34 +46,51 @@ function parseIterations(data: Record<string, unknown>): IterationData[] {
   return [];
 }
 
+type ScoreSystem = 'tribe' | 'mirofish' | 'composite';
+
+const SYSTEM_LABEL: Record<
+  ScoreSystem,
+  { category: string; unit: string; color: string; mono: boolean }
+> = {
+  tribe: { category: 'TRIBE', unit: 'scores', color: 'text-tribe', mono: true },
+  mirofish: {
+    category: 'MiroFish',
+    unit: 'metrics',
+    color: 'text-mirofish',
+    mono: false,
+  },
+  composite: {
+    category: 'Composite',
+    unit: 'scores',
+    color: 'text-primary',
+    mono: false,
+  },
+};
+
 function ScoreGrid({
-  title,
   system,
   scores,
 }: {
-  title: string;
-  system: 'tribe' | 'mirofish' | 'composite';
+  system: ScoreSystem;
   scores: Record<string, number | null> | undefined;
 }) {
   if (!scores || Object.keys(scores).length === 0) return null;
 
-  const tagClass =
-    system === 'tribe'
-      ? 'text-tribe'
-      : system === 'mirofish'
-        ? 'text-mirofish'
-        : 'text-primary';
+  const info = SYSTEM_LABEL[system];
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className="font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground uppercase">
-          {title}
+      <h6 className="flex items-baseline gap-1.5 text-[0.82rem] font-medium">
+        <span
+          className={cn(
+            info.color,
+            info.mono && 'font-mono tracking-[0.04em]',
+          )}
+        >
+          {info.category}
         </span>
-        <span className={cn('font-mono text-[0.58rem] tracking-[0.1em] uppercase', tagClass)}>
-          {system}
-        </span>
-      </div>
+        <span className="text-muted-foreground font-normal">{info.unit}</span>
+      </h6>
       <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 sm:grid-cols-3 lg:grid-cols-4">
         {Object.entries(scores).map(([key, val]) => (
           <div
@@ -106,17 +123,12 @@ function VariantSection({ variant }: { variant: VariantDetail }) {
           </span>
         )}
       </div>
-      <ScoreGrid title="Tribe Scores" system="tribe" scores={variant.tribe_scores} />
+      <ScoreGrid system="tribe" scores={variant.tribe_scores} />
       <ScoreGrid
-        title="MiroFish Metrics"
         system="mirofish"
         scores={variant.mirofish_metrics as Record<string, number | null> | undefined}
       />
-      <ScoreGrid
-        title="Composite Scores"
-        system="composite"
-        scores={variant.composite_scores}
-      />
+      <ScoreGrid system="composite" scores={variant.composite_scores} />
     </div>
   );
 }

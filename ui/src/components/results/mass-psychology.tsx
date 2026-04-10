@@ -1,9 +1,10 @@
 /**
  * Layer 4: Mass Psychology — general / technical prose.
  *
- * Minimal segmented control swaps between the two narratives.
- * Both render as reading-width prose (max 680px) with proper markdown
- * rendering via ReactMarkdown through MarkdownProse.
+ * Segmented control swaps between the two narratives and matches the
+ * iteration-pill style (small bordered buttons, filled active state).
+ * Prose uses MarkdownProse with the 'editorial' variant for stronger
+ * heading/body hierarchy and thin rules between h2 sections.
  */
 
 import { useState } from 'react';
@@ -51,9 +52,9 @@ export function MassPsychology({
       />
       {isActiveAvailable && activeText ? (
         <>
-          <MarkdownProse>{activeText}</MarkdownProse>
+          <MarkdownProse variant="editorial">{activeText}</MarkdownProse>
           {view === 'technical' && (
-            <p className="mt-6 max-w-[680px] border-t border-border pt-4 font-mono text-[0.66rem] italic text-muted-foreground">
+            <p className="mt-6 max-w-[680px] border-t border-border pt-4 font-mono text-[0.68rem] italic text-muted-foreground">
               References threshold models, spiral of silence, emotional contagion.
             </p>
           )}
@@ -91,7 +92,7 @@ function SectionHeader({
         </span>
       </div>
       {!disabled && (
-        <div className="flex items-center gap-3 font-mono text-[0.64rem] tracking-[0.08em] uppercase">
+        <div className="flex items-center gap-1">
           <SegmentButton
             active={view === 'general'}
             disabled={!hasGeneral}
@@ -99,7 +100,6 @@ function SectionHeader({
           >
             general
           </SegmentButton>
-          <span className="text-muted-foreground/50">/</span>
           <SegmentButton
             active={view === 'technical'}
             disabled={!hasTechnical}
@@ -127,14 +127,17 @@ function SegmentButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        if (!active && !disabled) onClick();
+      }}
       disabled={disabled}
+      aria-pressed={active}
       className={cn(
-        'transition-colors duration-150',
+        'inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-[0.7rem] transition-colors',
         active
-          ? 'text-foreground'
-          : 'text-muted-foreground hover:text-foreground',
-        disabled && 'cursor-not-allowed opacity-40 hover:text-muted-foreground',
+          ? 'border-primary/60 bg-primary/15 text-primary cursor-default'
+          : 'border-border bg-transparent text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+        disabled && 'cursor-not-allowed opacity-40 hover:border-border hover:text-muted-foreground',
       )}
     >
       {children}
