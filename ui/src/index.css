@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -5,9 +6,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * ────────────────────────────────────────────────────────────────────────────
+ * A.R.C Studio — Precision Research Instrument
+ * ────────────────────────────────────────────────────────────────────────────
+ * Near-black warm-neutral background. Amber primary (neural activation heat).
+ * TRIBE v2 = purple. MiroFish = teal. Heat map scale for scores.
+ * Flat. Precise. No gradients, no glows, no backdrop filters.
+ */
+
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -16,11 +28,13 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
+
     --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -40,69 +54,193 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
-    /* Score indicator colors per Results.md Section 4.2 */
-    --color-score-green: oklch(0.72 0.19 163);
-    --color-score-amber: oklch(0.78 0.16 75);
-    --color-score-red: oklch(0.62 0.22 25);
+
+    /* Surface ladder — layered depth without shadows */
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+
+    /* Heat map — 5 stops, scientific cool→hot progression */
+    --color-heat-cold: var(--heat-cold);
+    --color-heat-cool: var(--heat-cool);
+    --color-heat-mid: var(--heat-mid);
+    --color-heat-warm: var(--heat-warm);
+    --color-heat-hot: var(--heat-hot);
+
+    /* System identity — TRIBE neural vs MiroFish social */
+    --color-tribe: var(--tribe);
+    --color-tribe-muted: var(--tribe-muted);
+    --color-mirofish: var(--mirofish);
+    --color-mirofish-muted: var(--mirofish-muted);
+
+    /* Legacy score aliases (green/amber/red → heat palette for backend color_coding) */
+    --color-score-green: var(--heat-hot);
+    --color-score-amber: var(--heat-mid);
+    --color-score-red: var(--heat-cold);
+
+    /* Tight radius — 6px cards max, 4px inputs, 2px tags */
+    --radius-sm: calc(var(--radius) * 0.333);   /* 2px */
+    --radius-md: calc(var(--radius) * 0.667);   /* 4px */
+    --radius-lg: var(--radius);                  /* 6px */
+    --radius-xl: var(--radius);                  /* 6px — capped */
+    --radius-2xl: var(--radius);                 /* 6px — capped */
+    --radius-3xl: var(--radius);                 /* 6px — capped */
+    --radius-4xl: var(--radius);                 /* 6px — capped */
 }
 
 /*
- * A.R.C Studio Dark Theme — Deep Blue-Slate Palette
- * D-07: Premium data-heavy aesthetic. Bloomberg terminal meets modern SaaS.
- * Dark-first: :root IS the dark theme. No .dark class needed.
+ * Dark-first palette (no light theme)
+ * Hue 60 = warm-neutral (very slight yellow-brown tint, NOT blue)
  */
 :root {
-    --background: oklch(0.12 0.008 260);
-    --foreground: oklch(0.93 0.005 260);
-    --card: oklch(0.155 0.01 260);
-    --card-foreground: oklch(0.93 0.005 260);
-    --popover: oklch(0.155 0.01 260);
-    --popover-foreground: oklch(0.93 0.005 260);
-    --primary: oklch(0.65 0.18 250);
-    --primary-foreground: oklch(0.98 0.002 260);
-    --secondary: oklch(0.22 0.012 260);
-    --secondary-foreground: oklch(0.93 0.005 260);
-    --muted: oklch(0.20 0.008 260);
-    --muted-foreground: oklch(0.60 0.015 260);
-    --accent: oklch(0.22 0.015 260);
-    --accent-foreground: oklch(0.93 0.005 260);
-    --destructive: oklch(0.55 0.2 25);
-    --destructive-foreground: oklch(0.98 0.002 260);
-    --border: oklch(0.26 0.01 260);
-    --input: oklch(0.26 0.01 260);
-    --ring: oklch(0.65 0.18 250);
-    --chart-1: oklch(0.65 0.18 250);
-    --chart-2: oklch(0.72 0.19 163);
-    --chart-3: oklch(0.78 0.16 75);
-    --chart-4: oklch(0.62 0.22 25);
-    --chart-5: oklch(0.68 0.15 310);
-    --radius: 0.5rem;
-    --sidebar: oklch(0.10 0.01 260);
-    --sidebar-foreground: oklch(0.93 0.005 260);
-    --sidebar-primary: oklch(0.65 0.18 250);
-    --sidebar-primary-foreground: oklch(0.98 0.002 260);
-    --sidebar-accent: oklch(0.18 0.012 260);
-    --sidebar-accent-foreground: oklch(0.93 0.005 260);
-    --sidebar-border: oklch(0.22 0.01 260);
-    --sidebar-ring: oklch(0.65 0.18 250);
+    /* Surface ladder — near-black → slightly lighter card → popover */
+    --background: oklch(0.085 0.003 60);
+    --foreground: oklch(0.965 0.003 80);
+
+    --surface-1: oklch(0.105 0.004 60);
+    --surface-2: oklch(0.125 0.004 60);
+    --surface-3: oklch(0.155 0.005 60);
+
+    --card: oklch(0.105 0.004 60);
+    --card-foreground: oklch(0.965 0.003 80);
+
+    --popover: oklch(0.135 0.005 60);
+    --popover-foreground: oklch(0.965 0.003 80);
+
+    /* Primary — warm amber, referencing neural activation heat */
+    --primary: oklch(0.80 0.14 68);
+    --primary-foreground: oklch(0.12 0.01 60);
+
+    --secondary: oklch(0.18 0.005 60);
+    --secondary-foreground: oklch(0.92 0.005 80);
+
+    --muted: oklch(0.15 0.004 60);
+    --muted-foreground: oklch(0.58 0.008 70);
+
+    --accent: oklch(0.17 0.005 60);
+    --accent-foreground: oklch(0.92 0.005 80);
+
+    --destructive: oklch(0.68 0.19 22);
+    --destructive-foreground: oklch(0.98 0.002 60);
+
+    /* Borders at ~8% opacity off-white — structure comes from spacing, not lines */
+    --border: oklch(0.965 0.003 80 / 0.08);
+    --input: oklch(0.965 0.003 80 / 0.12);
+    --ring: oklch(0.80 0.14 68 / 0.5);
+
+    /* Heat scale — 5 stops. Cool blue → amber → hot coral. */
+    --heat-cold: oklch(0.68 0.14 235);     /* cool blue       0-20  */
+    --heat-cool: oklch(0.73 0.11 200);     /* teal-blue       20-40 */
+    --heat-mid:  oklch(0.80 0.14 75);      /* warm amber      40-60 */
+    --heat-warm: oklch(0.74 0.17 42);      /* orange          60-80 */
+    --heat-hot:  oklch(0.68 0.20 22);      /* hot coral       80-100 */
+
+    /* System identity — TRIBE v2 neural scoring = purple */
+    --tribe: oklch(0.72 0.17 300);
+    --tribe-muted: oklch(0.72 0.17 300 / 0.12);
+
+    /* MiroFish social simulation = cool teal */
+    --mirofish: oklch(0.76 0.12 180);
+    --mirofish-muted: oklch(0.76 0.12 180 / 0.12);
+
+    /* Recharts line colors — composite metric series */
+    --chart-1: oklch(0.80 0.14 68);        /* attention_score   — amber  */
+    --chart-2: oklch(0.72 0.17 300);       /* virality          — purple */
+    --chart-3: oklch(0.76 0.12 180);       /* conversion        — teal   */
+    --chart-4: oklch(0.68 0.20 22);        /* backlash          — coral  */
+    --chart-5: oklch(0.68 0.14 235);       /* memory            — blue   */
+
+    --radius: 0.375rem;                    /* 6px base */
+
+    /* Sidebar — one shade darker than main background */
+    --sidebar: oklch(0.065 0.003 60);
+    --sidebar-foreground: oklch(0.92 0.005 80);
+    --sidebar-primary: oklch(0.80 0.14 68);
+    --sidebar-primary-foreground: oklch(0.12 0.01 60);
+    --sidebar-accent: oklch(0.135 0.005 60);
+    --sidebar-accent-foreground: oklch(0.965 0.003 80);
+    --sidebar-border: oklch(0.965 0.003 80 / 0.06);
+    --sidebar-ring: oklch(0.80 0.14 68 / 0.5);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-  html {
-    @apply font-sans;
-  }
+    * {
+        @apply border-border outline-ring/50;
+    }
+    html {
+        @apply font-sans;
+        font-feature-settings: "ss01" 1, "cv11" 1;
+    }
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
+    /* Data is monospace — numbers belong in a fixed grid */
+    .font-mono,
+    [class*="tabular-nums"] {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1, "zero" 1;
+    }
+
+    /* Restrained focus rings */
+    :focus-visible {
+        outline: 1px solid var(--ring);
+        outline-offset: 2px;
+    }
+
+    /* Dark-theme scrollbars — minimal, near-invisible until hover */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: oklch(0.965 0.003 80 / 0.06);
+        border-radius: 2px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: oklch(0.965 0.003 80 / 0.14);
+        background-clip: padding-box;
+    }
+
+    /* Selection — warm amber, matches primary */
+    ::selection {
+        background: oklch(0.80 0.14 68 / 0.25);
+        color: var(--foreground);
+    }
+}
+
+@layer utilities {
+    /* Terminal-log text block — monospace, tight leading, faint lines */
+    .font-terminal {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        line-height: 1.55;
+        letter-spacing: -0.005em;
+    }
+
+    /* Section label — small caps, tracking, muted */
+    .label-eyebrow {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+    }
+
+    /* Hairline rule — ~8% border */
+    .rule {
+        border-top: 1px solid var(--border);
+    }
+    .rule-v {
+        border-left: 1px solid var(--border);
+    }
 }
