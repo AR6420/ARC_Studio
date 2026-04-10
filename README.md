@@ -8,7 +8,7 @@
 
 A self-optimizing campaign studio that predicts how audiences will react before you publish — combining neural response prediction, multi-agent social simulation, and LLM-driven iterative optimization.
 
-![A.R.C Studio Architecture](docs/architecture.png)
+![A.R.C Studio Architecture](assets/architecture.png)
 
 ## What It Does
 
@@ -20,7 +20,15 @@ Claude Opus then analyzes the results from both systems together — identifying
 
 ## Why It's Novel
 
-This is the first integration of three specific technologies into a single feedback loop: Meta FAIR's TRIBE v2 (released March 2025, a brain-encoding model that predicts fMRI-level neural responses from text), MiroFish-Offline (a local fork of the multi-agent social simulation engine built on CAMEL-AI's OASIS framework), and Claude Opus as the orchestrating reasoning layer. The cognitive-social bridge — using neural prediction to inform agent personas and using simulation outcomes to refine neural targeting — doesn't exist anywhere else. Each system alone is useful; the cross-system reasoning between them is what produces insights neither could generate independently.
+This is the first integration of three specific technologies into a single feedback loop: Meta FAIR's TRIBE v2 (released March 2026, a brain-encoding model that predicts fMRI-level neural responses from text), MiroFish-Offline (a local fork of the multi-agent social simulation engine built on CAMEL-AI's OASIS framework), and Claude Opus as the orchestrating reasoning layer. The cognitive-social bridge — using neural prediction to inform agent personas and using simulation outcomes to refine neural targeting — doesn't exist anywhere else. Each system alone is useful; the cross-system reasoning between them is what produces insights neither could generate independently.
+
+## Built on a Gaming Laptop
+
+This entire system — real TRIBE v2 brain-encoding inference, 20-agent MiroFish social simulations, Claude Opus cross-system analysis — was built and validated on a single machine: **ASUS Zephyrus G14, Ryzen AI 9 HX370, RTX 5070 Ti (12 GB VRAM), 32 GB RAM, 1 TB SSD.**
+
+Real performance on that hardware: **85-minute campaigns** (2 iterations, 20 agents, 3 content variants per iteration). TRIBE v2 inference takes 5–40 minutes per variant depending on text length. Not fast. Real.
+
+This should be an invitation, not an apology. If you have a desktop GPU with 16–24 GB VRAM, campaigns will be significantly faster. If you have cloud access to an A100, TRIBE v2 inference drops to seconds. The architecture is identical — only the hardware constraint changes. Built solo in ~2 weeks using Claude Code.
 
 ## Validation Results
 
@@ -196,7 +204,7 @@ ARC_Studio/
 │   ├── engine/             # Variant gen, scoring, analysis, campaign runner
 │   ├── prompts/            # Claude prompt templates
 │   ├── storage/            # SQLite persistence
-│   └── tests/              # 194 tests
+│   └── tests/              # 205 tests
 ├── tribe_scorer/           # TRIBE v2 neural scoring service
 │   ├── scoring/            # Model loader, text scorer, ROI extractor, normalizer
 │   ├── vendor/tribev2/     # Vendored TRIBE v2 (Git submodule)
@@ -211,7 +219,6 @@ ARC_Studio/
 ├── scenarios/              # 5 JSON demo scenario briefs
 ├── scripts/                # Validation runner + results checker
 ├── results/                # Campaign result JSON files
-├── docs/                   # Full documentation + demo script
 ├── models/                 # TRIBE v2 weights (gitignored)
 └── docker-compose.yml      # Neo4j + LiteLLM + MiroFish
 ```
@@ -248,15 +255,23 @@ ARC_Studio/
 
 ## Status
 
-**Phase 1 POC — Complete**
+**Phase 1 POC — complete and validated**
 
-- 5 phases built (orchestrator, optimization, reports, UI, validation)
-- 194 backend tests passing
-- 5/5 demo scenarios run end-to-end
-- Cross-system reasoning validated in all scenarios
-- Iteration improvement demonstrated in 3/5 scenarios (MiroFish availability dependent)
+- 205 tests passing
+- Three-phase hardening completed:
+  - **Phase 0** — Silent failures eliminated. Pseudo-score fallbacks are now always flagged with `is_pseudo_score`, never invisible.
+  - **Phase 1** — Operational stability. Campaigns went from 4 hours to 85 minutes via a ThreadPoolExecutor fix, stale campaign cleanup, and a unified start script.
+  - **Phase 2** — Data integrity. `data_completeness` reporting shows exactly which systems contributed real data to each result.
+- 5/5 demo scenarios run end-to-end with real TRIBE v2 + MiroFish
+- Built solo in ~2 weeks using Claude Code
 
-See [docs/README.md](docs/README.md) for full documentation.
+## Known Limitations
+
+- **TRIBE v2 inference is slow on laptop GPU** (5–40 min per variant depending on text length). Variants that exceed the 3600s timeout fall back to pseudo-scores, clearly flagged with `is_pseudo_score` in the output. Faster GPUs solve this — it is not a software limitation.
+- **RTX 5070 Ti (Blackwell, sm_120) requires PyTorch 2.6 + CUDA 12.6.** The GPU architecture is newer than what the latest PyTorch nightly supports natively. RTX 30/40 series have zero compatibility issues.
+- **Single-user only.** No concurrent campaign support.
+- **Claude API credentials from subscription rotate periodically.** LiteLLM auto-refreshes but long campaigns may encounter brief interruptions.
+- **MiroFish simulation quality scales with agent count.** 20 agents is the minimum for meaningful social dynamics. 100+ agents produce richer results but proportionally longer runtimes.
 
 ## Roadmap
 
@@ -271,6 +286,8 @@ See [docs/README.md](docs/README.md) for full documentation.
 Contributions are welcome. Whether it's a bug fix, a new demographic profile, improved scoring formulas, or documentation — open an issue or submit a PR.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and PR guidelines.
+
+Highest-value contribution areas: TRIBE v2 inference speed optimization, additional demographic presets, MiroFish agent behavior quality, UI/UX improvements, and documentation.
 
 ## License
 
