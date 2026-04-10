@@ -1,143 +1,136 @@
 /**
- * MiroFish simulation metrics panel displaying 8 key social metrics.
+ * MiroFish metric strip — a dense horizontal row of stat cells.
  *
- * Each metric rendered as an individual card with contextual icon,
- * formatted value, and descriptive label. Handles null/missing data.
+ *   ORG SHARES 2,341 · SENT 0.42 ↑ · COUNTER 17 · PEAK R4 ...
+ *
+ * Each cell has a small-caps label and a monospace value. Mirofish teal
+ * is the identity color — a thin rule underneath groups the row.
  */
 
-import {
-  BarChart3,
-  GitFork,
-  MessageSquare,
-  Share2,
-  TrendingUp,
-  Users,
-  ArrowUpDown,
-  Activity,
-} from 'lucide-react';
 import type { MirofishMetrics } from '@/api/types';
-import { Card, CardContent } from '@/components/ui/card';
-
-interface MetricCardConfig {
-  key: keyof MirofishMetrics;
-  label: string;
-  icon: typeof Share2;
-  format: (value: number | number[]) => string;
-  description: string;
-}
-
-const METRIC_CONFIGS: MetricCardConfig[] = [
-  {
-    key: 'organic_shares',
-    label: 'Organic Shares',
-    icon: Share2,
-    format: (v) => String(v),
-    description: 'Total unprompted shares across platforms',
-  },
-  {
-    key: 'sentiment_trajectory',
-    label: 'Sentiment',
-    icon: Activity,
-    format: (v) => {
-      const arr = v as number[];
-      if (!arr.length) return 'No data';
-      const latest = arr[arr.length - 1];
-      const trend = arr.length > 1 ? latest - arr[arr.length - 2] : 0;
-      const arrow = trend > 0.01 ? ' ^' : trend < -0.01 ? ' v' : '';
-      return `${latest.toFixed(2)}${arrow}`;
-    },
-    description: 'Latest sentiment value with trend direction',
-  },
-  {
-    key: 'counter_narrative_count',
-    label: 'Counter-narratives',
-    icon: MessageSquare,
-    format: (v) => String(v),
-    description: 'Opposing narratives that emerged',
-  },
-  {
-    key: 'peak_virality_cycle',
-    label: 'Peak Virality',
-    icon: TrendingUp,
-    format: (v) => `Round ${v}`,
-    description: 'Simulation round with highest activity',
-  },
-  {
-    key: 'sentiment_drift',
-    label: 'Sentiment Drift',
-    icon: ArrowUpDown,
-    format: (v) => `${((v as number) * 100).toFixed(1)}%`,
-    description: 'Net sentiment change over simulation',
-  },
-  {
-    key: 'coalition_formation',
-    label: 'Coalitions',
-    icon: Users,
-    format: (v) => `${v} groups`,
-    description: 'Distinct opinion groups that formed',
-  },
-  {
-    key: 'influence_concentration',
-    label: 'Influence Gini',
-    icon: BarChart3,
-    format: (v) => `${((v as number) * 100).toFixed(1)}%`,
-    description: 'Concentration of influence (0=equal, 1=monopoly)',
-  },
-  {
-    key: 'platform_divergence',
-    label: 'Platform Divergence',
-    icon: GitFork,
-    format: (v) => `${((v as number) * 100).toFixed(1)}%`,
-    description: 'Difference in behavior between platforms',
-  },
-];
+import { cn } from '@/lib/utils';
 
 interface MetricsPanelProps {
   metrics: MirofishMetrics | null | undefined;
 }
 
+interface CellConfig {
+  label: string;
+  key: keyof MirofishMetrics;
+  format: (value: MirofishMetrics[keyof MirofishMetrics]) => string;
+  trend?: (value: MirofishMetrics[keyof MirofishMetrics]) => 'up' | 'down' | 'flat';
+}
+
+const CELLS: CellConfig[] = [
+  {
+    label: 'Organic Shares',
+    key: 'organic_shares',
+    format: (v) => (v == null ? '—' : (v as number).toLocaleString()),
+  },
+  {
+    label: 'Sentiment',
+    key: 'sentiment_trajectory',
+    format: (v) => {
+      const arr = v as number[] | null;
+      if (!arr?.length) return '—';
+      return arr[arr.length - 1].toFixed(2);
+    },
+    trend: (v) => {
+      const arr = v as number[] | null;
+      if (!arr || arr.length < 2) return 'flat';
+      const diff = arr[arr.length - 1] - arr[arr.length - 2];
+      return diff > 0.01 ? 'up' : diff < -0.01 ? 'down' : 'flat';
+    },
+  },
+  {
+    label: 'Counter-narr.',
+    key: 'counter_narrative_count',
+    format: (v) => (v == null ? '—' : String(v)),
+  },
+  {
+    label: 'Peak Round',
+    key: 'peak_virality_cycle',
+    format: (v) => (v == null ? '—' : `R${v}`),
+  },
+  {
+    label: 'Drift',
+    key: 'sentiment_drift',
+    format: (v) =>
+      v == null ? '—' : `${((v as number) * 100).toFixed(1)}%`,
+  },
+  {
+    label: 'Coalitions',
+    key: 'coalition_formation',
+    format: (v) => (v == null ? '—' : String(v)),
+  },
+  {
+    label: 'Gini',
+    key: 'influence_concentration',
+    format: (v) =>
+      v == null ? '—' : `${((v as number) * 100).toFixed(1)}%`,
+  },
+  {
+    label: 'Platform Δ',
+    key: 'platform_divergence',
+    format: (v) =>
+      v == null ? '—' : `${((v as number) * 100).toFixed(1)}%`,
+  },
+];
+
+const TREND_GLYPH: Record<'up' | 'down' | 'flat', string> = {
+  up: '↑',
+  down: '↓',
+  flat: '·',
+};
+
+const TREND_COLOR: Record<'up' | 'down' | 'flat', string> = {
+  up: 'text-[oklch(0.72_0.15_150)]',
+  down: 'text-[oklch(0.68_0.20_22)]',
+  flat: 'text-muted-foreground/50',
+};
+
 export function MetricsPanel({ metrics }: MetricsPanelProps) {
   if (!metrics) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 py-12">
-        <p className="text-sm text-muted-foreground">
-          No simulation metrics available for this iteration.
-        </p>
+      <div className="border border-dashed border-border px-4 py-6 font-mono text-[0.7rem] text-muted-foreground/55">
+        › mirofish metrics unavailable for this iteration
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {METRIC_CONFIGS.map((config) => {
-        const rawValue = metrics[config.key];
-        const Icon = config.icon;
-
-        return (
-          <Card
-            key={config.key}
-            size="sm"
-            className="group relative overflow-hidden transition-colors hover:ring-foreground/20"
-          >
-            <CardContent className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Icon className="size-3.5 shrink-0" />
-                <span className="truncate text-xs font-medium">
-                  {config.label}
+    <div className="relative">
+      {/* Top hairline in MiroFish teal signals the owning system */}
+      <div className="absolute inset-x-0 top-0 h-px bg-mirofish/40" />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border px-1 py-4 sm:grid-cols-4 lg:grid-cols-8">
+        {CELLS.map((cell) => {
+          const raw = metrics[cell.key];
+          const value = cell.format(raw);
+          const trend = cell.trend ? cell.trend(raw) : null;
+          return (
+            <div key={cell.key} className="flex flex-col gap-1">
+              <span className="font-mono text-[0.56rem] tracking-[0.12em] text-muted-foreground/60 uppercase">
+                {cell.label}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-mono text-[0.92rem] font-semibold tabular-nums tracking-[-0.01em] text-foreground">
+                  {value}
                 </span>
+                {trend && (
+                  <span
+                    className={cn(
+                      'font-mono text-[0.75rem] leading-none',
+                      TREND_COLOR[trend],
+                    )}
+                  >
+                    {TREND_GLYPH[trend]}
+                  </span>
+                )}
               </div>
-              <p className="font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
-                {rawValue != null ? config.format(rawValue) : 'N/A'}
-              </p>
-              <p className="text-[11px] leading-tight text-muted-foreground/70">
-                {config.description}
-              </p>
-            </CardContent>
-            {/* Subtle accent line at top */}
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-          </Card>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,11 +1,9 @@
 /**
- * Iteration trajectory chart -- Recharts line chart showing composite score
- * evolution across iterations.
+ * Iteration trajectory — line chart showing composite score evolution.
  *
- * Uses the shadcn/ui ChartContainer + ChartTooltip pattern for dark-themed
- * Recharts integration with CSS variable-driven colors.
- *
- * Per D-07: Dark background, subtle grid, monotone curves, styled tooltip.
+ * Thin lines, no dots, subtle dashed grid. One line per composite metric,
+ * colored from the new palette (primary amber / TRIBE purple / MiroFish
+ * teal / heat stops).
  */
 
 import { useMemo } from 'react';
@@ -30,15 +28,14 @@ const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
   'polarization_index',
 ];
 
-/** Chart colors -- mapped to CSS variables from the theme. */
 const LINE_COLORS: Record<string, string> = {
-  attention_score: 'var(--chart-1)',
-  virality_potential: 'var(--chart-2)',
-  conversion_potential: 'var(--chart-3)',
-  backlash_risk: 'var(--chart-4)',
-  memory_durability: 'var(--chart-5)',
-  audience_fit: 'oklch(0.72 0.12 200)',
-  polarization_index: 'oklch(0.65 0.14 340)',
+  attention_score: 'var(--primary)',
+  virality_potential: 'var(--tribe)',
+  conversion_potential: 'var(--mirofish)',
+  audience_fit: 'var(--heat-cool)',
+  memory_durability: 'var(--heat-warm)',
+  backlash_risk: 'var(--heat-hot)',
+  polarization_index: 'var(--heat-cold)',
 };
 
 const CHART_CONFIG: ChartConfig = {
@@ -47,7 +44,7 @@ const CHART_CONFIG: ChartConfig = {
   conversion_potential: { label: 'Conversion', color: LINE_COLORS.conversion_potential },
   audience_fit: { label: 'Audience Fit', color: LINE_COLORS.audience_fit },
   memory_durability: { label: 'Memory', color: LINE_COLORS.memory_durability },
-  backlash_risk: { label: 'Backlash Risk', color: LINE_COLORS.backlash_risk },
+  backlash_risk: { label: 'Backlash', color: LINE_COLORS.backlash_risk },
   polarization_index: { label: 'Polarization', color: LINE_COLORS.polarization_index },
 };
 
@@ -56,11 +53,6 @@ interface ChartDataPoint {
   [key: string]: number | null;
 }
 
-/**
- * Transform iteration records into chart data points.
- * Groups by iteration_number, picks the best variant per iteration
- * (highest average composite score), extracts composite values.
- */
 function buildChartData(iterations: IterationRecord[]): ChartDataPoint[] {
   const grouped = new Map<number, IterationRecord[]>();
   for (const it of iterations) {
@@ -70,12 +62,9 @@ function buildChartData(iterations: IterationRecord[]): ChartDataPoint[] {
   }
 
   const points: ChartDataPoint[] = [];
-
   for (const [iterNum, variants] of grouped) {
-    // Find best variant by average composite score
     let bestAvg = -1;
     let bestScores: CompositeScores | null = null;
-
     for (const v of variants) {
       if (!v.composite_scores) continue;
       const vals = COMPOSITE_KEYS.map((k) => v.composite_scores![k]).filter(
@@ -88,16 +77,12 @@ function buildChartData(iterations: IterationRecord[]): ChartDataPoint[] {
         bestScores = v.composite_scores;
       }
     }
-
     if (bestScores) {
       const point: ChartDataPoint = { iteration: iterNum };
-      for (const key of COMPOSITE_KEYS) {
-        point[key] = bestScores[key];
-      }
+      for (const key of COMPOSITE_KEYS) point[key] = bestScores[key];
       points.push(point);
     }
   }
-
   return points.sort((a, b) => a.iteration - b.iteration);
 }
 
@@ -110,54 +95,60 @@ export function IterationChart({ iterations }: IterationChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-border bg-card py-12">
-        <p className="text-sm text-muted-foreground">
-          No iteration data available for chart.
-        </p>
-      </div>
+      <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+        › no iteration data for trajectory chart
+      </p>
     );
   }
 
+  const isSparkline = chartData.length <= 2;
+
   return (
-    <div className="rounded-xl border border-border bg-card p-5 ring-1 ring-foreground/[0.06]">
-      <ChartContainer config={CHART_CONFIG} className="h-[320px] w-full">
-        <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
+    <div className="border border-border">
+      <ChartContainer
+        config={CHART_CONFIG}
+        className={isSparkline ? 'aspect-[5/1] w-full p-2' : 'aspect-[5/2] w-full p-3'}
+      >
+        <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid
-            strokeDasharray="3 6"
+            strokeDasharray="2 3"
             vertical={false}
-            stroke="oklch(0.26 0.01 260 / 0.5)"
+            stroke="oklch(0.965 0.003 80 / 0.05)"
           />
           <XAxis
             dataKey="iteration"
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v: number) => `Iter ${v}`}
-            tick={{ fontSize: 11 }}
+            tickFormatter={(v: number) => `i${v}`}
+            tick={{ fontSize: 10, fill: 'oklch(0.55 0.008 70)' }}
+            dy={4}
           />
           <YAxis
             domain={[0, 100]}
             tickLine={false}
             axisLine={false}
-            tickCount={6}
-            tick={{ fontSize: 11 }}
+            width={28}
+            tickCount={5}
+            tick={{ fontSize: 10, fill: 'oklch(0.55 0.008 70)' }}
           />
           <ChartTooltip
+            cursor={{ stroke: 'oklch(0.965 0.003 80 / 0.15)', strokeWidth: 1 }}
             content={
               <ChartTooltipContent
                 labelFormatter={(value) => `Iteration ${value}`}
               />
             }
           />
-          <ChartLegend content={<ChartLegendContent />} />
+          {!isSparkline && <ChartLegend content={<ChartLegendContent />} />}
           {COMPOSITE_KEYS.map((key) => (
             <Line
               key={key}
               type="monotone"
               dataKey={key}
               stroke={`var(--color-${key})`}
-              strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 0, fill: `var(--color-${key})` }}
-              activeDot={{ r: 5, strokeWidth: 2, stroke: 'oklch(0.12 0.008 260)' }}
+              strokeWidth={1.25}
+              dot={false}
+              activeDot={{ r: 2.5, strokeWidth: 0, fill: `var(--color-${key})` }}
               connectNulls
             />
           ))}

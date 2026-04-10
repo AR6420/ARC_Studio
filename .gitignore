@@ -68,7 +68,7 @@ tribe_scorer/vendor/tribev2/
 docs/
 
 # Campaign results (generated output, not source)
-results/
+/results/
 
 # Claude Code agent memory (nested instances)
 **/.claude/

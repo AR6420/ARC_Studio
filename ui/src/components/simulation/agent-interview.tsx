@@ -1,15 +1,13 @@
 /**
- * Agent interview modal dialog (per D-05).
+ * Agent interview — minimalist chat modal.
  *
- * Chat interface inside a shadcn Dialog that lets users converse with
- * individual simulated agents. Messages are proxied through the
- * orchestrator to the MiroFish agent chat API.
- *
- * Design per D-07: premium chat interface with distinct user/agent bubbles.
+ * Terminal-styled message log with user messages right-aligned and
+ * agent messages left-aligned. No avatars, no bubbles — distinction
+ * comes from alignment and a small prefix glyph.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Send, User, Bot } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useAgentChat } from '@/hooks/use-agent-chat';
 import type { ChatMessage } from '@/hooks/use-agent-chat';
 
@@ -31,38 +30,37 @@ interface AgentInterviewProps {
 
 const SUGGESTED_PROMPTS = [
   'What did you think about this content?',
-  'Would you share this with others?',
-  'What concerns do you have?',
+  'Would you share this with peers?',
+  'What are your biggest concerns?',
 ];
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageRow({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
-
   return (
     <div
-      className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+      className={cn(
+        'flex flex-col gap-0.5',
+        isUser ? 'items-end' : 'items-start',
+      )}
     >
-      {/* Avatar */}
-      <div
-        className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
-          isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted ring-1 ring-foreground/10'
-        }`}
+      <span
+        className={cn(
+          'font-mono text-[0.54rem] tracking-[0.12em] uppercase',
+          isUser ? 'text-primary/70' : 'text-mirofish/70',
+        )}
       >
-        {isUser ? <User className="size-3.5" /> : <Bot className="size-3.5" />}
-      </div>
-
-      {/* Bubble */}
-      <div
-        className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+        {isUser ? 'you' : 'agent'}
+      </span>
+      <p
+        className={cn(
+          'max-w-[85%] px-3 py-2 text-[0.82rem] leading-relaxed',
           isUser
-            ? 'rounded-br-md bg-primary text-primary-foreground'
-            : 'rounded-bl-md bg-muted text-foreground ring-1 ring-foreground/5'
-        }`}
+            ? 'border-l border-primary/40 text-foreground/90'
+            : 'border-l border-mirofish/40 text-foreground/80',
+        )}
       >
         {message.content}
-      </div>
+      </p>
     </div>
   );
 }
@@ -81,14 +79,12 @@ export function AgentInterview({
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  // Clear state when dialog closes
   useEffect(() => {
     if (!open) {
       setInput('');
@@ -96,61 +92,51 @@ export function AgentInterview({
     }
   }, [open, clearHistory]);
 
-  const handleSend = () => {
+  function handleSend() {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
     sendMessage(trimmed);
     setInput('');
-  };
+  }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[80vh] flex-col gap-0 sm:max-w-lg">
         <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="size-4 text-primary" />
-            Interview: {agentName}
+          <DialogTitle className="font-mono text-[0.72rem] tracking-[0.08em] uppercase">
+            <span className="text-muted-foreground/60">interview ·</span>{' '}
+            <span className="text-foreground">{agentName}</span>
           </DialogTitle>
-          <DialogDescription>
-            Chat with this simulated agent to explore their perspective on the
-            content.
+          <DialogDescription className="text-[0.72rem] text-muted-foreground/65">
+            Chat with this simulated MiroFish agent to probe their reasoning.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Message area */}
         <div
           ref={scrollRef}
-          className="flex min-h-[240px] flex-1 flex-col gap-3 overflow-y-auto border-t border-b border-foreground/5 px-1 py-4"
+          className="flex min-h-[260px] flex-1 flex-col gap-4 overflow-y-auto border-t border-b border-border px-1 py-4"
         >
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-                <Bot className="size-6 text-muted-foreground" />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium text-foreground">
-                  Start a conversation
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ask the agent about their reactions to the content.
-                </p>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
+              <span className="font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground/60 uppercase">
+                start a conversation
+              </span>
+              <div className="flex flex-col gap-1.5">
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => sendMessage(prompt)}
-                    className="rounded-full border border-foreground/10 bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="border border-border px-3 py-1.5 text-left text-[0.74rem] text-muted-foreground/80 transition-colors hover:border-primary/40 hover:text-foreground"
                   >
-                    {prompt}
+                    › {prompt}
                   </button>
                 ))}
               </div>
@@ -158,34 +144,28 @@ export function AgentInterview({
           )}
 
           {messages.map((msg, idx) => (
-            <MessageBubble key={idx} message={msg} />
+            <MessageRow key={idx} message={msg} />
           ))}
 
           {isLoading && (
-            <div className="flex gap-2.5">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted ring-1 ring-foreground/10">
-                <Bot className="size-3.5" />
-              </div>
-              <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-muted px-3.5 py-2.5 ring-1 ring-foreground/5">
-                <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Thinking...
-                </span>
-              </div>
+            <div className="flex items-start gap-2">
+              <span className="font-mono text-[0.54rem] tracking-[0.12em] uppercase text-mirofish/70">
+                agent
+              </span>
+              <Loader2 className="mt-0.5 size-3 animate-spin text-muted-foreground" />
             </div>
           )}
         </div>
 
-        {/* Input area */}
         <div className="flex items-center gap-2 pt-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
+            placeholder="message…"
             disabled={isLoading}
-            className="flex-1 rounded-lg border border-foreground/10 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="h-8 flex-1 border border-input bg-sidebar px-2.5 font-mono text-[0.78rem] text-foreground placeholder:text-muted-foreground/50 focus:border-primary/60 focus:outline-none disabled:opacity-40"
           />
           <Button
             size="icon-sm"
@@ -193,7 +173,7 @@ export function AgentInterview({
             disabled={!input.trim() || isLoading}
             className="shrink-0"
           >
-            <Send className="size-3.5" />
+            <Send className="size-3" />
             <span className="sr-only">Send</span>
           </Button>
         </div>

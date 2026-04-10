@@ -1,13 +1,11 @@
 /**
- * Layer 1: The Verdict - Plain English recommendation.
+ * Layer 1: The Verdict — executive-brief prose.
  *
- * Executive-brief style display for the campaign verdict.
- * Renders as a prominent text block with elegant typography,
- * generous line height, and comfortable reading width.
- * Per RPT-01: 100-400 words, no jargon.
+ * Rendered as clean reading-width prose (max 680px), no card wrapper,
+ * generous line-height. The section header is a small-caps eyebrow,
+ * not a styled box.
  */
 
-import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VerdictDisplayProps {
@@ -15,15 +13,9 @@ interface VerdictDisplayProps {
   className?: string;
 }
 
-/**
- * Render verdict text with basic markdown-like formatting.
- * Handles paragraphs (double newline) and bold (**text**).
- */
-function renderVerdictText(text: string) {
+function renderText(text: string) {
   const paragraphs = text.split(/\n\n+/).filter(Boolean);
-
   return paragraphs.map((paragraph, idx) => {
-    // Process bold markers
     const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
     const rendered = parts.map((part, pIdx) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -35,9 +27,8 @@ function renderVerdictText(text: string) {
       }
       return <span key={pIdx}>{part}</span>;
     });
-
     return (
-      <p key={idx} className="leading-[1.85] text-foreground/85">
+      <p key={idx} className="leading-[1.75] text-foreground/85">
         {rendered}
       </p>
     );
@@ -47,42 +38,34 @@ function renderVerdictText(text: string) {
 export function VerdictDisplay({ verdict, className }: VerdictDisplayProps) {
   if (!verdict) {
     return (
-      <div
-        className={cn(
-          'flex flex-col items-center justify-center gap-3 py-12 text-center',
-          className,
-        )}
-      >
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <FileText className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Report not yet generated
+      <div className={cn('space-y-4', className)}>
+        <SectionEyebrow label="Verdict" />
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › report not yet generated
         </p>
       </div>
     );
   }
 
   return (
-    <div className={cn('space-y-1', className)}>
-      <div className="mb-4 flex items-center gap-2.5">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-[oklch(0.30_0.06_250)]">
-          <FileText className="size-4 text-[oklch(0.78_0.14_250)]" />
-        </div>
-        <h3 className="text-sm font-semibold tracking-wide text-foreground/90 uppercase">
-          The Verdict
-        </h3>
+    <div className={cn('space-y-5', className)}>
+      <SectionEyebrow label="Verdict" />
+      <div className="max-w-[680px] space-y-4 text-[0.92rem]">
+        {renderText(verdict)}
       </div>
-      <div
-        className={cn(
-          'relative rounded-xl border border-[oklch(0.35_0.04_250)] bg-[oklch(0.18_0.015_260)]/60 px-7 py-6',
-          'before:absolute before:inset-y-4 before:left-0 before:w-[3px] before:rounded-full before:bg-[oklch(0.55_0.12_250)]',
-        )}
-      >
-        <div className="max-w-prose space-y-4 text-[0.92rem]">
-          {renderVerdictText(verdict)}
-        </div>
-      </div>
+    </div>
+  );
+}
+
+function SectionEyebrow({ label }: { label: string }) {
+  return (
+    <div className="flex items-baseline gap-3 border-b border-border pb-2">
+      <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+        {label}
+      </span>
+      <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+        layer 1
+      </span>
     </div>
   );
 }

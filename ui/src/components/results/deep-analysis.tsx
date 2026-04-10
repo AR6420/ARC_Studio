@@ -1,21 +1,13 @@
 /**
- * Layer 3: Deep Analysis - Per-iteration expandable sections.
+ * Layer 3: Deep Analysis — developer tools aesthetic.
  *
- * Renders detailed per-iteration data with collapsible sections
- * for power users and data scientists. All sections collapsed by default.
- * Uses shadcn Collapsible primitive for expand/collapse behavior.
- *
- * Backend data structure:
- * { iterations: [{ iteration: N, variants: [...], analysis: {...} }] }
+ * Collapsible per-iteration sections rendered as a monospace tree.
+ * Looks like a console panel, feels like drilling into a stack trace.
+ * Sub-sections: TRIBE scores, MiroFish metrics, Composite scores.
  */
 
 import { useState } from 'react';
-import { ChevronRight, Layers, ChevronsUpDown } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatScore, formatMetricLabel } from '@/utils/formatters';
@@ -45,46 +37,51 @@ interface AnalysisDetail {
   [key: string]: unknown;
 }
 
-/** Type-narrow the deep_analysis JSON into iteration array. */
-function parseIterations(
-  data: Record<string, unknown>,
-): IterationData[] {
-  if (Array.isArray(data.iterations)) {
-    return data.iterations as IterationData[];
-  }
-  // Fallback: if the data itself is an array
-  if (Array.isArray(data)) {
-    return data as IterationData[];
-  }
+function parseIterations(data: Record<string, unknown>): IterationData[] {
+  if (Array.isArray(data.iterations)) return data.iterations as IterationData[];
+  if (Array.isArray(data)) return data as IterationData[];
   return [];
 }
 
-/** Render a score table from a Record<string, number|null>. */
 function ScoreGrid({
   title,
+  system,
   scores,
 }: {
   title: string;
+  system: 'tribe' | 'mirofish' | 'composite';
   scores: Record<string, number | null> | undefined;
 }) {
   if (!scores || Object.keys(scores).length === 0) return null;
 
+  const tagClass =
+    system === 'tribe'
+      ? 'text-tribe/80'
+      : system === 'mirofish'
+        ? 'text-mirofish/80'
+        : 'text-primary/80';
+
   return (
     <div className="space-y-1.5">
-      <h6 className="text-[0.7rem] font-semibold tracking-wider text-muted-foreground/80 uppercase">
-        {title}
-      </h6>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-[0.56rem] tracking-[0.14em] text-muted-foreground/70 uppercase">
+          {title}
+        </span>
+        <span className={cn('font-mono text-[0.54rem] tracking-[0.1em] uppercase', tagClass)}>
+          {system}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 sm:grid-cols-3 lg:grid-cols-4">
         {Object.entries(scores).map(([key, val]) => (
           <div
             key={key}
-            className="flex items-center justify-between gap-2 text-xs"
+            className="flex items-baseline justify-between gap-2 font-mono text-[0.7rem]"
           >
-            <span className="truncate text-foreground/60">
+            <span className="truncate text-foreground/55">
               {formatMetricLabel(key)}
             </span>
-            <span className="tabular-nums font-medium text-foreground/90">
-              {typeof val === 'number' ? formatScore(val) : 'N/A'}
+            <span className="tabular-nums text-foreground/90">
+              {typeof val === 'number' ? formatScore(val) : '—'}
             </span>
           </div>
         ))}
@@ -95,29 +92,26 @@ function ScoreGrid({
 
 function VariantSection({ variant }: { variant: VariantDetail }) {
   return (
-    <div className="space-y-3 rounded-lg border border-foreground/8 bg-[oklch(0.16_0.01_260)]/40 px-4 py-3">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">
+    <div className="space-y-3 border-l border-border bg-surface-1/40 px-4 py-3">
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-[0.74rem] font-semibold text-foreground">
           {variant.variant_id}
         </span>
         {variant.strategy && (
-          <span className="text-xs text-muted-foreground">
+          <span className="font-mono text-[0.66rem] text-muted-foreground/60">
             {variant.strategy}
           </span>
         )}
       </div>
-
-      <ScoreGrid title="TRIBE v2 Scores" scores={variant.tribe_scores} />
+      <ScoreGrid title="Tribe Scores" system="tribe" scores={variant.tribe_scores} />
       <ScoreGrid
         title="MiroFish Metrics"
-        scores={
-          variant.mirofish_metrics as
-            | Record<string, number | null>
-            | undefined
-        }
+        system="mirofish"
+        scores={variant.mirofish_metrics as Record<string, number | null> | undefined}
       />
       <ScoreGrid
         title="Composite Scores"
+        system="composite"
         scores={variant.composite_scores}
       />
     </div>
@@ -137,90 +131,67 @@ function IterationSection({
   const analysis = data.analysis;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
-      <CollapsibleTrigger
-        className={cn(
-          'flex w-full items-center gap-3 rounded-lg border border-foreground/10 px-4 py-3 text-left transition-colors',
-          'hover:border-foreground/20 hover:bg-muted/20',
-          isOpen && 'border-[oklch(0.40_0.08_250)]/40 bg-[oklch(0.20_0.02_260)]/40',
-        )}
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 px-2 py-2 text-left transition-colors hover:bg-foreground/[0.025]"
       >
         <ChevronRight
           className={cn(
-            'size-4 text-muted-foreground transition-transform duration-200',
+            'size-3 text-muted-foreground/60 transition-transform duration-150',
             isOpen && 'rotate-90',
           )}
         />
-        <span className="text-sm font-semibold text-foreground">
-          Iteration {data.iteration}
+        <span className="font-mono text-[0.72rem] font-semibold text-foreground">
+          iteration_{data.iteration}
         </span>
-        <span className="text-xs text-muted-foreground">
-          {variants.length} variant{variants.length !== 1 ? 's' : ''}
+        <span className="font-mono text-[0.62rem] text-muted-foreground/55">
+          · {variants.length} variant{variants.length !== 1 ? 's' : ''}
         </span>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="mt-2 space-y-4 pl-7">
-          {/* Variant data */}
+      </button>
+      {isOpen && (
+        <div className="space-y-3 border-l border-border/60 pl-6 pt-1 pb-3 ml-[14px]">
           {variants.map((variant) => (
             <VariantSection key={variant.variant_id} variant={variant} />
           ))}
-
-          {/* Analysis insights */}
           {analysis && (
-            <div className="space-y-3 rounded-lg border border-foreground/8 bg-muted/10 px-4 py-3">
-              <h6 className="text-[0.7rem] font-semibold tracking-wider text-muted-foreground/80 uppercase">
+            <div className="space-y-2 border-l border-border bg-surface-1/40 px-4 py-3">
+              <span className="font-mono text-[0.56rem] tracking-[0.14em] text-muted-foreground/70 uppercase">
                 Analysis
-              </h6>
-
+              </span>
               {analysis.ranking && analysis.ranking.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-xs font-medium text-foreground/70">
-                    Ranking:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {analysis.ranking.map((id, idx) => (
-                      <span
-                        key={id}
-                        className="inline-flex items-center gap-1 rounded-md bg-muted/30 px-2 py-0.5 text-xs"
-                      >
-                        <span className="font-bold text-foreground/60">
-                          {idx + 1}.
-                        </span>
-                        <span className="text-foreground/80">{id}</span>
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[0.7rem]">
+                  <span className="text-muted-foreground/55">ranking →</span>
+                  {analysis.ranking.map((id, idx) => (
+                    <span key={id} className="text-foreground/80">
+                      {id}
+                      {idx < analysis.ranking!.length - 1 && (
+                        <span className="ml-1.5 text-muted-foreground/30">›</span>
+                      )}
+                    </span>
+                  ))}
                 </div>
               )}
-
               {analysis.cross_system_insights &&
                 analysis.cross_system_insights.length > 0 && (
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-foreground/70">
-                      Cross-System Insights:
-                    </span>
-                    <ul className="space-y-1">
-                      {analysis.cross_system_insights.map(
-                        (insight, idx) => (
-                          <li
-                            key={idx}
-                            className="flex gap-2 text-xs leading-relaxed text-foreground/70"
-                          >
-                            <span className="mt-0.5 shrink-0 text-[oklch(0.55_0.12_250)]">
-                              &bull;
-                            </span>
-                            {insight}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
+                  <ul className="space-y-1 font-mono text-[0.7rem] leading-[1.55]">
+                    {analysis.cross_system_insights.map((insight, idx) => (
+                      <li
+                        key={idx}
+                        className="flex gap-2 text-foreground/70"
+                      >
+                        <span className="shrink-0 text-primary/60">›</span>
+                        <span>{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
             </div>
           )}
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      )}
+    </div>
   );
 }
 
@@ -229,91 +200,50 @@ export function DeepAnalysis({ deepAnalysis, className }: DeepAnalysisProps) {
 
   if (!deepAnalysis) {
     return (
-      <div
-        className={cn(
-          'flex flex-col items-center justify-center gap-3 py-12 text-center',
-          className,
-        )}
-      >
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <Layers className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Deep analysis not available
+      <div className={cn('space-y-4', className)}>
+        <SectionHeader disabled />
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › deep analysis not available
         </p>
       </div>
     );
   }
 
   const iterations = parseIterations(deepAnalysis);
-
   if (iterations.length === 0) {
     return (
-      <div
-        className={cn(
-          'flex flex-col items-center justify-center gap-3 py-12 text-center',
-          className,
-        )}
-      >
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <Layers className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          No iteration data found
+      <div className={cn('space-y-4', className)}>
+        <SectionHeader disabled />
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › no iteration data
         </p>
       </div>
     );
   }
 
-  const allOpen = iterations.every((it) =>
-    openSections.has(it.iteration),
-  );
+  const allOpen = iterations.every((it) => openSections.has(it.iteration));
 
   function toggleAll() {
-    if (allOpen) {
-      setOpenSections(new Set());
-    } else {
-      setOpenSections(new Set(iterations.map((it) => it.iteration)));
-    }
+    if (allOpen) setOpenSections(new Set());
+    else setOpenSections(new Set(iterations.map((it) => it.iteration)));
   }
 
   function toggleSection(iteration: number) {
     setOpenSections((prev) => {
       const next = new Set(prev);
-      if (next.has(iteration)) {
-        next.delete(iteration);
-      } else {
-        next.add(iteration);
-      }
+      if (next.has(iteration)) next.delete(iteration);
+      else next.add(iteration);
       return next;
     });
   }
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Section header with expand/collapse all */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[oklch(0.28_0.04_40)]">
-            <Layers className="size-4 text-[oklch(0.75_0.12_40)]" />
-          </div>
-          <h3 className="text-sm font-semibold tracking-wide text-foreground/90 uppercase">
-            Deep Analysis
-          </h3>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleAll}
-          className="gap-1.5 text-xs text-muted-foreground"
-        >
-          <ChevronsUpDown className="size-3.5" />
-          {allOpen ? 'Collapse all' : 'Expand all'}
-        </Button>
-      </div>
-
-      {/* Iteration sections */}
-      <div className="space-y-2">
+      <SectionHeader
+        onToggleAll={toggleAll}
+        allOpen={allOpen}
+      />
+      <div className="divide-y divide-border border-y border-border">
         {iterations.map((iteration) => (
           <IterationSection
             key={iteration.iteration}
@@ -323,6 +253,39 @@ export function DeepAnalysis({ deepAnalysis, className }: DeepAnalysisProps) {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  onToggleAll,
+  allOpen,
+  disabled,
+}: {
+  onToggleAll?: () => void;
+  allOpen?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-6 border-b border-border pb-2">
+      <div className="flex items-baseline gap-3">
+        <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+          Deep Analysis
+        </span>
+        <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+          layer 3
+        </span>
+      </div>
+      {!disabled && onToggleAll && (
+        <Button
+          variant="ghost"
+          size="xs"
+          onClick={onToggleAll}
+          className="font-mono"
+        >
+          {allOpen ? 'collapse all' : 'expand all'}
+        </Button>
+      )}
     </div>
   );
 }

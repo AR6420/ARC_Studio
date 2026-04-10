@@ -1,53 +1,84 @@
 /**
- * Horizontal bar visualization for a single composite score.
+ * Horizontal bar for a single composite score.
  *
- * Used within VariantRanking for per-metric breakdowns.
- * Bar width proportional to value/100, color from getScoreColor.
- * Smooth width animation on mount and value changes.
+ *   Attention Score  ████████████░░░░  78.3
+ *
+ * Label (left), heat-colored bar (center), monospace value (right).
+ * Used for the composite profile grid on the Campaign tab and inside
+ * variant ranking cards.
  */
 
 import { cn } from '@/lib/utils';
-import { getScoreColor, SCORE_COLORS } from '@/utils/colors';
+import {
+  getHeatStop,
+  HEAT_VARS,
+  HEAT_TEXT,
+  INVERTED_SCORES,
+} from '@/utils/colors';
 import { formatMetricLabel, formatScore } from '@/utils/formatters';
 
 interface ScoreBarProps {
   name: string;
   value: number | null;
   maxValue?: number;
+  compact?: boolean;
+  className?: string;
 }
 
-export function ScoreBar({ name, value, maxValue = 100 }: ScoreBarProps) {
+export function ScoreBar({
+  name,
+  value,
+  maxValue = 100,
+  compact = false,
+  className,
+}: ScoreBarProps) {
   const hasValue = value !== null && value !== undefined;
-  const color = hasValue ? getScoreColor(name, value) : null;
-  const widthPercent = hasValue ? Math.min(Math.max((value / maxValue) * 100, 0), 100) : 0;
-
-  // Map score color to Tailwind bg classes
-  const BAR_BG: Record<string, string> = {
-    green: 'bg-emerald-400/80',
-    amber: 'bg-amber-400/80',
-    red: 'bg-red-400/80',
-  };
+  const stop = hasValue ? getHeatStop(name, value) : null;
+  const widthPercent = hasValue
+    ? Math.min(Math.max((value / maxValue) * 100, 0), 100)
+    : 0;
+  const inverted = INVERTED_SCORES.has(name);
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 truncate text-xs text-muted-foreground">
-        {formatMetricLabel(name)}
-      </span>
-      <div className="relative flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
-        {hasValue && color && (
+    <div
+      className={cn(
+        'grid items-center gap-3',
+        compact
+          ? 'grid-cols-[96px_minmax(0,1fr)_38px]'
+          : 'grid-cols-[120px_minmax(0,1fr)_44px]',
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1 overflow-hidden">
+        <span className="truncate text-[0.72rem] text-foreground/75">
+          {formatMetricLabel(name)}
+        </span>
+        {inverted && (
+          <span
+            className="font-mono text-[0.55rem] text-muted-foreground/50"
+            title="Lower is better"
+          >
+            ↓
+          </span>
+        )}
+      </div>
+
+      <div className="relative h-[3px] overflow-hidden rounded-[1px] bg-foreground/[0.06]">
+        {hasValue && stop && (
           <div
-            className={cn(
-              'absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out',
-              BAR_BG[color],
-            )}
-            style={{ width: `${widthPercent}%` }}
+            className="absolute inset-y-0 left-0 rounded-[1px]"
+            style={{
+              width: `${widthPercent}%`,
+              background: HEAT_VARS[stop],
+            }}
           />
         )}
       </div>
+
       <span
         className={cn(
-          'w-10 shrink-0 text-right text-xs font-medium tabular-nums',
-          color ? SCORE_COLORS[color] : 'text-muted-foreground/40',
+          'text-right font-mono text-[0.78rem] font-medium tabular-nums',
+          stop ? HEAT_TEXT[stop] : 'text-muted-foreground/40',
         )}
       >
         {formatScore(value)}

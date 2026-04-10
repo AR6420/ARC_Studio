@@ -1,22 +1,17 @@
 /**
- * Campaign detail page with 3 tabs: Campaign, Simulation, Report.
+ * Campaign detail page — three tabs: Campaign, Simulation, Report.
  *
- * Uses React Router useParams for campaign ID, fetches data via
- * useCampaign hook, and renders tab-specific content. All three tabs
- * fully wired: Campaign (score cards, variant ranking, iteration chart),
- * Simulation (metrics, sentiment, agent grid, interview modal),
- * Report (4 layers + export).
+ * Header is a dense monospace metadata strip (status, demographic,
+ * counts, created). Data completeness and pseudo-score indicators
+ * appear as small eyebrow lines at the top of each tab so the reader
+ * knows whether they're looking at real or fallback data.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileBarChart, Activity, FileText, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/common/status-badge';
 import { ErrorState } from '@/components/common/error-state';
-import { CampaignDetailSkeleton } from '@/components/common/loading-skeleton';
 import { useCampaign } from '@/hooks/use-campaigns';
 import { useReport } from '@/hooks/use-report';
 import { VerdictDisplay } from '@/components/results/verdict-display';
@@ -24,7 +19,7 @@ import { ScorecardTable } from '@/components/results/scorecard-table';
 import { DeepAnalysis } from '@/components/results/deep-analysis';
 import { MassPsychology } from '@/components/results/mass-psychology';
 import { ExportButtons } from '@/components/results/export-buttons';
-import { ScoreCard } from '@/components/results/score-card';
+import { ScoreBar } from '@/components/results/score-bar';
 import { VariantRanking } from '@/components/results/variant-ranking';
 import { IterationChart } from '@/components/results/iteration-chart';
 import { MetricsPanel } from '@/components/simulation/metrics-panel';
@@ -32,11 +27,14 @@ import { SentimentTimeline } from '@/components/simulation/sentiment-timeline';
 import { AgentGrid } from '@/components/simulation/agent-grid';
 import { AgentInterview } from '@/components/simulation/agent-interview';
 import { ProgressStream } from '@/components/progress/progress-stream';
-import { formatDate } from '@/utils/formatters';
+import { formatRelative } from '@/utils/formatters';
 import type { AgentData } from '@/components/simulation/agent-grid';
-import type { CampaignResponse, CompositeScores } from '@/api/types';
-
-// -- Constants for composite score display --
+import type {
+  CampaignResponse,
+  CompositeScores,
+  IterationRecord,
+  DataCompleteness,
+} from '@/api/types';
 
 const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
   'attention_score',
@@ -48,95 +46,183 @@ const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
   'polarization_index',
 ];
 
-const SCORE_DESCRIPTIONS: Record<string, string> = {
-  attention_score: 'How strongly the content captures and holds attention',
-  virality_potential: 'Likelihood of organic sharing and spread',
-  conversion_potential: 'Ability to drive desired action',
-  audience_fit: 'Resonance with the target demographic',
-  memory_durability: 'How well content sticks in long-term memory',
-  backlash_risk: 'Risk of negative backlash (lower is better)',
-  polarization_index: 'Degree of opinion polarization (lower is better)',
-};
+// ─── Data completeness status line ──────────────────────────────────────
 
-// -- Campaign tab content --
+function DataCompletenessLine({
+  completeness,
+  pseudo,
+}: {
+  completeness: DataCompleteness | null;
+  pseudo: boolean;
+}) {
+  if (!completeness && !pseudo) return null;
 
-function CampaignTabContent({ campaign }: { campaign: CampaignResponse }) {
-  const iterations = campaign.iterations ?? [];
-
-  if (iterations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          No iteration data available yet.
-        </p>
-      </div>
-    );
-  }
-
-  // Find the latest iteration number
-  const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
-
-  // Get all variants from the latest iteration
-  const latestIterations = iterations.filter(
-    (it) => it.iteration_number === maxIterNum,
-  );
-
-  // Find the best variant by average non-null composite score
-  let bestScores: CompositeScores | null = null;
-  let bestAvg = -1;
-
-  for (const variant of latestIterations) {
-    if (!variant.composite_scores) continue;
-    const vals = COMPOSITE_KEYS.map((k) => variant.composite_scores![k]).filter(
-      (v): v is number => v !== null,
-    );
-    if (vals.length === 0) continue;
-    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-    if (avg > bestAvg) {
-      bestAvg = avg;
-      bestScores = variant.composite_scores;
-    }
-  }
+  const tribeAvail = completeness?.tribe_available ?? true;
+  const mfAvail = completeness?.mirofish_available ?? true;
+  const real = completeness?.tribe_real_score_count ?? 0;
+  const ps = completeness?.tribe_pseudo_score_count ?? 0;
+  const total = real + ps;
+  const missing = completeness?.missing_composite_dimensions ?? [];
 
   return (
-    <div className="space-y-8">
-      {/* Composite Scores */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">
-          Composite Scores
-        </h3>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {COMPOSITE_KEYS.map((key) => (
-            <ScoreCard
-              key={key}
-              name={key}
-              value={bestScores?.[key] ?? null}
-              description={SCORE_DESCRIPTIONS[key]}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Variant Ranking */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">
-          Variant Ranking
-        </h3>
-        <VariantRanking variants={latestIterations} />
-      </div>
-
-      {/* Score Trajectory */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">
-          Score Trajectory
-        </h3>
-        <IterationChart iterations={iterations} />
-      </div>
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[0.68rem] text-muted-foreground/80">
+      <span className="flex items-center gap-1.5">
+        <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+          tribe
+        </span>
+        <span
+          className={tribeAvail ? 'text-tribe' : 'text-muted-foreground/40'}
+        >
+          {total > 0 ? `${real}/${total} real` : tribeAvail ? 'ok' : 'down'}
+        </span>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+          mirofish
+        </span>
+        <span
+          className={mfAvail ? 'text-mirofish' : 'text-muted-foreground/40'}
+        >
+          {mfAvail ? 'ok' : 'down'}
+        </span>
+      </span>
+      {missing.length > 0 && (
+        <span className="flex items-center gap-1.5">
+          <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+            missing
+          </span>
+          <span className="text-heat-mid">
+            {missing.length} dim{missing.length !== 1 ? 's' : ''}
+          </span>
+        </span>
+      )}
+      {pseudo && (
+        <span className="tracking-[0.1em] text-heat-mid/80 uppercase">
+          · pseudo scores in use
+        </span>
+      )}
     </div>
   );
 }
 
-// -- Simulation tab content --
+// ─── Campaign tab ───────────────────────────────────────────────────────
+
+function findBestVariant(variants: IterationRecord[]): IterationRecord | null {
+  let best: IterationRecord | null = null;
+  let bestAvg = -1;
+  for (const variant of variants) {
+    if (!variant.composite_scores) continue;
+    const vals = COMPOSITE_KEYS.map(
+      (k) => variant.composite_scores![k],
+    ).filter((v): v is number => v !== null);
+    if (!vals.length) continue;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg > bestAvg) {
+      bestAvg = avg;
+      best = variant;
+    }
+  }
+  return best;
+}
+
+function CampaignTabContent({ campaign }: { campaign: CampaignResponse }) {
+  const iterations = campaign.iterations ?? [];
+
+  const { latestIterations, bestVariant, completeness, hasPseudo } =
+    useMemo(() => {
+      if (iterations.length === 0) {
+        return {
+          latestIterations: [],
+          bestVariant: null,
+          completeness: null,
+          hasPseudo: false,
+        };
+      }
+      const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
+      const latest = iterations.filter((it) => it.iteration_number === maxIterNum);
+      const best = findBestVariant(latest);
+      const completeness = best?.data_completeness ?? null;
+      const hasPseudo = latest.some(
+        (v) => v.tribe_scores?.is_pseudo_score === true,
+      );
+      return {
+        latestIterations: latest,
+        bestVariant: best,
+        completeness,
+        hasPseudo,
+      };
+    }, [iterations]);
+
+  if (iterations.length === 0) {
+    return (
+      <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+        › no iteration data available yet
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <DataCompletenessLine completeness={completeness} pseudo={hasPseudo} />
+
+      {/* Composite profile — 7 horizontal bars */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between border-b border-border pb-2">
+          <div className="flex items-baseline gap-3">
+            <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+              Composite Profile
+            </span>
+            <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+              best variant · latest iteration
+            </span>
+          </div>
+          {bestVariant && (
+            <span className="font-mono text-[0.62rem] tabular-nums text-muted-foreground/60">
+              {bestVariant.variant_id.slice(0, 8)}
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-y-2 sm:grid-cols-2 sm:gap-x-10">
+          {COMPOSITE_KEYS.map((key) => (
+            <ScoreBar
+              key={key}
+              name={key}
+              value={bestVariant?.composite_scores?.[key] ?? null}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Variant ranking */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between border-b border-border pb-2">
+          <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+            Variant Ranking
+          </span>
+          <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+            {latestIterations.length} variant{latestIterations.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <VariantRanking variants={latestIterations} />
+      </section>
+
+      {/* Iteration trajectory */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between border-b border-border pb-2">
+          <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+            Iteration Trajectory
+          </span>
+          <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+            best score per iteration
+          </span>
+        </div>
+        <IterationChart iterations={iterations} />
+      </section>
+    </div>
+  );
+}
+
+// ─── Simulation tab ─────────────────────────────────────────────────────
 
 function SimulationTabContent({
   campaign,
@@ -149,28 +235,24 @@ function SimulationTabContent({
 
   if (iterations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          No simulation data available yet.
-        </p>
-      </div>
+      <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+        › no simulation data available yet
+      </p>
     );
   }
 
-  // Find the latest iteration (single record with max iteration_number)
   const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
   const latestIteration = iterations.find(
     (it) => it.iteration_number === maxIterNum,
   );
-
   const metrics = latestIteration?.mirofish_metrics ?? null;
   const trajectory = metrics?.sentiment_trajectory ?? null;
-
-  // Agent data not available in API response (known limitation from 08-06)
+  const completeness = latestIteration?.data_completeness ?? null;
   const agents: AgentData[] = [];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
+      <DataCompletenessLine completeness={completeness} pseudo={false} />
       <MetricsPanel metrics={metrics} />
       <SentimentTimeline trajectory={trajectory} />
       <AgentGrid agents={agents} onInterviewAgent={onInterviewAgent} />
@@ -178,25 +260,8 @@ function SimulationTabContent({
   );
 }
 
-// -- Report tab helpers --
+// ─── Report tab ─────────────────────────────────────────────────────────
 
-/** Report tab skeleton for loading state. */
-function ReportSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-6 w-48" />
-      <div className="space-y-3">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-4 w-4/6" />
-      </div>
-      <Skeleton className="h-32 w-full" />
-      <Skeleton className="h-48 w-full" />
-    </div>
-  );
-}
-
-/** Report tab content with all 4 layers + export buttons. */
 function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
   const {
     data: report,
@@ -208,91 +273,56 @@ function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
 
   if (campaign.status !== 'completed' && campaign.status !== 'failed') {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <Clock className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm font-medium text-foreground/80">
-          Campaign must complete before report is available
-        </p>
-        <p className="text-xs text-muted-foreground">
-          The report will be generated once all iterations finish.
+      <div className="flex flex-col gap-3">
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › report generates after campaign completes
         </p>
       </div>
     );
   }
 
   if (isLoading) {
-    return <ReportSkeleton />;
+    return (
+      <div className="border border-border bg-surface-1 px-4 py-3 font-mono text-[0.7rem] text-muted-foreground/70">
+        <span className="mr-2 inline-block size-1 rounded-full bg-primary/80 align-middle" />
+        loading report…
+      </div>
+    );
   }
 
   if (isError) {
     const message =
       error instanceof Error ? error.message : 'Failed to load report';
-    // 404 means report not yet generated
     if (message.includes('404') || message.includes('not found')) {
       return (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-            <FileText className="size-6 text-muted-foreground/60" />
-          </div>
-          <p className="text-sm font-medium text-foreground/80">
-            Report not yet generated
-          </p>
-          <p className="text-xs text-muted-foreground">
-            The report generation may still be in progress.
-          </p>
-        </div>
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › report not yet generated — check back shortly
+        </p>
       );
     }
-    return (
-      <ErrorState
-        message={message}
-        onRetry={() => void refetch()}
-      />
-    );
+    return <ErrorState message={message} onRetry={() => void refetch()} />;
   }
 
   if (!report) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <FileText className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          No report data available
-        </p>
-      </div>
+      <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+        › no report data available
+      </p>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Export buttons - top right */}
+    <div className="flex flex-col gap-10">
       <div className="flex justify-end">
         <ExportButtons campaignId={campaign.id} />
       </div>
-
-      {/* Layer 1: Verdict */}
       <VerdictDisplay verdict={report.verdict ?? null} />
-
-      <Separator className="opacity-40" />
-
-      {/* Layer 2: Scorecard */}
       <ScorecardTable scorecard={report.scorecard ?? null} />
-
-      <Separator className="opacity-40" />
-
-      {/* Layer 3: Deep Analysis (collapsed by default) */}
       <DeepAnalysis
         deepAnalysis={
           (report.deep_analysis as Record<string, unknown>) ?? null
         }
       />
-
-      <Separator className="opacity-40" />
-
-      {/* Layer 4: Mass Psychology */}
       <MassPsychology
         general={report.mass_psychology_general ?? null}
         technical={report.mass_psychology_technical ?? null}
@@ -301,27 +331,83 @@ function ReportTabContent({ campaign }: { campaign: CampaignResponse }) {
   );
 }
 
-// -- Main component --
+// ─── Main component ─────────────────────────────────────────────────────
+
+function CampaignHeader({ campaign }: { campaign: CampaignResponse }) {
+  return (
+    <div className="flex flex-col gap-3 border-b border-border pb-5">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground/60 uppercase">
+            campaign · {campaign.id.slice(0, 8)}
+          </span>
+          <StatusBadge status={campaign.status} />
+        </div>
+        <h1 className="text-[1.15rem] font-semibold leading-tight tracking-[-0.01em] text-foreground">
+          {campaign.prediction_question}
+        </h1>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[0.68rem] tabular-nums text-muted-foreground">
+        <span className="flex items-baseline gap-1.5">
+          <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+            demographic
+          </span>
+          <span className="text-foreground/85">{campaign.demographic}</span>
+        </span>
+        <span className="flex items-baseline gap-1.5">
+          <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+            agents
+          </span>
+          <span className="text-foreground/85">{campaign.agent_count}</span>
+        </span>
+        <span className="flex items-baseline gap-1.5">
+          <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+            iters
+          </span>
+          <span className="text-foreground/85">
+            {campaign.iterations?.length ?? 0}/{campaign.max_iterations}
+          </span>
+        </span>
+        <span className="flex items-baseline gap-1.5">
+          <span className="tracking-[0.1em] text-muted-foreground/55 uppercase">
+            created
+          </span>
+          <span className="text-foreground/85">
+            {formatRelative(campaign.created_at)}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="border border-border bg-surface-1 px-4 py-3 font-mono text-[0.7rem] text-muted-foreground/70">
+      <span className="mr-2 inline-block size-1 rounded-full bg-primary/80 align-middle" />
+      loading campaign…
+    </div>
+  );
+}
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: campaign, isLoading, isError, error, refetch } = useCampaign(id!);
-  const [interviewAgent, setInterviewAgent] = useState<{ id: string; name: string } | null>(null);
+  const [interviewAgent, setInterviewAgent] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handleInterviewAgent = (agentId: string, agentName: string) =>
     setInterviewAgent({ id: agentId, name: agentName });
 
-  if (isLoading) {
-    return <CampaignDetailSkeleton />;
-  }
+  if (isLoading) return <LoadingState />;
 
   if (isError || !campaign) {
     return (
       <ErrorState
         message={
-          error instanceof Error
-            ? error.message
-            : 'Failed to load campaign'
+          error instanceof Error ? error.message : 'Failed to load campaign'
         }
         onRetry={() => void refetch()}
       />
@@ -330,65 +416,41 @@ export default function CampaignDetail() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Campaign header */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">
-            {campaign.prediction_question}
-          </h1>
-          <StatusBadge status={campaign.status} />
-        </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{campaign.demographic}</span>
-          <span className="text-foreground/20">&middot;</span>
-          <span>
-            {campaign.agent_count} agents, {campaign.max_iterations} iterations
-          </span>
-          <span className="text-foreground/20">&middot;</span>
-          <span>{formatDate(campaign.created_at)}</span>
-        </div>
-      </div>
+      <CampaignHeader campaign={campaign} />
 
-      {/* Real-time progress for running campaigns */}
       {campaign.status === 'running' && <ProgressStream campaignId={id!} />}
 
-      {/* Tabs */}
-      <Tabs defaultValue="campaign">
-        <TabsList variant="line" className="gap-0">
-          <TabsTrigger value="campaign" className="gap-1.5">
-            <FileBarChart className="size-3.5" />
-            Campaign
-          </TabsTrigger>
-          <TabsTrigger value="simulation" className="gap-1.5">
-            <Activity className="size-3.5" />
-            Simulation
-          </TabsTrigger>
-          <TabsTrigger value="report" className="gap-1.5">
-            <FileText className="size-3.5" />
-            Report
-          </TabsTrigger>
+      <Tabs defaultValue="campaign" className="gap-6">
+        <TabsList variant="line">
+          <TabsTrigger value="campaign">Campaign</TabsTrigger>
+          <TabsTrigger value="simulation">Simulation</TabsTrigger>
+          <TabsTrigger value="report">Report</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="campaign" className="pt-6">
+        <TabsContent value="campaign" className="pt-4">
           <CampaignTabContent campaign={campaign} />
         </TabsContent>
 
-        <TabsContent value="simulation" className="pt-6">
-          <SimulationTabContent campaign={campaign} onInterviewAgent={handleInterviewAgent} />
+        <TabsContent value="simulation" className="pt-4">
+          <SimulationTabContent
+            campaign={campaign}
+            onInterviewAgent={handleInterviewAgent}
+          />
         </TabsContent>
 
-        <TabsContent value="report" className="pt-6">
+        <TabsContent value="report" className="pt-4">
           <ReportTabContent campaign={campaign} />
         </TabsContent>
       </Tabs>
 
-      {/* Agent interview modal */}
       <AgentInterview
         campaignId={campaign.id}
         agentId={interviewAgent?.id ?? ''}
         agentName={interviewAgent?.name ?? ''}
         open={interviewAgent !== null}
-        onOpenChange={(open) => { if (!open) setInterviewAgent(null); }}
+        onOpenChange={(open) => {
+          if (!open) setInterviewAgent(null);
+        }}
       />
     </div>
   );

@@ -1,15 +1,12 @@
 /**
- * Layer 4: Mass Psychology - Crowd dynamics narrative.
+ * Layer 4: Mass Psychology — general / technical prose.
  *
- * Toggle between General (accessible prose) and Technical
- * (psychology theory references) views. Per RPT-04 / RPT-05.
- *
- * Design per D-07: scholarly feel with distinct typographic treatment.
- * Technical mode uses a slightly different aesthetic to convey academic weight.
+ * Minimal segmented control swaps between the two narratives.
+ * Both render as reading-width prose (max 680px) with generous
+ * line-height. No boxes.
  */
 
 import { useState } from 'react';
-import { Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PsychologyView = 'general' | 'technical';
@@ -20,42 +17,22 @@ interface MassPsychologyProps {
   className?: string;
 }
 
-/** Render text with paragraph breaks and basic bold formatting. */
-function renderNarrative(text: string, isTechnical: boolean) {
+function renderNarrative(text: string) {
   const paragraphs = text.split(/\n\n+/).filter(Boolean);
-
   return paragraphs.map((paragraph, idx) => {
-    // Process bold markers
     const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
     const rendered = parts.map((part, pIdx) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
-          <strong
-            key={pIdx}
-            className={cn(
-              'font-semibold',
-              isTechnical
-                ? 'text-[oklch(0.72_0.10_300)]'
-                : 'text-foreground',
-            )}
-          >
+          <strong key={pIdx} className="font-semibold text-foreground">
             {part.slice(2, -2)}
           </strong>
         );
       }
       return <span key={pIdx}>{part}</span>;
     });
-
     return (
-      <p
-        key={idx}
-        className={cn(
-          'leading-[1.9]',
-          isTechnical
-            ? 'text-foreground/80'
-            : 'text-foreground/85',
-        )}
-      >
+      <p key={idx} className="leading-[1.8] text-foreground/85">
         {rendered}
       </p>
     );
@@ -68,23 +45,15 @@ export function MassPsychology({
   className,
 }: MassPsychologyProps) {
   const [view, setView] = useState<PsychologyView>('general');
-
   const hasGeneral = !!general;
   const hasTechnical = !!technical;
 
   if (!hasGeneral && !hasTechnical) {
     return (
-      <div
-        className={cn(
-          'flex flex-col items-center justify-center gap-3 py-12 text-center',
-          className,
-        )}
-      >
-        <div className="flex size-12 items-center justify-center rounded-xl bg-muted/50">
-          <Brain className="size-6 text-muted-foreground/60" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Psychology analysis not available
+      <div className={cn('space-y-4', className)}>
+        <SectionHeader view={view} setView={setView} disabled />
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › psychology analysis not available
         </p>
       </div>
     );
@@ -94,90 +63,102 @@ export function MassPsychology({
   const isActiveAvailable = view === 'general' ? hasGeneral : hasTechnical;
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Section header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[oklch(0.28_0.04_300)]">
-            <Brain className="size-4 text-[oklch(0.72_0.12_300)]" />
-          </div>
-          <h3 className="text-sm font-semibold tracking-wide text-foreground/90 uppercase">
-            Mass Psychology
-          </h3>
-        </div>
-
-        {/* General / Technical toggle */}
-        <div className="flex overflow-hidden rounded-lg border border-foreground/10 bg-muted/20">
-          <button
-            type="button"
-            onClick={() => setView('general')}
-            disabled={!hasGeneral}
-            className={cn(
-              'px-3.5 py-1.5 text-xs font-medium transition-colors',
-              view === 'general'
-                ? 'bg-[oklch(0.28_0.05_250)] text-[oklch(0.80_0.12_250)]'
-                : 'text-muted-foreground hover:text-foreground',
-              !hasGeneral && 'cursor-not-allowed opacity-40',
-            )}
-          >
-            General
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('technical')}
-            disabled={!hasTechnical}
-            className={cn(
-              'border-l border-foreground/10 px-3.5 py-1.5 text-xs font-medium transition-colors',
-              view === 'technical'
-                ? 'bg-[oklch(0.28_0.04_300)] text-[oklch(0.72_0.12_300)]'
-                : 'text-muted-foreground hover:text-foreground',
-              !hasTechnical && 'cursor-not-allowed opacity-40',
-            )}
-          >
-            Technical
-          </button>
-        </div>
-      </div>
-
-      {/* Content area */}
+    <div className={cn('space-y-5', className)}>
+      <SectionHeader
+        view={view}
+        setView={setView}
+        hasGeneral={hasGeneral}
+        hasTechnical={hasTechnical}
+      />
       {isActiveAvailable && activeText ? (
-        <div
-          className={cn(
-            'rounded-xl border px-7 py-6',
-            view === 'technical'
-              ? 'border-[oklch(0.35_0.03_300)]/40 bg-[oklch(0.17_0.01_290)]/50'
-              : 'border-foreground/8 bg-muted/10',
-          )}
-        >
-          <div
-            className={cn(
-              'max-w-prose space-y-4',
-              view === 'technical' ? 'text-[0.9rem]' : 'text-[0.92rem]',
-            )}
-          >
-            {renderNarrative(activeText, view === 'technical')}
-          </div>
-
-          {/* Technical mode watermark */}
+        <div className="max-w-[680px] space-y-4 text-[0.92rem]">
+          {renderNarrative(activeText)}
           {view === 'technical' && (
-            <div className="mt-6 border-t border-foreground/5 pt-4">
-              <p className="text-[0.7rem] italic text-muted-foreground/50">
-                References established social psychology frameworks including
-                threshold models, spiral of silence, and emotional contagion
-                theory.
-              </p>
-            </div>
+            <p className="mt-6 border-t border-border pt-4 font-mono text-[0.64rem] italic text-muted-foreground/50">
+              References threshold models, spiral of silence, emotional contagion.
+            </p>
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-center py-8">
-          <p className="text-sm text-muted-foreground">
-            {view === 'general'
-              ? 'General analysis not available'
-              : 'Technical analysis not available'}
-          </p>
+        <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+          › {view === 'general' ? 'general' : 'technical'} analysis unavailable
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SectionHeader({
+  view,
+  setView,
+  hasGeneral = true,
+  hasTechnical = true,
+  disabled = false,
+}: {
+  view: PsychologyView;
+  setView: (v: PsychologyView) => void;
+  hasGeneral?: boolean;
+  hasTechnical?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-6 border-b border-border pb-2">
+      <div className="flex items-baseline gap-3">
+        <span className="font-mono text-[0.6rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+          Mass Psychology
+        </span>
+        <span className="font-mono text-[0.58rem] tracking-[0.12em] text-muted-foreground/50 uppercase">
+          layer 4
+        </span>
+      </div>
+      {!disabled && (
+        <div className="flex items-center gap-3 font-mono text-[0.62rem] tracking-[0.1em] uppercase">
+          <SegmentButton
+            active={view === 'general'}
+            disabled={!hasGeneral}
+            onClick={() => setView('general')}
+          >
+            general
+          </SegmentButton>
+          <span className="text-muted-foreground/30">/</span>
+          <SegmentButton
+            active={view === 'technical'}
+            disabled={!hasTechnical}
+            onClick={() => setView('technical')}
+          >
+            technical
+          </SegmentButton>
         </div>
       )}
     </div>
+  );
+}
+
+function SegmentButton({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'transition-colors duration-150',
+        active
+          ? 'text-primary'
+          : 'text-muted-foreground/60 hover:text-foreground',
+        disabled && 'cursor-not-allowed opacity-40 hover:text-muted-foreground/60',
+      )}
+    >
+      {children}
+    </button>
   );
 }

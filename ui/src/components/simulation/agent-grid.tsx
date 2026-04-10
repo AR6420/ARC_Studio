@@ -1,21 +1,14 @@
 /**
- * Agent grid displaying simulated agent profiles as clickable cards.
+ * Agent grid — compact roster of simulated agents.
  *
- * Each card represents a MiroFish social agent with whatever metadata is
- * available from the simulation results (agent_stats data can be sparse).
- * Clicking a card triggers the agent interview modal.
- *
- * Design: social-network-style profile grid per D-07.
+ * Each card is a minimal box: monospace ID at top, mono name,
+ * a stance dot (teal = pro, coral = anti, gray = neutral), and
+ * a small interview action on hover. No gradients, no avatar glow.
  */
 
-import { MessageCircle, User } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-/**
- * Agent data shape is loosely typed because MiroFish agent_stats
- * structure varies and can be sparse (per research Open Question 2).
- */
 export interface AgentData {
   id?: string;
   agent_id?: string;
@@ -35,144 +28,80 @@ interface AgentGridProps {
   onInterviewAgent: (agentId: string, agentName: string) => void;
 }
 
-/** Deterministic pastel hue from agent ID for avatar background. */
-function agentHue(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash) % 360;
-}
-
-/** Truncate text gracefully. */
 function truncate(text: string, max: number): string {
-  return text.length > max ? text.slice(0, max - 1) + '\u2026' : text;
+  return text.length > max ? text.slice(0, max - 1) + '…' : text;
 }
 
-/** Sentiment value to color class. */
-function sentimentColor(value: number | undefined): string {
-  if (value == null) return 'text-muted-foreground';
-  if (value > 0.3) return 'text-emerald-400';
-  if (value < -0.3) return 'text-red-400';
-  return 'text-amber-400';
+function stanceColor(value: number | undefined): {
+  dot: string;
+  label: string;
+} {
+  if (value == null) return { dot: 'bg-muted-foreground/40', label: 'unknown' };
+  if (value > 0.3)
+    return { dot: 'bg-[oklch(0.76_0.12_180)]', label: 'pro' };
+  if (value < -0.3)
+    return { dot: 'bg-[oklch(0.68_0.20_22)]', label: 'anti' };
+  return { dot: 'bg-muted-foreground/50', label: 'neutral' };
 }
 
-/** Sentiment value to label. */
-function sentimentLabel(value: number | undefined): string {
-  if (value == null) return 'Unknown';
-  if (value > 0.3) return 'Positive';
-  if (value < -0.3) return 'Negative';
-  return 'Neutral';
-}
-
-export function AgentGrid({
-  agents,
-  onInterviewAgent,
-}: AgentGridProps) {
+export function AgentGrid({ agents, onInterviewAgent }: AgentGridProps) {
   if (!agents || agents.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 py-16">
-        <Users className="size-8 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">
-          Agent data not available for this simulation.
-        </p>
+      <div className="space-y-3">
+        <AgentHeader count={0} />
+        <div className="border border-dashed border-border px-4 py-6 font-mono text-[0.7rem] text-muted-foreground/55">
+          › agent roster not available for this simulation
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-medium text-foreground">
-          Simulated Agents
-        </h3>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {agents.length} agents
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <AgentHeader count={agents.length} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {agents.map((agent, idx) => {
           const id = agent.agent_id ?? agent.id ?? `agent-${idx}`;
           const name = agent.name ?? agent.persona ?? `Agent ${idx + 1}`;
           const role = agent.role ?? agent.archetype ?? agent.platform ?? null;
-          const hue = agentHue(id);
+          const stance = stanceColor(agent.sentiment);
 
           return (
-            <Card
+            <button
               key={id}
-              size="sm"
-              className="group relative cursor-pointer transition-all hover:ring-primary/30 hover:shadow-lg hover:shadow-primary/5"
+              type="button"
               onClick={() => onInterviewAgent(id, name)}
+              className={cn(
+                'group flex flex-col gap-1.5 border border-border bg-surface-1 px-3 py-2.5 text-left transition-colors',
+                'hover:border-primary/40 hover:bg-surface-2',
+              )}
             >
-              <CardContent className="flex flex-col items-center gap-2.5 pt-2 text-center">
-                {/* Avatar circle with deterministic color */}
-                <div
-                  className="flex size-10 items-center justify-center rounded-full ring-2 ring-foreground/10"
-                  style={{
-                    background: `oklch(0.35 0.06 ${hue})`,
-                  }}
-                >
-                  <User
-                    className="size-5"
-                    style={{ color: `oklch(0.75 0.1 ${hue})` }}
-                  />
-                </div>
-
-                {/* Name and role */}
-                <div className="w-full min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {truncate(name, 24)}
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[0.58rem] tracking-[0.1em] text-muted-foreground/60 uppercase">
+                  {truncate(id, 12)}
+                </span>
+                <span className={cn('size-1.5 rounded-full', stance.dot)} />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-mono text-[0.76rem] font-medium text-foreground/90">
+                  {truncate(name, 22)}
+                </p>
+                {role && (
+                  <p className="truncate text-[0.64rem] text-muted-foreground/60">
+                    {truncate(role, 26)}
                   </p>
-                  {role && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {truncate(role, 30)}
-                    </p>
-                  )}
-                </div>
-
-                {/* Sentiment indicator */}
-                {agent.sentiment != null && (
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`inline-block size-1.5 rounded-full ${
-                        agent.sentiment > 0.3
-                          ? 'bg-emerald-400'
-                          : agent.sentiment < -0.3
-                            ? 'bg-red-400'
-                            : 'bg-amber-400'
-                      }`}
-                    />
-                    <span
-                      className={`text-[11px] font-medium ${sentimentColor(agent.sentiment)}`}
-                    >
-                      {sentimentLabel(agent.sentiment)}
-                    </span>
-                  </div>
                 )}
-
-                {/* Interview CTA */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-auto h-7 w-full gap-1.5 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onInterviewAgent(id, name);
-                  }}
-                >
-                  <MessageCircle className="size-3" />
-                  Interview
-                </Button>
-              </CardContent>
-
-              {/* Hover glow effect */}
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity group-hover:opacity-100"
-                style={{
-                  background: `radial-gradient(circle at 50% 0%, oklch(0.5 0.08 ${hue} / 0.12), transparent 70%)`,
-                }}
-              />
-            </Card>
+              </div>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="font-mono text-[0.58rem] tracking-[0.08em] text-muted-foreground/60 uppercase">
+                  {stance.label}
+                </span>
+                <span className="flex items-center gap-0.5 font-mono text-[0.58rem] text-muted-foreground/0 transition-colors group-hover:text-primary/80">
+                  <MessageCircle className="size-2.5" />
+                  interview
+                </span>
+              </div>
+            </button>
           );
         })}
       </div>
@@ -180,23 +109,20 @@ export function AgentGrid({
   );
 }
 
-/** Used by the empty state fallback */
-function Users({ className }: { className?: string }) {
+function AgentHeader({ count }: { count: number }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
+    <div className="flex items-baseline justify-between border-b border-border pb-2">
+      <div className="flex items-baseline gap-3">
+        <span className="font-mono text-[0.6rem] font-semibold tracking-[0.16em] text-foreground/90 uppercase">
+          Agent Roster
+        </span>
+        <span className="font-mono text-[0.58rem] tracking-[0.1em] text-mirofish/70 uppercase">
+          mirofish
+        </span>
+      </div>
+      <span className="font-mono text-[0.6rem] tabular-nums text-muted-foreground/60">
+        {count.toString().padStart(3, '0')}
+      </span>
+    </div>
   );
 }
