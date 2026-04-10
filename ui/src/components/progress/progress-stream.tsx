@@ -1,57 +1,32 @@
 /**
- * Real-time campaign progress display with iteration tracking, step labels, and ETA.
+ * Real-time campaign progress — terminal-style event log.
  *
- * Per D-06: Inline in campaign detail, not a separate page.
- * Per D-07: Premium visual treatment -- segmented pipeline, animated active step,
- *           collapsible event log with monospace timestamp entries.
+ *   ┌─ campaign stream ─────────────── iter 2/4 · scoring · ~3m 15s ─┐
+ *   │  11:23:04  iter          iteration 1 started                   │
+ *   │  11:23:05  generating    creating 3 content variants           │
+ *   │  11:23:18  scoring       tribe v2 scoring variant v1           │
+ *   │  11:31:45  scoring       v1 scored  attn=72.4  emo=65.1        │
+ *   │› 11:38:02  simulating    spawning 40 mirofish agents           │
+ *   └───────────────────────────────────────────────────────────────┘
  *
- * Connects to the SSE progress endpoint via the useProgress hook.
+ * No spinners, no pulsing bars — just a live monospace feed. Older
+ * lines dim, the most recent line stays bright and gets a chevron.
  */
 
-import { useState, useMemo } from 'react';
-import {
-  CheckCircle,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Wifi,
-  WifiOff,
-  Zap,
-} from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useProgress } from '@/hooks/use-progress';
 import type { ProgressEvent } from '@/api/types';
 
-// -- Step label mapping --
+// ─── Formatting helpers ────────────────────────────────────────────────
 
-const STEP_LABELS: Record<string, string> = {
-  generating: 'Generating Variants',
-  scoring: 'Neural Scoring (TRIBE v2)',
-  simulating: 'Social Simulation (MiroFish)',
-  analyzing: 'Cross-System Analysis',
-  checking: 'Evaluating Thresholds',
+const STEP_LABEL: Record<string, string> = {
+  generating: 'generating',
+  scoring: 'scoring',
+  simulating: 'simulating',
+  analyzing: 'analyzing',
+  checking: 'checking',
 };
-
-const STEP_ORDER = ['generating', 'scoring', 'simulating', 'analyzing', 'checking'];
-
-function formatStepLabel(step: string | null): string {
-  if (!step) return 'Initializing';
-  return STEP_LABELS[step] ?? step;
-}
-
-// -- ETA formatting --
-
-function formatEta(seconds: number | null): string {
-  if (seconds === null || seconds <= 0) return '';
-  if (seconds < 60) return `~${Math.ceil(seconds)}s remaining`;
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.ceil(seconds % 60);
-  if (secs === 0) return `~${minutes}m remaining`;
-  return `~${minutes}m ${secs}s remaining`;
-}
-
-// -- Event log formatting --
 
 function formatEventTime(timestamp: string): string {
   try {
@@ -67,318 +42,298 @@ function formatEventTime(timestamp: string): string {
   }
 }
 
-function formatEventLabel(event: ProgressEvent): string {
-  const type = event.event.replace(/_/g, ' ');
-  if (event.step) {
-    return `${type} -- ${formatStepLabel(event.step)}`;
-  }
-  if (event.event === 'iteration_start' || event.event === 'iteration_complete') {
-    return `${type} (${event.iteration}/${event.max_iterations})`;
-  }
-  return type;
+function formatEta(seconds: number | null): string {
+  if (seconds == null || seconds <= 0) return '';
+  if (seconds < 60) return `${Math.ceil(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.ceil(seconds % 60);
+  if (secs === 0) return `${minutes}m`;
+  return `${minutes}m ${secs}s`;
 }
 
-// -- Sub-components --
-
-interface IterationSegmentsProps {
-  current: number;
-  max: number;
-  stepIndex: number;
-  totalSteps: number;
+/** Short category label shown in the middle column. */
+function eventCategory(event: ProgressEvent): string {
+  if (event.step && STEP_LABEL[event.step]) return STEP_LABEL[event.step];
+  switch (event.event) {
+    case 'iteration_start':
+    case 'iteration_complete':
+    case 'iteration_update':
+      return 'iter';
+    case 'campaign_start':
+      return 'start';
+    case 'campaign_complete':
+      return 'done';
+    case 'campaign_error':
+      return 'error';
+    case 'variant_generated':
+      return 'generating';
+    case 'variant_scored':
+      return 'scoring';
+    default:
+      return event.event.replace(/_/g, ' ').slice(0, 11);
+  }
 }
 
-function IterationSegments({ current, max, stepIndex, totalSteps }: IterationSegmentsProps) {
-  if (max === 0) return null;
+/** Human-readable message drawn from the event data. */
+function eventMessage(event: ProgressEvent): string {
+  const d = (event.data as Record<string, unknown> | null) ?? {};
+  switch (event.event) {
+    case 'iteration_start':
+      return `iteration ${event.iteration} started`;
+    case 'iteration_complete':
+      return `iteration ${event.iteration} complete`;
+    case 'campaign_start':
+      return 'campaign started';
+    case 'campaign_complete':
+      return `all ${event.max_iterations} iteration${event.max_iterations !== 1 ? 's' : ''} finished`;
+    case 'campaign_error': {
+      const err = d.error ?? d.message ?? 'unknown error';
+      return `error  ${String(err)}`;
+    }
+    case 'variant_generated': {
+      const id = d.variant_id ?? d.id;
+      const strategy = d.strategy;
+      return strategy ? `variant ${String(id ?? '')}  ${String(strategy)}` : `variant ${String(id ?? '')} generated`;
+    }
+    case 'variant_scored': {
+      const id = d.variant_id ?? d.id;
+      const attn = d.attention_capture ?? d.attention_score;
+      if (id && attn != null) {
+        return `variant ${String(id)} scored  attn=${Number(attn).toFixed(1)}`;
+      }
+      return `variant ${String(id ?? '')} scored`;
+    }
+    default: {
+      if (event.step) {
+        const stepName = STEP_LABEL[event.step] ?? event.step;
+        if (event.step_index != null && event.total_steps != null) {
+          return `${stepName}  step ${event.step_index}/${event.total_steps}`;
+        }
+        return stepName;
+      }
+      return event.event.replace(/_/g, ' ');
+    }
+  }
+}
 
-  const segments = Array.from({ length: max }, (_, i) => {
-    const iterNum = i + 1;
-    if (iterNum < current) return 'complete' as const;
-    if (iterNum === current) return 'active' as const;
-    return 'pending' as const;
-  });
+// ─── Sub-components ────────────────────────────────────────────────────
 
-  // Width of partially filled segment within the active iteration
-  const activeProgress = totalSteps > 0 ? (stepIndex / totalSteps) * 100 : 0;
+interface EventLineProps {
+  event: ProgressEvent;
+  isLatest: boolean;
+  isTerminal: 'complete' | 'error' | null;
+}
+
+function EventLine({ event, isLatest, isTerminal }: EventLineProps) {
+  const isErrorEvent =
+    event.event === 'campaign_error' || isTerminal === 'error';
+  const isCompleteEvent =
+    event.event === 'campaign_complete' ||
+    (isTerminal === 'complete' && isLatest);
+  const highlight = isLatest;
+
+  const glyph = isErrorEvent
+    ? '✕'
+    : isCompleteEvent
+      ? '✓'
+      : highlight
+        ? '›'
+        : ' ';
+
+  const categoryClass = isErrorEvent
+    ? 'text-heat-hot/80'
+    : isCompleteEvent
+      ? 'text-heat-hot/80'
+      : highlight
+        ? 'text-primary'
+        : 'text-muted-foreground/45';
+
+  const messageClass = isErrorEvent
+    ? 'text-heat-hot/90'
+    : highlight
+      ? 'text-foreground'
+      : 'text-muted-foreground/55';
 
   return (
-    <div className="flex items-center gap-1">
-      {segments.map((status, i) => (
-        <div
-          key={i}
-          className={cn(
-            'relative h-2 flex-1 rounded-full overflow-hidden transition-all duration-500',
-            status === 'complete' && 'bg-primary',
-            status === 'pending' && 'bg-muted',
-            status === 'active' && 'bg-muted',
-          )}
-        >
-          {status === 'active' && (
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-primary animate-pulse transition-[width] duration-700 ease-out"
-              style={{ width: `${Math.max(activeProgress, 8)}%` }}
-            />
-          )}
-        </div>
-      ))}
+    <div className="grid grid-cols-[14px_74px_88px_minmax(0,1fr)] items-baseline gap-3 px-2 py-[1px] font-mono text-[0.7rem] leading-[1.55] tracking-[-0.002em]">
+      <span
+        className={cn(
+          'tabular-nums',
+          isErrorEvent
+            ? 'text-heat-hot'
+            : highlight
+              ? 'text-primary animate-pulse'
+              : 'text-muted-foreground/30',
+        )}
+      >
+        {glyph}
+      </span>
+      <span className="tabular-nums text-muted-foreground/50">
+        {formatEventTime(event.timestamp)}
+      </span>
+      <span className={cn('uppercase tracking-[0.06em]', categoryClass)}>
+        {eventCategory(event)}
+      </span>
+      <span className={cn('truncate', messageClass)}>
+        {eventMessage(event)}
+      </span>
     </div>
   );
 }
 
-interface StepPipelineProps {
-  currentStep: string | null;
+interface TerminalLogProps {
+  events: ProgressEvent[];
   isComplete: boolean;
   isError: boolean;
+  statusText: string;
+  statusClass: string;
+  iteration: number;
+  maxIterations: number;
+  eta: string;
 }
 
-function StepPipeline({ currentStep, isComplete, isError }: StepPipelineProps) {
-  const activeIndex = currentStep ? STEP_ORDER.indexOf(currentStep) : -1;
+function TerminalLog({
+  events,
+  isComplete,
+  isError,
+  statusText,
+  statusClass,
+  iteration,
+  maxIterations,
+  eta,
+}: TerminalLogProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [events.length]);
+
+  const terminal: 'complete' | 'error' | null = isError
+    ? 'error'
+    : isComplete
+      ? 'complete'
+      : null;
 
   return (
-    <div className="flex items-center gap-0.5">
-      {STEP_ORDER.map((step, i) => {
-        const isDone = isComplete || (activeIndex >= 0 && i < activeIndex);
-        const isActive = !isComplete && !isError && i === activeIndex;
-        const isPending = !isDone && !isActive;
-
-        return (
-          <div key={step} className="flex items-center gap-0.5 flex-1 min-w-0">
-            <div
-              className={cn(
-                'h-1 flex-1 rounded-full transition-all duration-500',
-                isDone && 'bg-primary',
-                isActive && 'bg-primary/60 animate-pulse',
-                isPending && 'bg-muted',
-                isError && i === activeIndex && 'bg-destructive/60 animate-pulse',
-              )}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-interface EventLogProps {
-  events: ProgressEvent[];
-}
-
-function EventLog({ events }: EventLogProps) {
-  const [expanded, setExpanded] = useState(false);
-  const recentEvents = useMemo(() => events.slice(-8).reverse(), [events]);
-
-  if (events.length === 0) return null;
-
-  return (
-    <div className="mt-3">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {expanded ? (
-          <ChevronUp className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronDown className="h-3.5 w-3.5" />
-        )}
-        Event log ({events.length} events)
-      </button>
-      {expanded && (
-        <div className="mt-2 max-h-36 overflow-y-auto rounded-md border border-border bg-background/50 p-2">
-          {recentEvents.map((evt, i) => (
-            <div
-              key={`${evt.timestamp}-${i}`}
-              className="flex gap-2 py-0.5 text-xs font-mono text-muted-foreground animate-in fade-in-0 duration-300"
-            >
-              <span className="text-muted-foreground/60 shrink-0">
-                {formatEventTime(evt.timestamp)}
-              </span>
-              <span className="truncate">{formatEventLabel(evt)}</span>
-            </div>
-          ))}
+    <div className="border border-border bg-sidebar">
+      {/* Terminal title bar */}
+      <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-1.5">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'inline-block size-1.5 rounded-full',
+              isError
+                ? 'bg-heat-hot'
+                : isComplete
+                  ? 'bg-[oklch(0.72_0.15_150)]'
+                  : 'bg-primary animate-pulse',
+            )}
+          />
+          <span className="font-mono text-[0.58rem] tracking-[0.14em] text-muted-foreground/80 uppercase">
+            campaign stream
+          </span>
         </div>
-      )}
+        <div className="flex items-baseline gap-3 font-mono text-[0.62rem] tabular-nums">
+          {maxIterations > 0 && (
+            <span className="text-muted-foreground/60">
+              <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+                iter
+              </span>{' '}
+              <span className="text-foreground/80">
+                {iteration}/{maxIterations}
+              </span>
+            </span>
+          )}
+          <span className="text-muted-foreground/60">
+            <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+              step
+            </span>{' '}
+            <span className={statusClass}>{statusText}</span>
+          </span>
+          {eta && (
+            <span className="text-muted-foreground/60">
+              <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+                eta
+              </span>{' '}
+              <span className="text-foreground/80">{eta}</span>
+            </span>
+          )}
+          <span className="text-muted-foreground/40">
+            {events.length.toString().padStart(3, '0')}
+          </span>
+        </div>
+      </div>
+
+      {/* Log body */}
+      <div
+        ref={scrollRef}
+        className="max-h-[260px] min-h-[96px] overflow-y-auto py-2"
+      >
+        {events.length === 0 ? (
+          <div className="px-3 py-1 font-mono text-[0.7rem] text-muted-foreground/50">
+            <span className="mr-2 animate-pulse text-primary">›</span>
+            connecting to event stream…
+          </div>
+        ) : (
+          events.map((event, i) => {
+            const isLatest = i === events.length - 1;
+            return (
+              <EventLine
+                key={`${event.timestamp}-${i}`}
+                event={event}
+                isLatest={isLatest}
+                isTerminal={terminal}
+              />
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
 
-// -- Main component --
+// ─── Main component ────────────────────────────────────────────────────
 
 interface ProgressStreamProps {
   campaignId: string;
 }
 
 export function ProgressStream({ campaignId }: ProgressStreamProps) {
-  const {
-    events,
-    isConnected,
-    isComplete,
-    isError,
-    currentStep,
-    progress,
-  } = useProgress(campaignId);
-
-  const { iteration, maxIterations, stepIndex, totalSteps, etaSeconds } = progress;
+  const { events, isConnected, isComplete, isError, currentStep, progress } =
+    useProgress(campaignId);
+  const { iteration, maxIterations, etaSeconds } = progress;
   const eta = formatEta(etaSeconds);
 
-  // Terminal states
-  if (isComplete && !isError) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-score-green/15">
-            <CheckCircle className="h-5 w-5 text-score-green" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Campaign Complete</p>
-            <p className="text-xs text-muted-foreground">
-              All {maxIterations} iteration{maxIterations !== 1 ? 's' : ''} finished successfully
-            </p>
-          </div>
-        </div>
-        <div className="mt-3">
-          <IterationSegments
-            current={maxIterations + 1}
-            max={maxIterations}
-            stepIndex={0}
-            totalSteps={0}
-          />
-        </div>
-        <EventLog events={events} />
-      </div>
-    );
-  }
+  const { statusText, statusClass } = useMemo(() => {
+    if (isError) return { statusText: 'failed', statusClass: 'text-heat-hot' };
+    if (isComplete)
+      return {
+        statusText: 'complete',
+        statusClass: 'text-[oklch(0.72_0.15_150)]',
+      };
+    if (!isConnected)
+      return {
+        statusText: 'connecting',
+        statusClass: 'text-muted-foreground/60',
+      };
+    return {
+      statusText: currentStep ? STEP_LABEL[currentStep] ?? currentStep : 'initializing',
+      statusClass: 'text-primary',
+    };
+  }, [isError, isComplete, isConnected, currentStep]);
 
-  if (isError) {
-    const errorEvent = events.findLast((e) => e.event === 'campaign_error');
-    const errorMsg = errorEvent?.data?.error ?? errorEvent?.data?.message ?? 'An error occurred';
-
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-card p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Campaign Failed</p>
-            <p className="text-xs text-muted-foreground max-w-md truncate">
-              {String(errorMsg)}
-            </p>
-          </div>
-        </div>
-        <div className="mt-3">
-          <IterationSegments
-            current={iteration}
-            max={maxIterations}
-            stepIndex={stepIndex}
-            totalSteps={totalSteps}
-          />
-        </div>
-        <EventLog events={events} />
-      </div>
-    );
-  }
-
-  // Active / connecting state
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      {/* Header: connection indicator + iteration count + ETA */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex items-center justify-center">
-            {isConnected ? (
-              <Zap className="h-4 w-4 text-primary animate-pulse" />
-            ) : (
-              <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {iteration > 0
-                ? `Iteration ${iteration} of ${maxIterations}`
-                : 'Connecting to campaign...'}
-            </p>
-            {currentStep && (
-              <p className="text-xs text-primary/80">
-                {formatStepLabel(currentStep)}
-                {totalSteps > 0 && (
-                  <span className="text-muted-foreground ml-1.5">
-                    -- step {stepIndex} of {totalSteps}
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {eta && (
-            <span className="text-xs text-muted-foreground tabular-nums">{eta}</span>
-          )}
-          <div
-            className={cn(
-              'flex items-center gap-1 text-xs',
-              isConnected ? 'text-score-green' : 'text-muted-foreground',
-            )}
-            title={isConnected ? 'Connected to event stream' : 'Disconnected'}
-          >
-            {isConnected ? (
-              <Wifi className="h-3 w-3" />
-            ) : (
-              <WifiOff className="h-3 w-3" />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Iteration segment bar */}
-      {maxIterations > 0 && (
-        <div className="mb-3">
-          <IterationSegments
-            current={iteration}
-            max={maxIterations}
-            stepIndex={stepIndex}
-            totalSteps={totalSteps}
-          />
-          <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground/50">Iteration 1</span>
-            <span className="text-[10px] text-muted-foreground/50">
-              Iteration {maxIterations}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Step pipeline (fine-grained within the current iteration) */}
-      {currentStep && (
-        <div className="mb-1">
-          <StepPipeline
-            currentStep={currentStep}
-            isComplete={isComplete}
-            isError={isError}
-          />
-          <div className="flex justify-between mt-1">
-            {STEP_ORDER.map((step) => {
-              const activeIdx = currentStep ? STEP_ORDER.indexOf(currentStep) : -1;
-              const stepIdx = STEP_ORDER.indexOf(step);
-              const isActiveStep = stepIdx === activeIdx;
-              return (
-                <span
-                  key={step}
-                  className={cn(
-                    'text-[9px] max-w-[18%] text-center truncate transition-colors duration-300',
-                    isActiveStep ? 'text-primary font-medium' : 'text-muted-foreground/40',
-                  )}
-                >
-                  {STEP_LABELS[step]}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Event log */}
-      <EventLog events={events} />
-    </div>
+    <TerminalLog
+      events={events}
+      isComplete={isComplete}
+      isError={isError}
+      statusText={statusText}
+      statusClass={statusClass}
+      iteration={iteration}
+      maxIterations={maxIterations}
+      eta={eta}
+    />
   );
 }
