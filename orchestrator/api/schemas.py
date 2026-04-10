@@ -70,6 +70,19 @@ class CompositeScores(BaseModel):
     polarization_index: float | None = None
 
 
+# -- Data completeness tracking (Landmine 5) --
+
+
+class DataCompleteness(BaseModel):
+    """Tracks which systems contributed data to a campaign iteration."""
+
+    tribe_available: bool = True
+    mirofish_available: bool = True
+    tribe_real_score_count: int = 0
+    tribe_pseudo_score_count: int = 0
+    missing_composite_dimensions: list[str] = []
+
+
 # -- Iteration record --
 
 
@@ -85,6 +98,7 @@ class IterationRecord(BaseModel):
     tribe_scores: TribeScores | None = None
     mirofish_metrics: MirofishMetrics | None = None
     composite_scores: CompositeScores | None = None
+    data_completeness: DataCompleteness | None = None
     created_at: str
 
 

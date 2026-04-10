@@ -236,3 +236,55 @@ def test_all_scores_in_range():
     for key, value in scores.items():
         if value is not None:
             assert 0 <= value <= 100, f"{key}={value} is outside 0-100 range"
+
+
+# -- Test 12: Shares mapping (Issue 13) --
+
+def test_organic_shares_flows_through_to_virality():
+    """
+    Regression test for Issue 13: mirofish_metrics must use 'organic_shares'
+    (not 'total_shares' or any other alias) end-to-end.
+
+    Verifies that organic_shares=10 produces a non-zero virality_potential,
+    while organic_shares=0 produces virality_potential=0.
+    """
+    mirofish_with_shares = {
+        "organic_shares": 10,
+        "sentiment_trajectory": [0.2, 0.4, 0.5],
+        "counter_narrative_count": 0,
+        "peak_virality_cycle": 2,
+        "sentiment_drift": 0.3,
+        "coalition_formation": 1,
+        "influence_concentration": 0.3,
+        "platform_divergence": 0.2,
+    }
+    mirofish_zero_shares = {**mirofish_with_shares, "organic_shares": 0}
+
+    scores_with_shares = compute_composite_scores(
+        tribe=SAMPLE_TRIBE,
+        mirofish=mirofish_with_shares,
+        cognitive_weights=SAMPLE_WEIGHTS,
+        agent_count=AGENT_COUNT,
+    )
+    scores_zero_shares = compute_composite_scores(
+        tribe=SAMPLE_TRIBE,
+        mirofish=mirofish_zero_shares,
+        cognitive_weights=SAMPLE_WEIGHTS,
+        agent_count=AGENT_COUNT,
+    )
+
+    # virality_potential must be > 0 when organic_shares=10
+    assert scores_with_shares["virality_potential"] is not None
+    assert scores_with_shares["virality_potential"] > 0, (
+        "virality_potential must be > 0 when organic_shares=10"
+    )
+
+    # virality_potential must be 0 when organic_shares=0
+    assert scores_zero_shares["virality_potential"] == 0.0, (
+        "virality_potential must be 0 when organic_shares=0"
+    )
+
+    # Confirm organic_shares=10 produces higher virality than organic_shares=0
+    assert scores_with_shares["virality_potential"] > scores_zero_shares["virality_potential"], (
+        "shares=10 must yield higher virality_potential than shares=0"
+    )

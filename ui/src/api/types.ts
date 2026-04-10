@@ -57,6 +57,16 @@ export interface CompositeScores {
   polarization_index: number | null;
 }
 
+// -- Data completeness tracking (Landmine 5) --
+
+export interface DataCompleteness {
+  tribe_available: boolean;
+  mirofish_available: boolean;
+  tribe_real_score_count: number;
+  tribe_pseudo_score_count: number;
+  missing_composite_dimensions: string[];
+}
+
 // -- Iteration record --
 
 export interface IterationRecord {
@@ -69,6 +79,7 @@ export interface IterationRecord {
   tribe_scores?: TribeScores | null;
   mirofish_metrics?: MirofishMetrics | null;
   composite_scores?: CompositeScores | null;
+  data_completeness?: DataCompleteness | null;
   created_at: string;
 }
 
