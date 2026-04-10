@@ -24,7 +24,7 @@ This is the first integration of three specific technologies into a single feedb
 
 ## Built on a Gaming Laptop
 
-This entire system — real TRIBE v2 brain-encoding inference, 20-agent MiroFish social simulations, Claude Opus cross-system analysis — was built and validated on a single machine: **ASUS Zephyrus G14, Ryzen AI 9 HX370, RTX 5070 Ti (12 GB VRAM), 32 GB RAM, 1 TB SSD.**
+This entire system — real TRIBE v2 brain-encoding inference, 20-agent MiroFish social simulations, Claude Opus cross-system analysis — was built and validated on a single machine: **Personal Laptop with RTX 5070 Ti (12 GB VRAM) GPU.**
 
 Real performance on that hardware: **85-minute campaigns** (2 iterations, 20 agents, 3 content variants per iteration). TRIBE v2 inference takes 5–40 minutes per variant depending on text length. Not fast. Real.
 
