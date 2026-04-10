@@ -1,37 +1,37 @@
 /**
- * NewCampaign page -- primary entry point for creating campaigns.
+ * New campaign page wrapper.
  *
- * Simple page wrapper that renders the CampaignForm.
- * On successful campaign creation, the form navigates to /campaigns/:id.
+ * Thin header rule + back link, then the form. No big hero title —
+ * the form itself is the content.
  */
 
-import { ArrowLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { CampaignForm } from '@/components/campaign/campaign-form'
+import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CampaignForm } from '@/components/campaign/campaign-form';
 
 export default function NewCampaign() {
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
-      {/* Page header */}
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 space-y-1">
+    <div className="flex flex-col gap-8">
+      {/* Page heading */}
+      <div className="mx-auto flex w-full max-w-[780px] items-end justify-between border-b border-border pb-4">
+        <div className="flex flex-col gap-1">
           <Link
-            to="/"
-            className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            to="/campaigns"
+            className="inline-flex items-center gap-1 font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground/70 uppercase transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="size-3.5" />
-            Back to campaigns
+            <ArrowLeft className="size-3" />
+            Back
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-[1.15rem] font-semibold tracking-[-0.01em] text-foreground">
             New Campaign
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Submit content for neural scoring and social simulation analysis.
+          <p className="font-mono text-[0.65rem] tracking-[0.08em] text-muted-foreground/60 uppercase">
+            Neural scoring · social simulation · optimization loop
           </p>
         </div>
       </div>
 
       <CampaignForm />
     </div>
-  )
+  );
 }

@@ -1,15 +1,11 @@
 /**
- * Demographic preset selector with 6 cards + custom option.
+ * Demographic selector — compact pill row with an inline custom option.
  *
- * Renders a grid of selectable demographic profile cards with icons,
- * plus a "Custom" option that reveals a textarea for freeform input.
- *
- * Preset data is hardcoded to match orchestrator/prompts/demographic_profiles.py
- * (6 presets). The API call is available via getDemographics but we inline the
- * data here to avoid a network dependency on the form being usable.
+ * Pills wrap to 2 rows on narrow screens. Selected pill gets the amber
+ * tint; unselected is a flat outline. Selecting "Custom" reveals a
+ * monospace textarea directly below the pill row.
  */
 
-import { useState } from 'react'
 import {
   Monitor,
   Building2,
@@ -18,68 +14,61 @@ import {
   HeartPulse,
   Smartphone,
   Pen,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DemographicPreset {
-  key: string
-  label: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
+  key: string;
+  label: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const PRESETS: DemographicPreset[] = [
   {
     key: 'tech_professionals',
-    label: 'Tech Professionals',
-    description:
-      'Software developers, engineering leads, CTOs, and IT decision-makers. Skeptical of marketing language, values technical substance.',
+    label: 'Tech Pros',
+    hint: 'Developers, engineering leads, CTOs',
     icon: Monitor,
   },
   {
     key: 'enterprise_decision_makers',
-    label: 'Enterprise Decision-Makers',
-    description:
-      'C-suite executives, VPs, and directors at mid-to-large enterprises. Time-constrained, risk-averse, need ROI justification.',
+    label: 'Enterprise',
+    hint: 'C-suite, VPs, directors at mid-to-large orgs',
     icon: Building2,
   },
   {
     key: 'general_consumer_us',
-    label: 'General Consumer (US, 25-45)',
-    description:
-      'Broad US adult audience. Mixed media literacy. Share content that feels personally relevant or emotionally resonant.',
+    label: 'General Consumer',
+    hint: 'Broad US adults, 25–45',
     icon: Users,
   },
   {
     key: 'policy_aware_public',
-    label: 'Policy-Aware Public',
-    description:
-      'Civically engaged adults who follow policy and political developments. Sensitive to partisan signals and fairness framing.',
+    label: 'Policy-Aware',
+    hint: 'Civically engaged adults, partisan-sensitive',
     icon: Landmark,
   },
   {
     key: 'healthcare_professionals',
-    label: 'Healthcare Professionals',
-    description:
-      'Practicing physicians, nurses, pharmacists, and public health officials. Evidence-driven, high bar for factual accuracy.',
+    label: 'Healthcare',
+    hint: 'Physicians, nurses, public health',
     icon: HeartPulse,
   },
   {
     key: 'gen_z_digital_natives',
-    label: 'Gen Z Digital Natives (18-27)',
-    description:
-      'College students and early-career adults. Authenticity-sensitive, humor-driven. Peer social proof is dominant influence.',
+    label: 'Gen Z · 18–27',
+    hint: 'Authenticity-sensitive, peer-driven',
     icon: Smartphone,
   },
-]
+];
 
 interface DemographicSelectorProps {
-  selected: string
-  onSelect: (key: string) => void
-  customText: string
-  onCustomTextChange: (text: string) => void
+  selected: string;
+  onSelect: (key: string) => void;
+  customText: string;
+  onCustomTextChange: (text: string) => void;
 }
 
 export function DemographicSelector({
@@ -88,134 +77,62 @@ export function DemographicSelector({
   customText,
   onCustomTextChange,
 }: DemographicSelectorProps) {
-  const [isCustom, setIsCustom] = useState(selected === 'custom')
-
-  function handlePresetClick(key: string) {
-    setIsCustom(false)
-    onSelect(key)
-  }
-
-  function handleCustomClick() {
-    setIsCustom(true)
-    onSelect('custom')
-  }
+  const isCustom = selected === 'custom';
+  const activePreset = PRESETS.find((p) => p.key === selected);
 
   return (
-    <div className="space-y-4">
-      {/* Preset grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((preset) => {
-          const Icon = preset.icon
-          const isSelected = !isCustom && selected === preset.key
-
+          const Icon = preset.icon;
+          const isSelected = !isCustom && selected === preset.key;
           return (
             <button
               key={preset.key}
               type="button"
-              onClick={() => handlePresetClick(preset.key)}
+              onClick={() => onSelect(preset.key)}
               className={cn(
-                'group relative flex flex-col items-start gap-3 rounded-xl border p-4 text-left transition-all duration-150',
-                'hover:border-primary/40 hover:bg-card/80',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[0.78rem] tracking-[-0.002em] transition-colors duration-150',
                 isSelected
-                  ? 'border-primary bg-primary/[0.06] ring-1 ring-primary/30'
-                  : 'border-border/60 bg-card/40'
+                  ? 'border-primary/60 bg-primary/[0.10] text-foreground'
+                  : 'border-border bg-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground',
               )}
             >
-              {/* Selection indicator dot */}
-              <div
-                className={cn(
-                  'absolute top-3 right-3 size-2.5 rounded-full transition-all',
-                  isSelected
-                    ? 'bg-primary shadow-[0_0_6px_var(--primary)]'
-                    : 'bg-muted-foreground/20'
-                )}
-              />
-
-              <div
-                className={cn(
-                  'flex size-9 items-center justify-center rounded-lg transition-colors',
-                  isSelected
-                    ? 'bg-primary/15 text-primary'
-                    : 'bg-muted text-muted-foreground group-hover:text-foreground'
-                )}
-              >
-                <Icon className="size-[18px]" />
-              </div>
-
-              <div className="space-y-1">
-                <div
-                  className={cn(
-                    'text-sm font-medium leading-tight',
-                    isSelected ? 'text-foreground' : 'text-foreground/80'
-                  )}
-                >
-                  {preset.label}
-                </div>
-                <div className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {preset.description}
-                </div>
-              </div>
+              <Icon className="size-3.5 shrink-0" />
+              {preset.label}
             </button>
-          )
+          );
         })}
-      </div>
-
-      {/* Custom option */}
-      <div className="space-y-3">
         <button
           type="button"
-          onClick={handleCustomClick}
+          onClick={() => onSelect('custom')}
           className={cn(
-            'flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all duration-150',
-            'hover:border-primary/40 hover:bg-card/80',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'inline-flex items-center gap-1.5 rounded-sm border border-dashed px-2.5 py-1.5 text-[0.78rem] tracking-[-0.002em] transition-colors duration-150',
             isCustom
-              ? 'border-primary bg-primary/[0.06] ring-1 ring-primary/30'
-              : 'border-border/60 bg-card/40'
+              ? 'border-primary/60 bg-primary/[0.10] text-foreground'
+              : 'border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground',
           )}
         >
-          <div
-            className={cn(
-              'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-              isCustom
-                ? 'bg-primary/15 text-primary'
-                : 'bg-muted text-muted-foreground'
-            )}
-          >
-            <Pen className="size-[18px]" />
-          </div>
-          <div>
-            <div className="text-sm font-medium">Custom Demographic</div>
-            <div className="text-xs text-muted-foreground">
-              Define your own audience profile for the simulation
-            </div>
-          </div>
-          <div
-            className={cn(
-              'ml-auto size-2.5 shrink-0 rounded-full transition-all',
-              isCustom
-                ? 'bg-primary shadow-[0_0_6px_var(--primary)]'
-                : 'bg-muted-foreground/20'
-            )}
-          />
+          <Pen className="size-3.5 shrink-0" />
+          Custom
         </button>
-
-        {isCustom && (
-          <div className="space-y-2 pl-1">
-            <Label htmlFor="custom-demographic" className="text-xs text-muted-foreground">
-              Describe your target audience in detail
-            </Label>
-            <Textarea
-              id="custom-demographic"
-              value={customText}
-              onChange={(e) => onCustomTextChange(e.target.value)}
-              placeholder="e.g., Small business owners in the Midwest, ages 35-55, who are evaluating SaaS tools for the first time..."
-              className="min-h-24 resize-y bg-card/60 text-sm"
-            />
-          </div>
-        )}
       </div>
+
+      {/* Inline description of the currently selected preset — replaces tooltips */}
+      {activePreset && (
+        <p className="font-mono text-[0.66rem] text-muted-foreground/55">
+          › {activePreset.hint}
+        </p>
+      )}
+
+      {isCustom && (
+        <Textarea
+          value={customText}
+          onChange={(e) => onCustomTextChange(e.target.value)}
+          placeholder="Describe the target audience: age band, profession, media habits, values, risk profile…"
+          className="min-h-[5.5rem] bg-sidebar font-mono text-[0.76rem] leading-relaxed"
+        />
+      )}
     </div>
-  )
+  );
 }
