@@ -17,7 +17,7 @@ export default function NewCampaign() {
         <div className="flex flex-col gap-1">
           <Link
             to="/campaigns"
-            className="inline-flex items-center gap-1 font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground/70 uppercase transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 font-mono text-[0.64rem] tracking-[0.12em] text-muted-foreground uppercase transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3" />
             Back
@@ -25,7 +25,7 @@ export default function NewCampaign() {
           <h1 className="text-[1.15rem] font-semibold tracking-[-0.01em] text-foreground">
             New Campaign
           </h1>
-          <p className="font-mono text-[0.65rem] tracking-[0.08em] text-muted-foreground/60 uppercase">
+          <p className="font-mono text-[0.68rem] tracking-[0.08em] text-muted-foreground uppercase">
             Neural scoring · social simulation · optimization loop
           </p>
         </div>

@@ -1,12 +1,13 @@
 /**
  * Variant ranking — dense, collapsible list of scored variants.
  *
- *   01  anchored-value     78.4  ████████████████░░░░  ← best
+ *   01  anchored-value     78.4  ████████████████░░░░  ← best (amber bar)
  *   02  benefit-lead       71.2  ██████████████░░░░░░
  *   03  story-framed       62.8  ████████████░░░░░░░░
  *
- * Expanding a row reveals all 7 composite score bars and the generated
- * variant content in a monospace preview block.
+ * The #1 ranked variant gets a 2px amber left border. Expanding a row
+ * reveals all 7 composite score bars and the generated variant content
+ * in a monospace preview block.
  */
 
 import { useMemo, useState } from 'react';
@@ -57,7 +58,7 @@ export function VariantRanking({ variants }: VariantRankingProps) {
 
   if (!ranked.length) {
     return (
-      <p className="font-mono text-[0.72rem] text-muted-foreground/55">
+      <p className="font-mono text-[0.74rem] text-muted-foreground">
         › no scored variants available
       </p>
     );
@@ -86,26 +87,32 @@ function VariantRow({ item, isBest }: { item: RankedVariant; isBest: boolean }) 
   const avgPercent = Math.min(Math.max(avgScore, 0), 100);
 
   return (
-    <div>
+    <div
+      className={cn(
+        'relative',
+        // #1 variant: 2px amber left border + slightly lighter background
+        isBest && 'bg-foreground/[0.03] shadow-[inset_2px_0_0_var(--primary)]',
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
           'grid w-full grid-cols-[20px_32px_minmax(0,1fr)_70px_minmax(0,140px)_16px] items-center gap-3 px-2 py-2.5 text-left transition-colors',
           'hover:bg-foreground/[0.025]',
-          isBest && 'bg-foreground/[0.02]',
+          isBest && 'pl-3',
         )}
       >
         <ChevronRight
           className={cn(
-            'size-3 text-muted-foreground/60 transition-transform duration-150',
+            'size-3 text-muted-foreground transition-transform duration-150',
             open && 'rotate-90',
           )}
         />
         <span
           className={cn(
-            'font-mono text-[0.72rem] tabular-nums',
-            isBest ? 'text-primary' : 'text-muted-foreground/70',
+            'font-mono text-[0.74rem] tabular-nums',
+            isBest ? 'text-primary' : 'text-foreground/70',
           )}
         >
           {rank.toString().padStart(2, '0')}
@@ -115,13 +122,13 @@ function VariantRow({ item, isBest }: { item: RankedVariant; isBest: boolean }) 
             {strategy}
           </span>
           {isBest && (
-            <span className="font-mono text-[0.56rem] tracking-[0.12em] text-primary uppercase">
+            <span className="font-mono text-[0.58rem] tracking-[0.12em] text-primary uppercase">
               best
             </span>
           )}
           {isPseudo && (
             <span
-              className="font-mono text-[0.56rem] tracking-[0.08em] text-muted-foreground/60 uppercase"
+              className="font-mono text-[0.58rem] tracking-[0.08em] text-muted-foreground uppercase"
               title="Scored using pseudo fallback data (TRIBE unavailable)"
             >
               pseudo
@@ -130,13 +137,13 @@ function VariantRow({ item, isBest }: { item: RankedVariant; isBest: boolean }) 
         </div>
         <span
           className={cn(
-            'text-right font-mono text-[0.88rem] font-semibold tabular-nums',
+            'text-right font-mono text-[0.9rem] font-semibold tabular-nums',
             HEAT_TEXT[heatStop],
           )}
         >
           {avgScore.toFixed(1)}
         </span>
-        <div className="relative h-[3px] w-full overflow-hidden rounded-[1px] bg-foreground/[0.06]">
+        <div className="relative h-[3px] w-full overflow-hidden rounded-[1px] bg-foreground/[0.08]">
           <div
             className="absolute inset-y-0 left-0 rounded-[1px]"
             style={{
@@ -145,13 +152,13 @@ function VariantRow({ item, isBest }: { item: RankedVariant; isBest: boolean }) 
             }}
           />
         </div>
-        <span className="text-right font-mono text-[0.6rem] text-muted-foreground/40 tabular-nums">
+        <span className="text-right font-mono text-[0.62rem] tabular-nums text-muted-foreground">
           {record.variant_id.slice(0, 4)}
         </span>
       </button>
 
       {open && (
-        <div className="space-y-4 border-t border-border bg-surface-1/40 px-6 py-4">
+        <div className="space-y-4 border-t border-border bg-surface-1/50 px-6 py-4">
           {record.composite_scores && (
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-x-8">
               {COMPOSITE_KEYS.map((key) => (
@@ -165,10 +172,10 @@ function VariantRow({ item, isBest }: { item: RankedVariant; isBest: boolean }) 
             </div>
           )}
           <div className="space-y-1.5">
-            <span className="font-mono text-[0.56rem] tracking-[0.14em] text-muted-foreground/70 uppercase">
+            <span className="font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground uppercase">
               Generated Content
             </span>
-            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap border-l border-border bg-sidebar px-4 py-3 font-mono text-[0.75rem] leading-[1.65] text-foreground/80">
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap border-l border-border bg-sidebar px-4 py-3 font-mono text-[0.76rem] leading-[1.65] text-foreground/85">
               {record.variant_content}
             </pre>
           </div>

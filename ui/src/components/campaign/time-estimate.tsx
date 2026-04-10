@@ -26,16 +26,16 @@ export function TimeEstimate({
 
   let body: React.ReactNode;
   if (isLoading) {
-    body = <span className="text-muted-foreground/55">estimating…</span>;
+    body = <span className="text-muted-foreground">estimating…</span>;
   } else if (isError || !data) {
-    body = <span className="text-muted-foreground/55">— — —</span>;
+    body = <span className="text-muted-foreground">— — —</span>;
   } else {
     body = (
       <>
-        <span className="text-foreground/85">
+        <span className="text-foreground">
           ~{data.estimated_minutes}m
         </span>
-        <span className="ml-2 hidden text-muted-foreground/50 lg:inline">
+        <span className="ml-2 hidden text-muted-foreground lg:inline">
           · {data.formula}
         </span>
       </>
@@ -45,14 +45,14 @@ export function TimeEstimate({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 font-mono text-[0.7rem] tabular-nums text-muted-foreground',
+        'inline-flex items-center gap-1.5 font-mono text-[0.72rem] tabular-nums text-foreground/85',
         className,
       )}
     >
-      <span className="tracking-[0.12em] text-muted-foreground/55 uppercase">
+      <span className="tracking-[0.12em] text-muted-foreground uppercase">
         est
       </span>
-      <span className="text-muted-foreground/30">·</span>
+      <span className="text-muted-foreground/50">·</span>
       {body}
     </span>
   );

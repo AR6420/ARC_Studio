@@ -3,10 +3,10 @@
  */
 
 /**
- * Format a numeric score to 1 decimal place, or "N/A" for null/undefined.
+ * Format a numeric score to 1 decimal place, or an em-dash for null/undefined.
  */
 export function formatScore(value: number | null | undefined): string {
-  if (value == null) return 'N/A';
+  if (value == null) return '—';
   return value.toFixed(1);
 }
 

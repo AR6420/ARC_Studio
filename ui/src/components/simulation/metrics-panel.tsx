@@ -86,13 +86,13 @@ const TREND_GLYPH: Record<'up' | 'down' | 'flat', string> = {
 const TREND_COLOR: Record<'up' | 'down' | 'flat', string> = {
   up: 'text-[oklch(0.72_0.15_150)]',
   down: 'text-[oklch(0.68_0.20_22)]',
-  flat: 'text-muted-foreground/50',
+  flat: 'text-muted-foreground',
 };
 
 export function MetricsPanel({ metrics }: MetricsPanelProps) {
   if (!metrics) {
     return (
-      <div className="border border-dashed border-border px-4 py-6 font-mono text-[0.7rem] text-muted-foreground/55">
+      <div className="border border-dashed border-border px-4 py-6 font-mono text-[0.74rem] text-muted-foreground">
         › mirofish metrics unavailable for this iteration
       </div>
     );
@@ -101,7 +101,7 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
   return (
     <div className="relative">
       {/* Top hairline in MiroFish teal signals the owning system */}
-      <div className="absolute inset-x-0 top-0 h-px bg-mirofish/40" />
+      <div className="absolute inset-x-0 top-0 h-px bg-mirofish/50" />
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border px-1 py-4 sm:grid-cols-4 lg:grid-cols-8">
         {CELLS.map((cell) => {
           const raw = metrics[cell.key];
@@ -109,17 +109,17 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
           const trend = cell.trend ? cell.trend(raw) : null;
           return (
             <div key={cell.key} className="flex flex-col gap-1">
-              <span className="font-mono text-[0.56rem] tracking-[0.12em] text-muted-foreground/60 uppercase">
+              <span className="font-mono text-[0.6rem] tracking-[0.12em] text-muted-foreground uppercase">
                 {cell.label}
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-mono text-[0.92rem] font-semibold tabular-nums tracking-[-0.01em] text-foreground">
+                <span className="font-mono text-[0.94rem] font-semibold tabular-nums tracking-[-0.01em] text-foreground">
                   {value}
                 </span>
                 {trend && (
                   <span
                     className={cn(
-                      'font-mono text-[0.75rem] leading-none',
+                      'font-mono text-[0.78rem] leading-none',
                       TREND_COLOR[trend],
                     )}
                   >

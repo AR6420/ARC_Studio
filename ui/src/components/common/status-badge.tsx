@@ -1,9 +1,9 @@
 /**
  * Status indicators for campaign state.
  *
- * The primary API is StatusDot — a 6px circle, amber for running,
- * muted-green for complete, coral for failed. The old StatusBadge is
- * kept as a compat wrapper that pairs the dot with a monospace label.
+ * The primary API is StatusDot — an 8px circle, amber for running,
+ * muted-green for complete, coral for failed. STATUS_HOVER_BG exposes
+ * per-status hover tint classes for row highlighting.
  *
  *   running  → amber (heat-mid)
  *   complete → muted green
@@ -22,7 +22,7 @@ const STATUS_DOT: Record<CampaignStatus, string> = {
 };
 
 const STATUS_TEXT: Record<CampaignStatus, string> = {
-  pending: 'text-muted-foreground/70',
+  pending: 'text-muted-foreground',
   running: 'text-[oklch(0.80_0.14_75)]',
   completed: 'text-[oklch(0.72_0.15_150)]',
   failed: 'text-[oklch(0.68_0.20_22)]',
@@ -35,6 +35,14 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
   failed: 'Failed',
 };
 
+/** Faint per-status hover background tint for list rows — 5% opacity. */
+export const STATUS_HOVER_BG: Record<CampaignStatus, string> = {
+  pending: 'hover:bg-[oklch(0.55_0.008_70/0.05)]',
+  running: 'hover:bg-[oklch(0.80_0.14_75/0.05)]',
+  completed: 'hover:bg-[oklch(0.72_0.15_150/0.05)]',
+  failed: 'hover:bg-[oklch(0.68_0.20_22/0.05)]',
+};
+
 interface StatusDotProps {
   status: CampaignStatus;
   className?: string;
@@ -45,7 +53,7 @@ export function StatusDot({ status, className, pulse = true }: StatusDotProps) {
   return (
     <span
       className={cn(
-        'inline-block size-1.5 shrink-0 rounded-full',
+        'inline-block size-2 shrink-0 rounded-full',
         STATUS_DOT[status],
         pulse && status === 'running' && 'animate-pulse',
         className,

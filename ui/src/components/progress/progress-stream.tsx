@@ -141,21 +141,21 @@ function EventLine({ event, isLatest, isTerminal }: EventLineProps) {
         : ' ';
 
   const categoryClass = isErrorEvent
-    ? 'text-heat-hot/80'
+    ? 'text-heat-hot/90'
     : isCompleteEvent
-      ? 'text-heat-hot/80'
+      ? 'text-heat-hot/90'
       : highlight
         ? 'text-primary'
-        : 'text-muted-foreground/45';
+        : 'text-muted-foreground';
 
   const messageClass = isErrorEvent
-    ? 'text-heat-hot/90'
+    ? 'text-heat-hot'
     : highlight
       ? 'text-foreground'
-      : 'text-muted-foreground/55';
+      : 'text-foreground/65';
 
   return (
-    <div className="grid grid-cols-[14px_74px_88px_minmax(0,1fr)] items-baseline gap-3 px-2 py-[1px] font-mono text-[0.7rem] leading-[1.55] tracking-[-0.002em]">
+    <div className="grid grid-cols-[14px_74px_88px_minmax(0,1fr)] items-baseline gap-3 px-2 py-[1px] font-mono text-[0.72rem] leading-[1.55] tracking-[-0.002em]">
       <span
         className={cn(
           'tabular-nums',
@@ -163,12 +163,12 @@ function EventLine({ event, isLatest, isTerminal }: EventLineProps) {
             ? 'text-heat-hot'
             : highlight
               ? 'text-primary animate-pulse'
-              : 'text-muted-foreground/30',
+              : 'text-muted-foreground/60',
         )}
       >
         {glyph}
       </span>
-      <span className="tabular-nums text-muted-foreground/50">
+      <span className="tabular-nums text-foreground/70">
         {formatEventTime(event.timestamp)}
       </span>
       <span className={cn('uppercase tracking-[0.06em]', categoryClass)}>
@@ -231,36 +231,36 @@ function TerminalLog({
                   : 'bg-primary animate-pulse',
             )}
           />
-          <span className="font-mono text-[0.58rem] tracking-[0.14em] text-muted-foreground/80 uppercase">
+          <span className="font-mono text-[0.62rem] tracking-[0.14em] text-foreground/85 uppercase">
             campaign stream
           </span>
         </div>
-        <div className="flex items-baseline gap-3 font-mono text-[0.62rem] tabular-nums">
+        <div className="flex items-baseline gap-3 font-mono text-[0.64rem] tabular-nums">
           {maxIterations > 0 && (
-            <span className="text-muted-foreground/60">
-              <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+            <span className="text-foreground/80">
+              <span className="tracking-[0.1em] text-muted-foreground uppercase">
                 iter
               </span>{' '}
-              <span className="text-foreground/80">
+              <span className="text-foreground">
                 {iteration}/{maxIterations}
               </span>
             </span>
           )}
-          <span className="text-muted-foreground/60">
-            <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+          <span className="text-foreground/80">
+            <span className="tracking-[0.1em] text-muted-foreground uppercase">
               step
             </span>{' '}
             <span className={statusClass}>{statusText}</span>
           </span>
           {eta && (
-            <span className="text-muted-foreground/60">
-              <span className="tracking-[0.1em] text-muted-foreground/45 uppercase">
+            <span className="text-foreground/80">
+              <span className="tracking-[0.1em] text-muted-foreground uppercase">
                 eta
               </span>{' '}
-              <span className="text-foreground/80">{eta}</span>
+              <span className="text-foreground">{eta}</span>
             </span>
           )}
-          <span className="text-muted-foreground/40">
+          <span className="text-muted-foreground">
             {events.length.toString().padStart(3, '0')}
           </span>
         </div>
@@ -272,7 +272,7 @@ function TerminalLog({
         className="max-h-[260px] min-h-[96px] overflow-y-auto py-2"
       >
         {events.length === 0 ? (
-          <div className="px-3 py-1 font-mono text-[0.7rem] text-muted-foreground/50">
+          <div className="px-3 py-1 font-mono text-[0.72rem] text-muted-foreground">
             <span className="mr-2 animate-pulse text-primary">›</span>
             connecting to event stream…
           </div>

@@ -65,23 +65,23 @@ function TableHeader({ total }: { total: number }) {
         )}
       >
         <span />
-        <span className="font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+        <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
           Prediction Question
         </span>
-        <span className="font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+        <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
           Demographic
         </span>
-        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
           Score
         </span>
-        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
           Iters
         </span>
-        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
           Created
         </span>
       </div>
-      <span className="shrink-0 pl-4 font-mono text-[0.58rem] tabular-nums text-muted-foreground/50">
+      <span className="shrink-0 pl-4 font-mono text-[0.6rem] tabular-nums text-muted-foreground">
         {total.toString().padStart(3, '0')}
       </span>
     </div>
@@ -114,28 +114,28 @@ function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
         <p className="truncate text-[0.82rem] leading-snug text-foreground/90 group-hover:text-foreground">
           {campaign.prediction_question}
         </p>
-        <span className="truncate font-mono text-[0.7rem] text-muted-foreground/80">
+        <span className="truncate font-mono text-[0.72rem] text-foreground/75">
           {demographic}
         </span>
         <span
           className={cn(
             'text-right font-mono text-[0.82rem] tabular-nums',
-            best != null ? 'text-foreground' : 'text-muted-foreground/30',
+            best != null ? 'text-foreground' : 'text-muted-foreground',
           )}
         >
           {best != null ? best.toFixed(1) : '—'}
         </span>
-        <span className="text-right font-mono text-[0.7rem] tabular-nums text-muted-foreground/70">
+        <span className="text-right font-mono text-[0.72rem] tabular-nums text-foreground/80">
           {iterCount}/{campaign.max_iterations}
         </span>
-        <span className="text-right font-mono text-[0.7rem] tabular-nums text-muted-foreground/70">
+        <span className="text-right font-mono text-[0.72rem] tabular-nums text-foreground/75">
           {formatRelative(campaign.created_at)}
         </span>
       </div>
 
       {/* Hover summary — seed content preview, fades in, no layout shift */}
       <div className="max-h-0 overflow-hidden transition-[max-height] duration-150 ease-out group-hover:max-h-10">
-        <p className="pb-2.5 pl-[calc(0.75rem+14px+1rem)] pr-3 font-mono text-[0.66rem] leading-tight text-muted-foreground/55">
+        <p className="pb-2.5 pl-[calc(0.75rem+14px+1rem)] pr-3 font-mono text-[0.68rem] leading-tight text-muted-foreground">
           {truncate(campaign.seed_content.replace(/\s+/g, ' '), 180)}
         </p>
       </div>
@@ -145,7 +145,7 @@ function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
 
 function Loading() {
   return (
-    <div className="rounded-sm border border-border bg-surface-1 px-4 py-3 font-mono text-[0.7rem] text-muted-foreground/70">
+    <div className="rounded-sm border border-border bg-surface-1 px-4 py-3 font-mono text-[0.72rem] text-muted-foreground">
       <span className="mr-2 inline-block size-1 rounded-full bg-primary/80 align-middle" />
       loading campaigns…
     </div>
@@ -155,10 +155,10 @@ function Loading() {
 function EmptyCampaigns({ onNew }: { onNew: () => void }) {
   return (
     <div className="flex flex-col items-start gap-4 border-y border-border py-10">
-      <div className="font-mono text-[0.68rem] tracking-[0.08em] text-muted-foreground/70 uppercase">
+      <div className="font-mono text-[0.7rem] tracking-[0.08em] text-muted-foreground uppercase">
         $ arc campaigns list
       </div>
-      <p className="max-w-md text-[0.85rem] leading-relaxed text-foreground/80">
+      <p className="max-w-md text-[0.88rem] leading-relaxed text-foreground/85">
         No campaigns in the store yet. Seed content, a prediction question,
         and a target demographic are all you need to run your first
         optimization cycle.
@@ -183,7 +183,7 @@ export function CampaignList() {
           <h1 className="text-[1.15rem] font-semibold tracking-[-0.01em] text-foreground">
             Campaigns
           </h1>
-          <p className="font-mono text-[0.65rem] tracking-[0.08em] text-muted-foreground/60 uppercase">
+          <p className="font-mono text-[0.68rem] tracking-[0.08em] text-muted-foreground uppercase">
             Neural scoring · social simulation · iterative optimization
           </p>
         </div>

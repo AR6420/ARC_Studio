@@ -4,8 +4,8 @@
  *   Attention Score  ████████████░░░░  78.3
  *
  * Label (left), heat-colored bar (center), monospace value (right).
- * Used for the composite profile grid on the Campaign tab and inside
- * variant ranking cards.
+ * Null/undefined values show an em-dash with no bar fill; 0.0 values
+ * show the number with an empty (but visually present) bar track.
  */
 
 import { cn } from '@/lib/utils';
@@ -50,12 +50,12 @@ export function ScoreBar({
       )}
     >
       <div className="flex items-center gap-1 overflow-hidden">
-        <span className="truncate text-[0.72rem] text-foreground/75">
+        <span className="truncate text-[0.74rem] text-foreground/80">
           {formatMetricLabel(name)}
         </span>
         {inverted && (
           <span
-            className="font-mono text-[0.55rem] text-muted-foreground/50"
+            className="font-mono text-[0.58rem] text-muted-foreground"
             title="Lower is better"
           >
             ↓
@@ -63,25 +63,30 @@ export function ScoreBar({
         )}
       </div>
 
-      <div className="relative h-[3px] overflow-hidden rounded-[1px] bg-foreground/[0.06]">
-        {hasValue && stop && (
-          <div
-            className="absolute inset-y-0 left-0 rounded-[1px]"
-            style={{
-              width: `${widthPercent}%`,
-              background: HEAT_VARS[stop],
-            }}
-          />
-        )}
-      </div>
+      {hasValue ? (
+        <div className="relative h-[3px] overflow-hidden rounded-[1px] bg-foreground/[0.08]">
+          {stop && widthPercent > 0 && (
+            <div
+              className="absolute inset-y-0 left-0 rounded-[1px]"
+              style={{
+                width: `${widthPercent}%`,
+                background: HEAT_VARS[stop],
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        // Null / missing — show a dashed track so the metric isn't mistaken for 0
+        <div className="h-[3px] rounded-[1px] border-t border-dashed border-foreground/15" />
+      )}
 
       <span
         className={cn(
-          'text-right font-mono text-[0.78rem] font-medium tabular-nums',
-          stop ? HEAT_TEXT[stop] : 'text-muted-foreground/40',
+          'text-right font-mono text-[0.8rem] font-medium tabular-nums',
+          hasValue && stop ? HEAT_TEXT[stop] : 'text-muted-foreground',
         )}
       >
-        {formatScore(value)}
+        {hasValue ? formatScore(value) : '—'}
       </span>
     </div>
   );

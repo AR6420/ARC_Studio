@@ -120,7 +120,7 @@ export function DemographicSelector({
 
       {/* Inline description of the currently selected preset — replaces tooltips */}
       {activePreset && (
-        <p className="font-mono text-[0.66rem] text-muted-foreground/55">
+        <p className="font-mono text-[0.68rem] text-muted-foreground">
           › {activePreset.hint}
         </p>
       )}

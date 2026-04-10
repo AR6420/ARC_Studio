@@ -57,7 +57,7 @@ export function Header({ title }: HeaderProps) {
         <h1 className="text-[0.85rem] font-semibold tracking-[-0.005em] text-foreground">
           {title ?? 'Dashboard'}
         </h1>
-        <span className="font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground/50 uppercase">
+        <span className="font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground uppercase">
           /arc
         </span>
       </div>

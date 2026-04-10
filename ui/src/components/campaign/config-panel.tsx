@@ -66,10 +66,10 @@ function SliderRow({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
+        <span className="font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
           {label}
         </span>
-        <span className="font-mono text-[0.95rem] font-semibold tabular-nums text-primary">
+        <span className="font-mono text-[0.95rem] font-semibold tabular-nums text-foreground">
           {value}
         </span>
       </div>
@@ -83,7 +83,7 @@ function SliderRow({
         max={max}
         step={step}
       />
-      <div className="flex items-center justify-between font-mono text-[0.58rem] tabular-nums text-muted-foreground/45">
+      <div className="flex items-center justify-between font-mono text-[0.6rem] tabular-nums text-muted-foreground">
         <span>{min}</span>
         <span>{hint}</span>
         <span>{max}</span>
@@ -151,9 +151,11 @@ export function ConfigPanel({
           onClick={handleToggle}
           className="flex w-full items-center justify-between text-left"
         >
-          <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-            Score Thresholds
-            <span className="ml-2 normal-case tracking-normal text-muted-foreground/50">
+          <span className="flex items-baseline gap-2">
+            <span className="text-[0.9rem] font-medium text-foreground/90">
+              Score thresholds
+            </span>
+            <span className="font-mono text-[0.64rem] text-muted-foreground">
               {open ? 'enabled' : 'optional'}
             </span>
           </span>
@@ -176,11 +178,11 @@ export function ConfigPanel({
                 >
                   <label
                     htmlFor={`thr-${key}`}
-                    className="flex min-w-0 items-center gap-1.5 text-[0.74rem] text-foreground/80"
+                    className="flex min-w-0 items-center gap-1.5 text-[0.76rem] text-foreground/85"
                   >
                     <span className="truncate">{label}</span>
                     {isInverted && (
-                      <span className="font-mono text-[0.55rem] text-muted-foreground/55">
+                      <span className="font-mono text-[0.6rem] text-muted-foreground">
                         ↓
                       </span>
                     )}

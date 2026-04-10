@@ -193,11 +193,11 @@ function FieldGroup({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline gap-3 border-b border-border pb-2">
-        <span className="font-mono text-[0.62rem] font-semibold tracking-[0.18em] text-foreground/90 uppercase">
+        <h2 className="text-[1rem] font-medium tracking-[-0.005em] text-foreground">
           {label}
-        </span>
+        </h2>
         {hint && (
-          <span className="text-[0.7rem] text-muted-foreground/65">
+          <span className="text-[0.72rem] text-muted-foreground">
             {hint}
           </span>
         )}
@@ -217,7 +217,7 @@ function FieldLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="block font-mono text-[0.6rem] tracking-[0.14em] text-muted-foreground uppercase"
+      className="block font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase"
     >
       {children}
     </label>
@@ -237,20 +237,20 @@ function CharCount({
   const nearMax = current > max * 0.9;
 
   return (
-    <div className="pointer-events-none absolute right-2.5 bottom-2 flex items-center gap-1.5 font-mono text-[0.6rem] tabular-nums">
+    <div className="pointer-events-none absolute right-2.5 bottom-2 flex items-center gap-1.5 font-mono text-[0.62rem] tabular-nums">
       <span
         className={cn(
           belowMin
             ? 'text-heat-mid'
             : nearMax
               ? 'text-heat-hot'
-              : 'text-muted-foreground/40',
+              : 'text-muted-foreground',
         )}
       >
         {current.toLocaleString()} / {max.toLocaleString()}
       </span>
       {belowMin && (
-        <span className="text-muted-foreground/45">min {min}</span>
+        <span className="text-muted-foreground">min {min}</span>
       )}
     </div>
   );
