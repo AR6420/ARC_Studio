@@ -21,6 +21,7 @@ Design decisions:
 
 import asyncio
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -34,6 +35,7 @@ POLL_BACKOFF_FACTOR = 1.5
 GRAPH_BUILD_TIMEOUT = 300.0  # 5 minutes max for graph build
 SIM_PREPARE_TIMEOUT = 300.0  # 5 minutes max for simulation prepare
 SIM_RUN_TIMEOUT = 600.0  # 10 minutes max for simulation run
+SIMULATION_RUN_TIMEOUT = 600  # 10 minutes — wall-clock timeout for run-status polling
 
 
 def _get_field(resp_json: dict, field: str):
@@ -406,7 +408,7 @@ class MirofishClient:
             logger.error("MiroFish prepare simulation failed: %s", e)
             return False
 
-    async def _run_simulation(self, simulation_id: str, max_rounds: int) -> bool:
+    async def _run_simulation(self, simulation_id: str, max_rounds: int) -> bool | None:
         """Step 5: POST /api/simulation/start then poll run-status."""
         try:
             resp = await self._client.post(
@@ -420,9 +422,16 @@ class MirofishClient:
             )
             resp.raise_for_status()
             # Poll run status
-            elapsed = 0.0
+            start_time = time.monotonic()
             interval = POLL_INITIAL_INTERVAL
-            while elapsed < SIM_RUN_TIMEOUT:
+            while True:
+                if time.monotonic() - start_time > SIMULATION_RUN_TIMEOUT:
+                    logger.error(
+                        "MiroFish simulation %s timed out after %ds — aborting",
+                        simulation_id,
+                        SIMULATION_RUN_TIMEOUT,
+                    )
+                    return None
                 try:
                     status_resp = await self._client.get(
                         f"/api/simulation/{simulation_id}/run-status",
@@ -447,12 +456,7 @@ class MirofishClient:
                 except Exception as e:
                     logger.warning("MiroFish run status poll error: %s", e)
                 await asyncio.sleep(interval)
-                elapsed += interval
                 interval = min(interval * POLL_BACKOFF_FACTOR, POLL_MAX_INTERVAL)
-            logger.error(
-                "MiroFish simulation run timed out after %.0fs", SIM_RUN_TIMEOUT
-            )
-            return False
         except Exception as e:
             logger.error("MiroFish simulation start failed: %s", e)
             return False
