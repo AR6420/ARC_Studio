@@ -51,6 +51,26 @@ export function formatDate(isoString: string): string {
 }
 
 /**
+ * Compact relative-time format for dense tables and sidebar lists.
+ *
+ * Examples: "now", "5m ago", "2h ago", "1d ago", "Mar 15"
+ */
+export function formatRelative(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffSec < 45) return 'now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/**
  * Convert a snake_case metric name to Title Case.
  *
  * Example: "attention_score" -> "Attention Score"

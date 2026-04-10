@@ -1,70 +1,85 @@
 /**
- * Campaign status badge with icon and color-coded styling.
+ * Status indicators for campaign state.
  *
- * Uses lucide-react icons and tailored color schemes for each campaign state.
- * Running status gets a pulse animation for live feedback.
+ * The primary API is StatusDot — a 6px circle, amber for running,
+ * muted-green for complete, coral for failed. The old StatusBadge is
+ * kept as a compat wrapper that pairs the dot with a monospace label.
+ *
+ *   running  → amber (heat-mid)
+ *   complete → muted green
+ *   failed   → coral
+ *   pending  → gray
  */
 
-import { Clock, Play, CheckCircle2, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { CampaignStatus } from '@/api/types';
 
-const statusConfig: Record<
-  CampaignStatus,
-  {
-    label: string;
-    icon: typeof Clock;
-    className: string;
-  }
-> = {
-  pending: {
-    label: 'Pending',
-    icon: Clock,
-    className:
-      'bg-muted/60 text-muted-foreground border-muted-foreground/20',
-  },
-  running: {
-    label: 'Running',
-    icon: Play,
-    className:
-      'bg-[oklch(0.30_0.06_250)] text-[oklch(0.78_0.14_250)] border-[oklch(0.45_0.10_250)]',
-  },
-  completed: {
-    label: 'Completed',
-    icon: CheckCircle2,
-    className:
-      'bg-[oklch(0.25_0.05_163)] text-[oklch(0.78_0.16_163)] border-[oklch(0.40_0.08_163)]',
-  },
-  failed: {
-    label: 'Failed',
-    icon: XCircle,
-    className:
-      'bg-destructive/15 text-destructive border-destructive/30',
-  },
+const STATUS_DOT: Record<CampaignStatus, string> = {
+  pending: 'bg-[oklch(0.55_0.008_70)]',
+  running: 'bg-[oklch(0.80_0.14_75)]',
+  completed: 'bg-[oklch(0.72_0.15_150)]',
+  failed: 'bg-[oklch(0.68_0.20_22)]',
 };
+
+const STATUS_TEXT: Record<CampaignStatus, string> = {
+  pending: 'text-muted-foreground/70',
+  running: 'text-[oklch(0.80_0.14_75)]',
+  completed: 'text-[oklch(0.72_0.15_150)]',
+  failed: 'text-[oklch(0.68_0.20_22)]',
+};
+
+const STATUS_LABEL: Record<CampaignStatus, string> = {
+  pending: 'Pending',
+  running: 'Running',
+  completed: 'Complete',
+  failed: 'Failed',
+};
+
+interface StatusDotProps {
+  status: CampaignStatus;
+  className?: string;
+  pulse?: boolean;
+}
+
+export function StatusDot({ status, className, pulse = true }: StatusDotProps) {
+  return (
+    <span
+      className={cn(
+        'inline-block size-1.5 shrink-0 rounded-full',
+        STATUS_DOT[status],
+        pulse && status === 'running' && 'animate-pulse',
+        className,
+      )}
+      aria-label={STATUS_LABEL[status]}
+    />
+  );
+}
 
 interface StatusBadgeProps {
   status: CampaignStatus;
   className?: string;
+  showLabel?: boolean;
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status];
-  const Icon = config.icon;
-
+/**
+ * Dot + monospace label. Used in the campaign detail header.
+ * In tables and sidebar use StatusDot alone.
+ */
+export function StatusBadge({
+  status,
+  className,
+  showLabel = true,
+}: StatusBadgeProps) {
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        'gap-1.5 px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase',
-        config.className,
-        status === 'running' && 'animate-pulse',
+        'inline-flex items-center gap-1.5 font-mono text-[0.65rem] tracking-[0.1em] uppercase',
+        STATUS_TEXT[status],
         className,
       )}
     >
-      <Icon className="size-3" />
-      {config.label}
-    </Badge>
+      <StatusDot status={status} />
+      {showLabel && <span>{STATUS_LABEL[status]}</span>}
+    </span>
   );
 }

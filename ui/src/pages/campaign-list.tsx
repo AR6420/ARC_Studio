@@ -1,94 +1,173 @@
 /**
- * Campaign list page -- the main landing page of the A.R.C Studio dashboard.
+ * Campaign list — dense, scannable table view.
  *
- * Displays all campaigns in a responsive card grid with status badges,
- * prediction questions, demographics, dates, and iteration counts.
+ * Each campaign is a single row: status dot · question · demographic ·
+ * best composite score · iteration count · relative timestamp. Hovering
+ * a row reveals a one-line preview of the seed content underneath.
  *
- * Handles loading, error, and empty states using shared common components.
- *
- * D-07: Premium card design with hover depth, status-aware borders,
- * and scannable layout. Not a generic list.
+ * No card grid. No loading skeletons. Log-style loading indicator.
  */
 
 import { Link, useNavigate } from 'react-router-dom';
-import { FlaskConical } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { StatusBadge } from '@/components/common/status-badge';
-import { CampaignListSkeleton } from '@/components/common/loading-skeleton';
-import { EmptyState } from '@/components/common/empty-state';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { StatusDot } from '@/components/common/status-badge';
 import { ErrorState } from '@/components/common/error-state';
 import { useCampaigns } from '@/hooks/use-campaigns';
-import { formatDate } from '@/utils/formatters';
+import { formatRelative } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
-import type { CampaignResponse } from '@/api/types';
+import type { CampaignResponse, CompositeScores } from '@/api/types';
 
-function truncateLines(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen).trimEnd() + '...';
+const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
+  'attention_score',
+  'virality_potential',
+  'conversion_potential',
+  'audience_fit',
+  'memory_durability',
+  'backlash_risk',
+  'polarization_index',
+];
+
+/** Best-variant average composite score across the most recent iteration. */
+function bestCampaignScore(campaign: CampaignResponse): number | null {
+  const iterations = campaign.iterations;
+  if (!iterations?.length) return null;
+  const maxIterNum = Math.max(...iterations.map((it) => it.iteration_number));
+  const latest = iterations.filter((it) => it.iteration_number === maxIterNum);
+  let best = -1;
+  for (const v of latest) {
+    if (!v.composite_scores) continue;
+    const vals = COMPOSITE_KEYS.map((k) => v.composite_scores![k]).filter(
+      (n): n is number => n !== null,
+    );
+    if (!vals.length) continue;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg > best) best = avg;
+  }
+  return best >= 0 ? best : null;
 }
 
-function getIterationLabel(campaign: CampaignResponse): string | null {
-  if (!campaign.iterations || campaign.iterations.length === 0) return null;
-  return `${campaign.iterations.length}/${campaign.max_iterations} iterations`;
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max).trimEnd() + '…';
 }
 
-/** Subtle left-border accent per status for running campaigns */
-const statusBorderClass: Record<string, string> = {
-  running:
-    'ring-[oklch(0.45_0.10_250)]/40 hover:ring-[oklch(0.55_0.14_250)]/50',
-  completed:
-    'ring-[oklch(0.40_0.08_163)]/30 hover:ring-[oklch(0.50_0.12_163)]/40',
-  failed:
-    'ring-destructive/20 hover:ring-destructive/30',
-  pending: '',
-};
+const COLS =
+  'grid-cols-[14px_minmax(0,2.4fr)_minmax(0,1fr)_72px_62px_74px] md:grid-cols-[14px_minmax(0,2.6fr)_minmax(0,0.9fr)_80px_64px_78px]';
 
-function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
-  const iterationLabel = getIterationLabel(campaign);
-
+function TableHeader({ total }: { total: number }) {
   return (
-    <Link to={`/campaigns/${campaign.id}`} className="group outline-none">
-      <Card
+    <div className="flex items-center justify-between pb-3">
+      <div
         className={cn(
-          'relative cursor-pointer transition-all duration-200',
-          'hover:bg-card/80 hover:shadow-lg hover:shadow-primary/5',
-          'focus-within:ring-2 focus-within:ring-primary/40',
-          statusBorderClass[campaign.status],
+          'grid flex-1 items-center gap-4 px-3',
+          COLS,
         )}
       >
-        <CardContent className="flex flex-col gap-3">
-          {/* Top row: demographic + status badge */}
-          <div className="flex items-start justify-between gap-3">
-            <span className="rounded-md bg-muted/50 px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
-              {campaign.demographic}
-            </span>
-            <StatusBadge status={campaign.status} />
-          </div>
+        <span />
+        <span className="font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+          Prediction Question
+        </span>
+        <span className="font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+          Demographic
+        </span>
+        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+          Score
+        </span>
+        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+          Iters
+        </span>
+        <span className="text-right font-mono text-[0.58rem] tracking-[0.18em] text-muted-foreground/60 uppercase">
+          Created
+        </span>
+      </div>
+      <span className="shrink-0 pl-4 font-mono text-[0.58rem] tabular-nums text-muted-foreground/50">
+        {total.toString().padStart(3, '0')}
+      </span>
+    </div>
+  );
+}
 
-          {/* Prediction question */}
-          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-foreground/90 group-hover:text-foreground">
-            {truncateLines(campaign.prediction_question, 120)}
-          </p>
+function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
+  const best = bestCampaignScore(campaign);
+  const iterCount = campaign.iterations?.length ?? 0;
+  const demographic =
+    campaign.demographic === 'custom' && campaign.demographic_custom
+      ? truncate(campaign.demographic_custom, 28)
+      : campaign.demographic;
 
-          {/* Bottom row: date + iterations */}
-          <div className="flex items-center gap-3 pt-0.5">
-            <span className="text-[0.7rem] text-muted-foreground">
-              {formatDate(campaign.created_at)}
-            </span>
-            {iterationLabel && (
-              <>
-                <span className="text-[0.5rem] text-muted-foreground/40">
-                  |
-                </span>
-                <span className="text-[0.7rem] text-muted-foreground">
-                  {iterationLabel}
-                </span>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+  return (
+    <Link
+      to={`/campaigns/${campaign.id}`}
+      className={cn(
+        'group relative block border-b border-border transition-colors',
+        'hover:bg-foreground/[0.025] focus-visible:bg-foreground/[0.03] focus-visible:outline-none',
+      )}
+    >
+      <div
+        className={cn(
+          'grid items-center gap-4 px-3 py-2.5',
+          COLS,
+        )}
+      >
+        <StatusDot status={campaign.status} />
+        <p className="truncate text-[0.82rem] leading-snug text-foreground/90 group-hover:text-foreground">
+          {campaign.prediction_question}
+        </p>
+        <span className="truncate font-mono text-[0.7rem] text-muted-foreground/80">
+          {demographic}
+        </span>
+        <span
+          className={cn(
+            'text-right font-mono text-[0.82rem] tabular-nums',
+            best != null ? 'text-foreground' : 'text-muted-foreground/30',
+          )}
+        >
+          {best != null ? best.toFixed(1) : '—'}
+        </span>
+        <span className="text-right font-mono text-[0.7rem] tabular-nums text-muted-foreground/70">
+          {iterCount}/{campaign.max_iterations}
+        </span>
+        <span className="text-right font-mono text-[0.7rem] tabular-nums text-muted-foreground/70">
+          {formatRelative(campaign.created_at)}
+        </span>
+      </div>
+
+      {/* Hover summary — seed content preview, fades in, no layout shift */}
+      <div className="max-h-0 overflow-hidden transition-[max-height] duration-150 ease-out group-hover:max-h-10">
+        <p className="pb-2.5 pl-[calc(0.75rem+14px+1rem)] pr-3 font-mono text-[0.66rem] leading-tight text-muted-foreground/55">
+          {truncate(campaign.seed_content.replace(/\s+/g, ' '), 180)}
+        </p>
+      </div>
     </Link>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="rounded-sm border border-border bg-surface-1 px-4 py-3 font-mono text-[0.7rem] text-muted-foreground/70">
+      <span className="mr-2 inline-block size-1 rounded-full bg-primary/80 align-middle" />
+      loading campaigns…
+    </div>
+  );
+}
+
+function EmptyCampaigns({ onNew }: { onNew: () => void }) {
+  return (
+    <div className="flex flex-col items-start gap-4 border-y border-border py-10">
+      <div className="font-mono text-[0.68rem] tracking-[0.08em] text-muted-foreground/70 uppercase">
+        $ arc campaigns list
+      </div>
+      <p className="max-w-md text-[0.85rem] leading-relaxed text-foreground/80">
+        No campaigns in the store yet. Seed content, a prediction question,
+        and a target demographic are all you need to run your first
+        optimization cycle.
+      </p>
+      <Button variant="outline" size="sm" onClick={onNew} className="gap-1.5">
+        <Plus className="size-3" />
+        New Campaign
+      </Button>
+    </div>
   );
 }
 
@@ -96,19 +175,33 @@ export function CampaignList() {
   const { data, isLoading, isError, error, refetch } = useCampaigns();
   const navigate = useNavigate();
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h2 className="text-lg font-semibold tracking-tight">Campaigns</h2>
-        <CampaignListSkeleton />
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Page heading */}
+      <div className="flex items-end justify-between border-b border-border pb-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[1.15rem] font-semibold tracking-[-0.01em] text-foreground">
+            Campaigns
+          </h1>
+          <p className="font-mono text-[0.65rem] tracking-[0.08em] text-muted-foreground/60 uppercase">
+            Neural scoring · social simulation · iterative optimization
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/campaigns/new')}
+          className="gap-1.5"
+        >
+          <Plus className="size-3" />
+          New Campaign
+        </Button>
       </div>
-    );
-  }
 
-  if (isError) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h2 className="text-lg font-semibold tracking-tight">Campaigns</h2>
+      {/* Content */}
+      {isLoading ? (
+        <Loading />
+      ) : isError ? (
         <ErrorState
           message={
             error instanceof Error
@@ -117,41 +210,18 @@ export function CampaignList() {
           }
           onRetry={() => void refetch()}
         />
-      </div>
-    );
-  }
-
-  if (!data || data.campaigns.length === 0) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h2 className="text-lg font-semibold tracking-tight">Campaigns</h2>
-        <EmptyState
-          icon={FlaskConical}
-          title="No campaigns yet"
-          description="Create your first campaign to start optimizing content with neural scoring and social simulation."
-          action={{
-            label: 'Create Campaign',
-            onClick: () => navigate('/campaigns/new'),
-          }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">Campaigns</h2>
-        <span className="text-xs text-muted-foreground">
-          {data.total} campaign{data.total !== 1 ? 's' : ''}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {data.campaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-      </div>
+      ) : !data || data.campaigns.length === 0 ? (
+        <EmptyCampaigns onNew={() => navigate('/campaigns/new')} />
+      ) : (
+        <div className="flex flex-col">
+          <TableHeader total={data.total} />
+          <div className="border-t border-border">
+            {data.campaigns.map((c) => (
+              <CampaignRow key={c.id} campaign={c} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
