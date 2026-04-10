@@ -74,25 +74,38 @@ def score_text(text: str, model) -> tuple[np.ndarray, bool]:
     try:
         logger.info("Running TRIBE inference pipeline (timeout=%ds)...", _INFERENCE_TIMEOUT)
         # Run in a thread with a timeout so the pipeline can't hang forever.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_pipeline, tmp_path, model)
+        # NOTE: We intentionally do NOT use `with ThreadPoolExecutor(...)` here.
+        # The `with` block calls shutdown(wait=True) on exit, which would block
+        # until the inference thread finishes — negating the timeout entirely.
+        # Instead, on timeout we call shutdown(wait=False) to return immediately,
+        # orphaning the still-running thread. The resource leak is acceptable
+        # for a POC; it beats blocking the batch for another 30-60 minutes.
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(_run_pipeline, tmp_path, model)
+        try:
             preds, segments = future.result(timeout=_INFERENCE_TIMEOUT)
-    except concurrent.futures.TimeoutError:
-        logger.warning(
-            "TRIBE v2 pipeline timed out after %ds. Falling back to "
-            "pseudo-scores.",
-            _INFERENCE_TIMEOUT,
-        )
-        Path(tmp_path).unlink(missing_ok=True)
-        return (_pseudo_score_from_text(text), True)
-    except Exception as exc:
-        logger.warning(
-            "TRIBE v2 full pipeline failed (%s: %s). Falling back to "
-            "text-feature-based pseudo-scores for POC validation.",
-            type(exc).__name__, exc,
-        )
-        Path(tmp_path).unlink(missing_ok=True)
-        return (_pseudo_score_from_text(text), True)
+        except concurrent.futures.TimeoutError:
+            logger.warning(
+                "TRIBE v2 pipeline timed out after %ds. Falling back to "
+                "pseudo-scores.",
+                _INFERENCE_TIMEOUT,
+            )
+            # Do NOT call shutdown(wait=True) — that would block.
+            executor.shutdown(wait=False, cancel_futures=True)
+            Path(tmp_path).unlink(missing_ok=True)
+            return (_pseudo_score_from_text(text), True)
+        except Exception as exc:
+            logger.warning(
+                "TRIBE v2 full pipeline failed (%s: %s). Falling back to "
+                "text-feature-based pseudo-scores for POC validation.",
+                type(exc).__name__, exc,
+            )
+            executor.shutdown(wait=False, cancel_futures=True)
+            Path(tmp_path).unlink(missing_ok=True)
+            return (_pseudo_score_from_text(text), True)
+        else:
+            # Success — thread already finished, shutdown is a no-op.
+            executor.shutdown(wait=False)
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
