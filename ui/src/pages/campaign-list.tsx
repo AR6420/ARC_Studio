@@ -28,6 +28,30 @@ const COMPOSITE_KEYS: (keyof CompositeScores)[] = [
   'polarization_index',
 ];
 
+/**
+ * Completed iteration count for the list view.
+ *
+ * Prefers the server-computed `iterations_completed` field. Falls back
+ * to counting distinct iteration_numbers if the nested iterations
+ * array happens to be populated (detail view, some caches). If neither
+ * is available, assume a `completed` campaign ran all max_iterations —
+ * the list endpoint doesn't ship iterations so without this heuristic
+ * every completed campaign reads 0/N until the orchestrator is
+ * restarted to pick up the new schema field.
+ */
+function resolveIterationCount(campaign: CampaignResponse): number {
+  if (typeof campaign.iterations_completed === 'number') {
+    return campaign.iterations_completed;
+  }
+  if (campaign.iterations && campaign.iterations.length > 0) {
+    return new Set(campaign.iterations.map((it) => it.iteration_number)).size;
+  }
+  if (campaign.status === 'completed') {
+    return campaign.max_iterations;
+  }
+  return 0;
+}
+
 /** Best-variant average composite score across the most recent iteration. */
 function bestCampaignScore(campaign: CampaignResponse): number | null {
   const iterations = campaign.iterations;
@@ -86,13 +110,7 @@ function TableHeader() {
 
 function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
   const best = bestCampaignScore(campaign);
-  // Prefer the server-computed iterations_completed from list/detail response;
-  // fall back to derived counts so existing data without the field still works.
-  const iterCount =
-    campaign.iterations_completed ??
-    (campaign.iterations
-      ? new Set(campaign.iterations.map((it) => it.iteration_number)).size
-      : 0);
+  const iterCount = resolveIterationCount(campaign);
   const demographic =
     campaign.demographic === 'custom' && campaign.demographic_custom
       ? truncate(campaign.demographic_custom, 28)
