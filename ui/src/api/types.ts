@@ -105,6 +105,7 @@ export interface CampaignResponse {
   demographic_custom?: string | null;
   agent_count: number;
   max_iterations: number;
+  iterations_completed?: number;
   thresholds?: Record<string, number> | null;
   constraints?: string | null;
   created_at: string;

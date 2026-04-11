@@ -134,6 +134,7 @@ class CampaignStore:
         # Fetch nested iterations and analyses
         iterations = await self.get_iterations(campaign_id)
         analyses = await self._get_analyses(campaign_id)
+        iterations_completed = len({it.iteration_number for it in iterations})
 
         return CampaignResponse(
             id=row["id"],
@@ -144,6 +145,7 @@ class CampaignStore:
             demographic_custom=row["demographic_custom"],
             agent_count=row["agent_count"],
             max_iterations=row["max_iterations"],
+            iterations_completed=iterations_completed,
             thresholds=json.loads(row["thresholds"]) if row["thresholds"] else None,
             constraints=row["constraints"],
             created_at=row["created_at"],
@@ -157,7 +159,17 @@ class CampaignStore:
     async def list_campaigns(self) -> CampaignListResponse:
         """List all campaigns ordered by created_at DESC (lightweight, no nested data)."""
         cursor = await self._db.conn.execute(
-            "SELECT * FROM campaigns ORDER BY created_at DESC"
+            """
+            SELECT
+                c.*,
+                (
+                    SELECT COUNT(DISTINCT iteration_number)
+                    FROM iterations i
+                    WHERE i.campaign_id = c.id
+                ) AS iterations_completed
+            FROM campaigns c
+            ORDER BY c.created_at DESC
+            """
         )
         rows = await cursor.fetchall()
 
@@ -171,6 +183,7 @@ class CampaignStore:
                 demographic_custom=row["demographic_custom"],
                 agent_count=row["agent_count"],
                 max_iterations=row["max_iterations"],
+                iterations_completed=row["iterations_completed"] or 0,
                 thresholds=(
                     json.loads(row["thresholds"]) if row["thresholds"] else None
                 ),

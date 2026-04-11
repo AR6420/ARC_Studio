@@ -52,37 +52,33 @@ function truncate(text: string, max: number): string {
   return text.slice(0, max).trimEnd() + '…';
 }
 
+// Shared grid template for header + row so columns stay aligned.
 const COLS =
-  'grid-cols-[14px_minmax(0,2.4fr)_minmax(0,1fr)_72px_62px_74px] md:grid-cols-[14px_minmax(0,2.6fr)_minmax(0,0.9fr)_80px_64px_78px]';
+  'grid-cols-[18px_minmax(0,2.4fr)_minmax(0,1fr)_72px_62px_74px] md:grid-cols-[18px_minmax(0,2.6fr)_minmax(0,0.9fr)_80px_64px_78px]';
 
-function TableHeader({ total }: { total: number }) {
+function TableHeader() {
   return (
-    <div className="flex items-center justify-between pb-3">
-      <div
-        className={cn(
-          'grid flex-1 items-center gap-4 px-3',
-          COLS,
-        )}
-      >
-        <span />
-        <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-          Prediction Question
-        </span>
-        <span className="font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-          Demographic
-        </span>
-        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-          Score
-        </span>
-        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-          Iters
-        </span>
-        <span className="text-right font-mono text-[0.6rem] tracking-[0.16em] text-muted-foreground uppercase">
-          Created
-        </span>
-      </div>
-      <span className="shrink-0 pl-4 font-mono text-[0.6rem] tabular-nums text-muted-foreground">
-        {total.toString().padStart(3, '0')}
+    <div
+      className={cn(
+        'grid items-center gap-4 px-3 pb-3',
+        COLS,
+      )}
+    >
+      <span />
+      <span className="font-mono text-[0.62rem] font-medium tracking-[0.14em] text-foreground/60 uppercase">
+        Prediction Question
+      </span>
+      <span className="font-mono text-[0.62rem] font-medium tracking-[0.14em] text-foreground/60 uppercase">
+        Demographic
+      </span>
+      <span className="text-right font-mono text-[0.62rem] font-medium tracking-[0.14em] text-foreground/60 uppercase">
+        Score
+      </span>
+      <span className="text-right font-mono text-[0.62rem] font-medium tracking-[0.14em] text-foreground/60 uppercase">
+        Iters
+      </span>
+      <span className="text-right font-mono text-[0.62rem] font-medium tracking-[0.14em] text-foreground/60 uppercase">
+        Created
       </span>
     </div>
   );
@@ -90,7 +86,13 @@ function TableHeader({ total }: { total: number }) {
 
 function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
   const best = bestCampaignScore(campaign);
-  const iterCount = campaign.iterations?.length ?? 0;
+  // Prefer the server-computed iterations_completed from list/detail response;
+  // fall back to derived counts so existing data without the field still works.
+  const iterCount =
+    campaign.iterations_completed ??
+    (campaign.iterations
+      ? new Set(campaign.iterations.map((it) => it.iteration_number)).size
+      : 0);
   const demographic =
     campaign.demographic === 'custom' && campaign.demographic_custom
       ? truncate(campaign.demographic_custom, 28)
@@ -135,7 +137,7 @@ function CampaignRow({ campaign }: { campaign: CampaignResponse }) {
 
       {/* Hover summary — seed content preview, fades in, no layout shift */}
       <div className="max-h-0 overflow-hidden transition-[max-height] duration-150 ease-out group-hover:max-h-10">
-        <p className="pb-2.5 pl-[calc(0.75rem+14px+1rem)] pr-3 font-mono text-[0.68rem] leading-tight text-muted-foreground">
+        <p className="pb-2.5 pl-[calc(0.75rem+18px+1rem)] pr-3 font-mono text-[0.68rem] leading-tight text-muted-foreground">
           {truncate(campaign.seed_content.replace(/\s+/g, ' '), 180)}
         </p>
       </div>
@@ -191,7 +193,7 @@ export function CampaignList() {
           variant="outline"
           size="sm"
           onClick={() => navigate('/campaigns/new')}
-          className="gap-1.5"
+          className="gap-1.5 border-primary/50 text-primary hover:border-primary/80 hover:bg-primary/10 hover:text-primary"
         >
           <Plus className="size-3" />
           New Campaign
@@ -214,7 +216,7 @@ export function CampaignList() {
         <EmptyCampaigns onNew={() => navigate('/campaigns/new')} />
       ) : (
         <div className="flex flex-col">
-          <TableHeader total={data.total} />
+          <TableHeader />
           <div className="border-t border-border">
             {data.campaigns.map((c) => (
               <CampaignRow key={c.id} campaign={c} />

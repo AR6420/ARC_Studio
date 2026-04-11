@@ -130,6 +130,7 @@ class CampaignResponse(BaseModel):
     demographic_custom: str | None = None
     agent_count: int
     max_iterations: int
+    iterations_completed: int = 0  # distinct iteration_numbers stored so far
     thresholds: dict[str, float] | None = None
     constraints: str | None = None
     created_at: str
