@@ -173,7 +173,7 @@ cd ui && npm install && cd ..
 
 # One-command startup (recommended)
 ```bash
-scripts/start_all.sh
+bash scripts/start_all.sh
 ```
 
 ```bash
