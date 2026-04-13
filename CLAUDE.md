@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dependency**: TRIBE v2 requires HuggingFace LLaMA 3.2-3B gated model approval
 - **Dependency**: MiroFish-Offline is a Git submodule — minimal modifications to enable upstream merges
 - **Performance**: Full campaign (40 agents, 4 iterations) must complete in <= 20 minutes
+- **PyTorch**: Pinned to 2.5.1-2.6.x (no native sm_120 support). See `docs/pytorch_upgrade_path.md` for upgrade path to 2.8+.
 - **Scope**: Phase 1 POC only — no auth, no HTTPS, no multi-user
 <!-- GSD:project-end -->
 
