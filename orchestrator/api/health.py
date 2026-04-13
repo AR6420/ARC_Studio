@@ -6,12 +6,14 @@ and demographic preset listing for the UI.
 """
 
 import logging
+import os
 import time
 
 import httpx
 from fastapi import APIRouter, Request
 from orchestrator.api.schemas import (
     HealthResponse,
+    Neo4jHealth,
     ServiceHealth,
     DemographicsResponse,
     DemographicInfo,
@@ -69,6 +71,33 @@ async def health_check(request: Request):
         db_ok = False
     db_latency = (time.monotonic() - db_start) * 1000
 
+    # Check Neo4j graph stats
+    neo4j_health = None
+    try:
+        neo4j_stats = await mirofish_client.get_neo4j_stats(
+            neo4j_url="http://localhost:7474",
+            neo4j_user=os.environ.get("NEO4J_USER", settings.neo4j_user),
+            neo4j_password=os.environ.get(
+                "NEO4J_PASSWORD", settings.neo4j_password
+            ),
+        )
+        if neo4j_stats:
+            warning = None
+            node_count = neo4j_stats.get("node_count", 0)
+            if node_count > 50000:  # ~250 campaigns worth of data
+                warning = (
+                    f"High node count ({node_count}). "
+                    "Consider running scripts/cleanup_neo4j.sh"
+                )
+            neo4j_health = Neo4jHealth(
+                node_count=neo4j_stats.get("node_count"),
+                relationship_count=neo4j_stats.get("relationship_count"),
+                heap_max_mb=neo4j_stats.get("heap_max_mb"),
+                warning=warning,
+            )
+    except Exception as e:
+        logger.warning("Neo4j stats check failed: %s", e)
+
     return HealthResponse(
         orchestrator="ok",
         tribe_scorer=ServiceHealth(
@@ -87,6 +116,7 @@ async def health_check(request: Request):
             status="ok" if db_ok else "unavailable",
             latency_ms=round(db_latency, 1) if db_ok else None,
         ),
+        neo4j=neo4j_health,
     )
 
 
