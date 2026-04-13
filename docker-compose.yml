@@ -1,3 +1,10 @@
+# Health Check Strategy:
+# - neo4j: HTTP check on web console (port 7474). 30s start_period for JVM warmup.
+# - litellm: HTTP check on /health endpoint. 30s start_period for model loading.
+# - mirofish: HTTP check on /health endpoint (port 5001). 45s start_period
+#   because it depends on neo4j + litellm being healthy first.
+# All services use restart: unless-stopped for auto-recovery on failure.
+
 services:
   # Neo4j: knowledge graph storage for MiroFish-Offline
   neo4j:
@@ -77,6 +84,12 @@ services:
         condition: service_healthy
       litellm:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
 
 volumes:
   neo4j_data:
