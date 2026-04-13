@@ -194,6 +194,15 @@ class ServiceHealth(BaseModel):
     latency_ms: float | None = None
 
 
+class Neo4jHealth(BaseModel):
+    """Neo4j graph database health metrics for monitoring heap and data growth."""
+
+    node_count: int | None = None
+    relationship_count: int | None = None
+    heap_max_mb: int | None = None
+    warning: str | None = None
+
+
 class HealthResponse(BaseModel):
     """Aggregated health status of all services."""
 
@@ -202,6 +211,7 @@ class HealthResponse(BaseModel):
     mirofish: ServiceHealth
     litellm: ServiceHealth | None = None  # LLM proxy used by MiroFish
     database: ServiceHealth
+    neo4j: Neo4jHealth | None = None
 
 
 # -- Demographics response --

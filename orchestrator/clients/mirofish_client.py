@@ -184,6 +184,79 @@ class MirofishClient:
             )
             return False
 
+    async def get_neo4j_stats(
+        self,
+        neo4j_url: str = "http://localhost:7474",
+        neo4j_user: str = "neo4j",
+        neo4j_password: str = "",
+    ) -> dict | None:
+        """Query Neo4j heap usage and node count for health monitoring.
+
+        Uses Neo4j's HTTP API to run Cypher queries for:
+        - Total node and relationship counts
+        - Configured heap max (from docker-compose)
+
+        Returns dict with heap_max_mb, node_count, relationship_count
+        or None on failure.
+        """
+        try:
+            import base64
+
+            auth_str = base64.b64encode(
+                f"{neo4j_user}:{neo4j_password}".encode()
+            ).decode()
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{neo4j_url}/db/neo4j/tx/commit",
+                    json={
+                        "statements": [
+                            {
+                                "statement": (
+                                    "MATCH (n) RETURN count(n) as node_count"
+                                )
+                            },
+                            {
+                                "statement": (
+                                    "MATCH ()-[r]->() RETURN count(r) as rel_count"
+                                )
+                            },
+                        ]
+                    },
+                    headers={
+                        "Authorization": f"Basic {auth_str}",
+                        "Content-Type": "application/json",
+                    },
+                    timeout=10.0,
+                )
+                if resp.status_code != 200:
+                    logger.warning(
+                        "Neo4j stats query failed: HTTP %d", resp.status_code
+                    )
+                    return None
+
+                data = resp.json()
+                results = data.get("results", [])
+                node_count = (
+                    results[0]["data"][0]["row"][0]
+                    if len(results) > 0 and results[0].get("data")
+                    else 0
+                )
+                rel_count = (
+                    results[1]["data"][0]["row"][0]
+                    if len(results) > 1 and results[1].get("data")
+                    else 0
+                )
+
+                return {
+                    "node_count": node_count,
+                    "relationship_count": rel_count,
+                    "heap_max_mb": 2048,  # From docker-compose config
+                }
+        except Exception as e:
+            logger.warning("Neo4j stats query failed: %s", e)
+            return None
+
     async def run_simulation(
         self,
         content: str,

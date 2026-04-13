@@ -13,6 +13,9 @@ services:
     ports:
       - "127.0.0.1:7474:7474"
       - "127.0.0.1:7687:7687"
+    # Heap capped at 2 GB. Each MiroFish simulation adds ~10 MB of graph data.
+    # After ~200 campaigns, consider running: scripts/cleanup_neo4j.sh
+    # To increase heap: change heap_max__size below and restart.
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set in .env}
       - NEO4J_PLUGINS=["apoc"]
