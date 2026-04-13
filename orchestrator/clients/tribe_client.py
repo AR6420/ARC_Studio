@@ -80,11 +80,26 @@ class TribeClient:
         self._retry_backoff_base = retry_backoff_base
 
     async def health_check(self) -> bool:
-        """Check if TRIBE v2 is healthy. Returns True if status is 'ok'."""
+        """Check if TRIBE v2 is healthy. Returns True if status is 'ok'.
+
+        Also detects stale CUDA contexts (e.g. after laptop sleep/wake) by
+        inspecting the ``cuda_healthy`` field in the health response. When
+        CUDA is stale the scorer cannot run inference and needs a restart.
+        """
         try:
             resp = await self._client.get("/api/health", timeout=10.0)
-            resp.raise_for_status()
             data = resp.json()
+
+            # Detect CUDA stale state (may come as 503 or 200-with-degraded)
+            cuda_healthy = data.get("cuda_healthy")
+            if cuda_healthy is False:
+                logger.warning(
+                    "TRIBE CUDA context is stale (cuda_healthy=false). "
+                    "The TRIBE scorer needs a restart — run: bash scripts/restart_tribe.sh"
+                )
+                return False
+
+            resp.raise_for_status()
             return data.get("status") == "ok"
         except Exception as e:
             logger.warning("TRIBE health check failed: %s", e)
