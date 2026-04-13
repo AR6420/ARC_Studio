@@ -241,6 +241,7 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     gpu_available: bool
+    cuda_healthy: bool | None = None
     gpu_name: str | None
     gpu_memory_used_gb: float | None
     gpu_memory_total_gb: float | None
@@ -258,6 +259,41 @@ class HealthResponse(BaseModel):
 # thread pool, concurrent model.predict() or cache access can crash.
 # This lock ensures only one inference runs at a time.
 _inference_lock = threading.Lock()
+
+
+def _check_cuda_health() -> bool:
+    """Return True if CUDA context is alive. Takes <1ms.
+
+    Detects stale CUDA contexts that occur after laptop sleep/wake cycles.
+    A stale context will cause RuntimeError on synchronize() or tensor allocation.
+    """
+    if not torch.cuda.is_available():
+        return False
+    try:
+        torch.cuda.synchronize()
+        t = torch.zeros(1, dtype=torch.float32, device="cuda")
+        del t
+        return True
+    except (RuntimeError, OSError):
+        return False
+
+
+def _require_cuda_healthy() -> None:
+    """Raise HTTP 503 if CUDA context is stale (e.g. after sleep/wake).
+
+    Called before acquiring the inference lock so callers get a fast,
+    actionable error instead of hanging on a dead GPU.
+    """
+    if torch.cuda.is_available() and not _check_cuda_health():
+        logger.error("CUDA context is stale — rejecting inference request.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "CUDA context is stale (likely after sleep/wake cycle). "
+                         "Restart the TRIBE scorer service.",
+                "cuda_stale": True,
+            },
+        )
 
 
 def _require_model() -> Any:
@@ -292,6 +328,7 @@ def _score_response_from_activations(
 
 def _run_single_score(text: str) -> ScoreResponse:
     """Blocking inference for one text. Runs inside a thread executor."""
+    _require_cuda_healthy()
     model = _require_model()
     t_start = time.perf_counter()
 
@@ -318,6 +355,7 @@ def _run_single_score(text: str) -> ScoreResponse:
 
 def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
     """Blocking inference for a batch of texts. Runs inside a thread executor."""
+    _require_cuda_healthy()
     model = _require_model()
     normalizer = get_normalizer()
     results: list[ScoreResponse] = []
@@ -435,12 +473,30 @@ async def health() -> HealthResponse:
         except Exception:
             pass
 
-    overall_status = "ok" if (model_loaded and _startup_error is None) else "degraded"
+    # CUDA health check: detect stale contexts from sleep/wake cycles
+    cuda_healthy: bool | None = None
+    if gpu_available:
+        cuda_healthy = _check_cuda_health()
+        if not cuda_healthy:
+            logger.warning("CUDA context is stale (likely sleep/wake). Attempting recovery.")
+            try:
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                cuda_healthy = _check_cuda_health()
+                if cuda_healthy:
+                    logger.info("CUDA context recovered after empty_cache + synchronize.")
+            except Exception:
+                pass
 
-    return HealthResponse(
+    overall_status = "ok" if (model_loaded and _startup_error is None) else "degraded"
+    if cuda_healthy is False:
+        overall_status = "degraded"
+
+    response = HealthResponse(
         status=overall_status,
         model_loaded=model_loaded,
         gpu_available=gpu_available,
+        cuda_healthy=cuda_healthy,
         gpu_name=gpu_name,
         gpu_memory_used_gb=gpu_mem_used,
         gpu_memory_total_gb=gpu_mem_total,
@@ -448,6 +504,15 @@ async def health() -> HealthResponse:
         baseline_size=get_normalizer().baseline_size(),
         startup_failed=_startup_error is not None,
     )
+
+    if cuda_healthy is False:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=response.model_dump(),
+        )
+
+    return response
 
 
 # ---------------------------------------------------------------------------
