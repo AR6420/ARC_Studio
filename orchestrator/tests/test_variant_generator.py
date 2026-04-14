@@ -35,14 +35,6 @@ MOCK_HAIKU_RESPONSE = {
             "expected_strengths": ["addresses pain point", "calming tone"],
             "potential_risks": ["could highlight fears instead of reducing them"],
         },
-        {
-            "id": "v3_reward_framing",
-            "content": "Unlock 40% more productivity in your first week.",
-            "strategy": "Reward framing with specific measurable outcomes",
-            "key_psychological_mechanisms": ["reward anticipation", "concrete anchoring"],
-            "expected_strengths": ["specific numbers build credibility", "immediate value"],
-            "potential_risks": ["claim may seem too good to be true"],
-        },
     ]
 }
 
@@ -64,14 +56,14 @@ def generator(mock_claude):
 # -- Test 1: Returns exactly N variants --
 
 @pytest.mark.asyncio
-async def test_generate_variants_returns_exactly_3(generator, mock_claude):
-    """generate_variants returns exactly 3 variant dicts when num_variants=3."""
+async def test_generate_variants_returns_exactly_2(generator, mock_claude):
+    """generate_variants returns exactly 2 variant dicts when num_variants=2."""
     variants = await generator.generate_variants(
         campaign_brief="Launch our new AI-powered analytics platform for enterprise teams.",
         demographic="tech_professionals",
-        num_variants=3,
+        num_variants=2,
     )
-    assert len(variants) == 3
+    assert len(variants) == 2
     mock_claude.call_haiku_json.assert_called_once()
 
 
@@ -152,3 +144,39 @@ async def test_custom_demographic_passed_through(generator, mock_claude):
     call_args = mock_claude.call_haiku_json.call_args
     user_prompt = call_args.kwargs.get("user") or call_args[1].get("user") or call_args[0][1]
     assert "Young parents aged 28-35 in suburban areas" in user_prompt
+
+
+# -- Test 6: Word limit enforcement --
+
+@pytest.mark.asyncio
+async def test_variant_content_truncated_at_word_limit(mock_claude):
+    """Variants exceeding 150 words are truncated at the nearest sentence boundary."""
+    long_content = " ".join(["word"] * 200) + ". Final sentence."
+    mock_claude.call_haiku_json.return_value = {
+        "variants": [
+            {
+                "id": "v1_test",
+                "content": long_content,
+                "strategy": "test",
+                "key_psychological_mechanisms": [],
+                "expected_strengths": [],
+                "potential_risks": [],
+            },
+            {
+                "id": "v2_short",
+                "content": "Short variant under the limit.",
+                "strategy": "test",
+                "key_psychological_mechanisms": [],
+                "expected_strengths": [],
+                "potential_risks": [],
+            },
+        ]
+    }
+    gen = VariantGenerator(claude_client=mock_claude)
+    variants = await gen.generate_variants(
+        campaign_brief="Test brief.",
+        demographic="tech_professionals",
+        num_variants=2,
+    )
+    assert len(variants[0]["content"].split()) <= 150
+    assert variants[1]["content"] == "Short variant under the limit."

@@ -269,7 +269,7 @@ ARC_Studio/
 
 ## Known Limitations
 
-- **TRIBE v2 inference is slow on laptop GPU** (5–40 min per variant depending on text length). Variants that exceed the 3600s timeout fall back to pseudo-scores, clearly flagged with `is_pseudo_score` in the output. Faster GPUs solve this — it is not a software limitation.
+- **TRIBE v2 variants limited to 150 words, 2 per iteration** to match inference speed on laptop-class hardware (RTX 5070 Ti). The TRIBE v2 pipeline (TTS → WhisperX → LLaMA 3.2-3B word embeddings → brain encoding) takes ~20 min per variant. Faster GPUs or cloud inference (A100) allow larger scope. See `docs/phase2_b1_root_cause_analysis.md`.
 - **RTX 5070 Ti (Blackwell, sm_120) requires PyTorch 2.6 + CUDA 12.6.** The GPU architecture is newer than what the latest PyTorch nightly supports natively. RTX 30/40 series have zero compatibility issues.
 - **Single-user only.** No concurrent campaign support.
 - **Claude API credentials from subscription rotate periodically.** LiteLLM auto-refreshes but long campaigns may encounter brief interruptions.

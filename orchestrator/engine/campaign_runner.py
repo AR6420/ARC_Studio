@@ -145,12 +145,12 @@ class CampaignRunner:
             availability = await self.check_system_availability()
 
             # Step 2: Generate variants
-            logger.info("Step 2: Generating %d content variants", 3)
+            logger.info("Step 2: Generating %d content variants", 2)
             variants = await self._variant_gen.generate_variants(
                 campaign_brief=campaign.seed_content,
                 demographic=campaign.demographic,
                 demographic_custom=campaign.demographic_custom,
-                num_variants=3,  # Per D-01
+                num_variants=2,  # Per D-01, reduced from 3 in B.1 scope reduction
                 constraints=campaign.constraints,
                 previous_iteration_results=previous_iteration_results,
             )

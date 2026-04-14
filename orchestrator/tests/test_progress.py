@@ -49,14 +49,14 @@ async def progress_client(progress_app: FastAPI):
 
 @pytest.mark.asyncio
 async def test_estimate_endpoint_default(progress_client: AsyncClient):
-    """POST /api/estimate with default 40 agents, 4 iterations -> 12.0 minutes."""
+    """POST /api/estimate with default 40 agents, 4 iterations -> 160.0 minutes."""
     response = await progress_client.post(
         "/api/estimate",
         json={"agent_count": 40, "max_iterations": 4},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["estimated_minutes"] == 12.0
+    assert data["estimated_minutes"] == 160.0
     assert data["agent_count"] == 40
     assert data["max_iterations"] == 4
     assert "formula" in data
@@ -64,14 +64,14 @@ async def test_estimate_endpoint_default(progress_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_estimate_endpoint_custom(progress_client: AsyncClient):
-    """POST /api/estimate with 80 agents, 2 iterations -> 12.0 minutes."""
+    """POST /api/estimate with 80 agents, 2 iterations -> 80.0 minutes."""
     response = await progress_client.post(
         "/api/estimate",
         json={"agent_count": 80, "max_iterations": 2},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["estimated_minutes"] == 12.0
+    assert data["estimated_minutes"] == 80.0
     assert data["agent_count"] == 80
     assert data["max_iterations"] == 2
 
