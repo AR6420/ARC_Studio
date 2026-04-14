@@ -24,6 +24,7 @@ class CampaignCreateRequest(BaseModel):
     demographic_custom: str | None = None
     agent_count: int = Field(default=40, ge=20, le=200)
     max_iterations: int = Field(default=4, ge=1, le=10)
+    variant_count: int = Field(default=2, ge=1, le=5)
     thresholds: dict[str, float] | None = None
     constraints: str | None = None
     auto_start: bool = Field(default=True)

@@ -40,6 +40,8 @@ interface ConfigPanelProps {
   onAgentCountChange: (value: number) => void;
   maxIterations: number;
   onMaxIterationsChange: (value: number) => void;
+  variantCount: number;
+  onVariantCountChange: (value: number) => void;
   thresholdEnabled: boolean;
   onThresholdEnabledChange: (enabled: boolean) => void;
   thresholds: Record<string, number>;
@@ -97,6 +99,8 @@ export function ConfigPanel({
   onAgentCountChange,
   maxIterations,
   onMaxIterationsChange,
+  variantCount,
+  onVariantCountChange,
   thresholdEnabled,
   onThresholdEnabledChange,
   thresholds,
@@ -123,7 +127,7 @@ export function ConfigPanel({
   return (
     <div className="space-y-5">
       {/* Sliders on a single row */}
-      <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-7 sm:grid-cols-3">
         <SliderRow
           label="Simulated Agents"
           hint="20 — 200"
@@ -141,6 +145,15 @@ export function ConfigPanel({
           max={10}
           step={1}
           onChange={onMaxIterationsChange}
+        />
+        <SliderRow
+          label="Variants per Iteration"
+          hint="1 — 3"
+          value={variantCount}
+          min={1}
+          max={3}
+          step={1}
+          onChange={onVariantCountChange}
         />
       </div>
 

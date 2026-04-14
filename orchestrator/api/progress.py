@@ -81,21 +81,20 @@ async def campaign_progress(request: Request, campaign_id: str):
 
 # ── Estimate endpoint ─────────────────────────────────────────────────────
 
-BASELINE_MINUTES_PER_ITERATION = 3.0  # for 40 agents
+BASELINE_MINUTES_PER_VARIANT = 20.0  # ~20 min per variant on RTX 5070 Ti (TRIBE + MiroFish)
 
 
 @router.post("/estimate", response_model=EstimateResponse)
 async def estimate_time(body: EstimateRequest):
     """
     Return pre-run time estimate for a campaign configuration.
-    Per OPT-05: POST /api/estimate.
-    Per D-11: Formula-based estimate.
-    Formula: (agent_count / 40) * max_iterations * 3.0 minutes
+    Formula: variants_per_iteration * max_iterations * 20 minutes per variant.
     """
-    estimated = (body.agent_count / 40) * body.max_iterations * BASELINE_MINUTES_PER_ITERATION
+    variants_per_iteration = 2  # B.1 default
+    estimated = variants_per_iteration * body.max_iterations * BASELINE_MINUTES_PER_VARIANT
     return EstimateResponse(
         estimated_minutes=round(estimated, 1),
         agent_count=body.agent_count,
         max_iterations=body.max_iterations,
-        formula=f"({body.agent_count}/40) * {body.max_iterations} * {BASELINE_MINUTES_PER_ITERATION} = {round(estimated, 1)} minutes",
+        formula=f"{variants_per_iteration} variants * {body.max_iterations} iters * {BASELINE_MINUTES_PER_VARIANT} min = {round(estimated, 1)} min",
     )

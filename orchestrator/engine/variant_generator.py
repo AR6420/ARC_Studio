@@ -6,7 +6,7 @@ and demographic profile. Each variant takes a meaningfully different strategic
 approach so that TRIBE v2 + MiroFish scoring can distinguish them and the
 feedback loop can converge toward an optimal strategy.
 
-Per D-01: generates 3 variants per iteration by default.
+Per D-01: generates 2 variants per iteration by default (reduced from 3 in B.1 scope reduction).
 """
 
 import logging
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class VariantGenerator:
     """
     Generates content variants using Claude Haiku.
-    Per D-01: generates 3 variants per iteration.
+    Per D-01: generates 2 variants per iteration (reduced from 3 in B.1 scope reduction).
     """
 
     def __init__(self, claude_client: ClaudeClient) -> None:
@@ -36,7 +36,7 @@ class VariantGenerator:
         campaign_brief: str,
         demographic: str,
         demographic_custom: str | None = None,
-        num_variants: int = 3,
+        num_variants: int = 2,
         constraints: str | None = None,
         previous_iteration_results: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
@@ -47,7 +47,7 @@ class VariantGenerator:
             campaign_brief: The seed content / campaign description.
             demographic: Preset key (e.g., "tech_professionals") or "custom".
             demographic_custom: Free-text description if demographic="custom".
-            num_variants: Number of variants to generate (default 3, per D-01).
+            num_variants: Number of variants to generate (default 2, per D-01 + B.1 scope reduction).
             constraints: Optional brand guidelines.
             previous_iteration_results: Scores from prior iteration for improvement (Phase 6).
 
@@ -104,6 +104,24 @@ class VariantGenerator:
                     "potential_risks": v.get("potential_risks", []),
                 }
             )
+
+        # Enforce 150-word hard limit (B.1 scope reduction)
+        MAX_VARIANT_WORDS = 150
+        for v in validated:
+            words = v["content"].split()
+            if len(words) > MAX_VARIANT_WORDS:
+                logger.warning(
+                    "Variant %s has %d words (limit %d). Truncating at sentence boundary.",
+                    v["id"], len(words), MAX_VARIANT_WORDS,
+                )
+                truncated = " ".join(words[:MAX_VARIANT_WORDS])
+                # Try to end at a sentence boundary
+                for end_char in (".", "!", "?"):
+                    last_pos = truncated.rfind(end_char)
+                    if last_pos > len(truncated) // 2:  # Don't cut more than half
+                        truncated = truncated[: last_pos + 1]
+                        break
+                v["content"] = truncated
 
         logger.info(
             "Generated %d variants for demographic '%s'",

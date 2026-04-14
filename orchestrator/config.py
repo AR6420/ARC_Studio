@@ -110,6 +110,18 @@ class Settings(BaseSettings):
         le=10,
         description="Default maximum number of optimization iterations per campaign.",
     )
+    default_variants_per_iteration: int = Field(
+        default=2,
+        ge=1,
+        le=5,
+        description="Default number of content variants generated per iteration. Reduced from 3 to 2 in Phase 2 B.1 for TRIBE v2 laptop hardware compatibility.",
+    )
+    max_variant_words: int = Field(
+        default=150,
+        ge=50,
+        le=500,
+        description="Maximum words per generated variant. Reduced from 250 to 150 in Phase 2 B.1.",
+    )
     default_simulation_cycles: int = Field(
         default=30,
         ge=1,

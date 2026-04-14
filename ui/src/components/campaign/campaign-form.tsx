@@ -33,6 +33,7 @@ export function CampaignForm() {
   const [demographicCustom, setDemographicCustom] = useState('');
   const [agentCount, setAgentCount] = useState(40);
   const [maxIterations, setMaxIterations] = useState(4);
+  const [variantCount, setVariantCount] = useState(2);
   const [thresholdEnabled, setThresholdEnabled] = useState(false);
   const [thresholds, setThresholds] = useState<Record<string, number>>({});
   const [constraints, setConstraints] = useState('');
@@ -61,6 +62,7 @@ export function CampaignForm() {
         demographic_custom: demographic === 'custom' ? demographicCustom : null,
         agent_count: agentCount,
         max_iterations: maxIterations,
+        variant_count: variantCount,
         thresholds: thresholdEnabled ? thresholds : null,
         constraints: constraints.trim() || null,
         auto_start: true,
@@ -99,6 +101,9 @@ export function CampaignForm() {
             {/* Char count overlay, bottom right */}
             <CharCount current={seedLen} max={SEED_MAX} min={SEED_MIN} />
           </div>
+          <p className="font-mono text-[0.6rem] text-muted-foreground">
+            Variants are limited to 150 words each to match TRIBE v2 inference speed on laptop hardware.
+          </p>
         </div>
 
         <div className="space-y-2.5">
@@ -133,6 +138,8 @@ export function CampaignForm() {
           onAgentCountChange={setAgentCount}
           maxIterations={maxIterations}
           onMaxIterationsChange={setMaxIterations}
+          variantCount={variantCount}
+          onVariantCountChange={setVariantCount}
           thresholdEnabled={thresholdEnabled}
           onThresholdEnabledChange={setThresholdEnabled}
           thresholds={thresholds}

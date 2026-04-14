@@ -18,6 +18,7 @@ export interface CampaignCreateRequest {
   demographic_custom?: string | null;
   agent_count?: number;
   max_iterations?: number;
+  variant_count?: number;
   thresholds?: Record<string, number> | null;
   constraints?: string | null;
   auto_start?: boolean;
