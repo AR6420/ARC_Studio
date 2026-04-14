@@ -334,7 +334,11 @@ def _run_single_score(text: str) -> ScoreResponse:
 
     with _inference_lock:
         try:
-            vertex_activations, is_pseudo = score_text(text, model)
+            vertex_activations, is_pseudo = score_text(
+                text, model,
+                max_words_per_chunk=settings.max_words_per_chunk,
+                per_chunk_timeout=settings.per_chunk_timeout,
+            )
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -364,7 +368,11 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
         t_start = time.perf_counter()
         with _inference_lock:
             try:
-                vertex_activations, is_pseudo = score_text(text, model)
+                vertex_activations, is_pseudo = score_text(
+                    text, model,
+                    max_words_per_chunk=settings.max_words_per_chunk,
+                    per_chunk_timeout=settings.per_chunk_timeout,
+                )
             except (ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

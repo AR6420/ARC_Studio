@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8001
 
+    # Text chunking for long variants (Phase 2 B.1)
+    max_words_per_chunk: int = 250
+    per_chunk_timeout: int = 900  # 15 minutes per chunk
+
     model_config = {"env_prefix": "", "env_file": str(_ENV_FILE), "extra": "ignore"}
 
     @property
