@@ -23,12 +23,13 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Per-request timeout for scoring: long content (500+ words) takes 40-60 min
-# per text through the full TTS+WhisperX+LLaMA pipeline on GPU.
-SCORE_TIMEOUT = 7200.0
+# Per-request timeout for scoring.
+# With chunking (B.1): 250 words/chunk × 15 min/chunk.  A 1000-word text
+# becomes 4 chunks × 900s = 3600s.  We add headroom for TTS/cache overhead.
+SCORE_TIMEOUT = 5400.0  # 90 min — enough for ~5 chunks with margin
 
-# Per-text budget for batch scoring — 3 long variants can take 2+ hours total.
-BATCH_PER_TEXT_TIMEOUT = 7200.0
+# Per-text budget for batch scoring — 3 chunked variants.
+BATCH_PER_TEXT_TIMEOUT = 5400.0
 
 # Retry configuration for transient failures
 MAX_RETRIES = 2

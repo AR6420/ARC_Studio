@@ -112,6 +112,7 @@ From `tribe_scorer/vendor/tribev2/` source analysis:
 **Goal:** Re-run the Price Increase and PSA scenarios from Phase 1 validation with zero pseudo-score fallbacks under chunking.
 **Priority:** P0 - blocks all of Track A.
 **Tag:** `phase2-b1-complete`
+**Status:** NOT STARTED — Config scaffolding exists (`max_words_per_chunk`, `per_chunk_timeout` in `tribe_scorer/config.py`) but the actual chunking logic was never wired into `score_text()`. The function still takes the full text as a single inference pass. A/B diagnostic (2026-04-13) confirmed iteration 2 pseudo-score failures occur on both `phase2-complete` and `main` — this is a pre-existing hardware/VRAM limitation, not a B.2-B.5 regression. Must be re-scoped and rebuilt before proceeding to Track A. See `docs/phase2_b_diagnostic.md`.
 
 #### Problem Statement
 
@@ -181,6 +182,7 @@ Revert chunking; restore monolithic `score_text()`. The `_INFERENCE_TIMEOUT` of 
 **Goal:** Detect stale CUDA context from sleep/wake cycle and auto-restart the TRIBE scorer.
 **Priority:** P1 - affects every laptop session.
 **Tag:** `phase2-b2-complete`
+**Status:** COMPLETE — Merged to main, validated 2026-04-13. Tag: `phase2-reliability-partial`. CUDA health probe (`_check_cuda_health()`) added to TRIBE scorer health endpoint and pre-inference check. Organically confirmed during A/B diagnostic when TRIBE returned `cuda_healthy: false` after VRAM exhaustion.
 
 #### Problem Statement
 
@@ -246,6 +248,7 @@ Remove the health probe. Behavior reverts to silent pseudo-score fallback. No re
 **Goal:** Document the upgrade path from PyTorch 2.6 to 2.8+ for RTX 5070 Ti (Blackwell, sm_120) native support.
 **Priority:** P2 - preparation only, no code changes.
 **Tag:** `phase2-b3-complete`
+**Status:** COMPLETE — Merged to main, validated 2026-04-13. Tag: `phase2-reliability-partial`. Created `docs/pytorch_upgrade_path.md` with upgrade procedure, rollback instructions, and decision criteria. Version pin comments added to `tribe_scorer/requirements.txt`.
 
 #### Scope
 
@@ -284,6 +287,7 @@ Delete the document. No code impact.
 **Goal:** Prevent Neo4j heap exhaustion under sustained use; add cleanup strategy for old simulation data.
 **Priority:** P2 - Landmine 3, not yet triggered but inevitable.
 **Tag:** `phase2-b4-complete`
+**Status:** COMPLETE — Merged to main, validated 2026-04-13. Tag: `phase2-reliability-partial`. Neo4j stats (node_count, relationship_count, heap_max_mb) added to orchestrator `/api/health`. Scripts: `scripts/neo4j_heap_check.sh`, `scripts/cleanup_neo4j.sh`. JMX heap metrics unavailable in Community Edition — script handles gracefully.
 
 #### Problem Statement
 
@@ -327,6 +331,7 @@ Remove the health metrics and cleanup script. Neo4j continues as before. Risk: e
 **Goal:** All Docker services have health checks and auto-restart policies.
 **Priority:** P1 - reduces manual restart frequency from Issue 17.
 **Tag:** `phase2-b5-complete`
+**Status:** COMPLETE — Merged to main, validated 2026-04-13. Tag: `phase2-reliability-partial`. MiroFish healthcheck added (`curl -sf http://localhost:5001/health`). All three Docker services confirmed healthy in `docker compose ps`.
 
 #### Current State
 
@@ -981,13 +986,14 @@ B.5 is a 0.5-day change (add 6 lines to `docker-compose.yml`) that eliminates th
 
 ### Checkpoint Tags
 
-| Tag | Gate | Validation |
-|-----|------|-----------|
-| `phase2-b1-complete` | TRIBE timeout fix | 500-word text scores without pseudo-fallback |
-| `phase2-b2-complete` | CUDA recovery | Health probe detects sleep/wake corruption |
-| `phase2-b3-complete` | PyTorch docs | Document exists and is accurate |
-| `phase2-b4-complete` | Neo4j monitoring | Health endpoint shows heap metrics |
-| `phase2-b5-complete` | Docker health checks | All services auto-restart on failure |
+| Tag | Gate | Validation | Actual Status |
+|-----|------|-----------|---------------|
+| `phase2-reliability-partial` | B.2+B.3+B.4+B.5 | See individual items below | **TAGGED 2026-04-13** |
+| `phase2-b1-complete` | TRIBE timeout fix | 500-word text scores without pseudo-fallback | **NOT STARTED** — chunking never implemented |
+| `phase2-b2-complete` | CUDA recovery | Health probe detects sleep/wake corruption | **COMPLETE** (in `phase2-reliability-partial`) |
+| `phase2-b3-complete` | PyTorch docs | Document exists and is accurate | **COMPLETE** (in `phase2-reliability-partial`) |
+| `phase2-b4-complete` | Neo4j monitoring | Health endpoint shows heap metrics | **COMPLETE** (in `phase2-reliability-partial`) |
+| `phase2-b5-complete` | Docker health checks | All services auto-restart on failure | **COMPLETE** (in `phase2-reliability-partial`) |
 | `phase2-a1-complete` | Audio input | 60s WAV file scores end-to-end |
 | `phase2-a2-complete` | Video input | 60s MP4 file scores end-to-end |
 | `phase2-a3-complete` | Media playback | Audio/video play inline with results |
