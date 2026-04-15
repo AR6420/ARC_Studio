@@ -37,6 +37,27 @@ def _new_id() -> str:
     return str(uuid.uuid4())
 
 
+def _row_media_type(row) -> str:
+    """Safely pull media_type off a campaigns row, defaulting to 'text'.
+
+    Defensive: older aiosqlite Row objects without the column (unlikely once
+    the migration runs) still return a valid default.
+    """
+    try:
+        value = row["media_type"]
+    except (IndexError, KeyError):
+        return "text"
+    return value or "text"
+
+
+def _row_media_path(row):
+    """Safely pull media_path off a campaigns row, defaulting to None."""
+    try:
+        return row["media_path"]
+    except (IndexError, KeyError):
+        return None
+
+
 class CampaignStore:
     """
     CRUD operations for campaigns, iterations, and analyses.
@@ -89,8 +110,8 @@ class CampaignStore:
             INSERT INTO campaigns
                 (id, status, seed_content, prediction_question, demographic,
                  demographic_custom, agent_count, max_iterations, thresholds,
-                 constraints, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 constraints, created_at, media_type, media_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 campaign_id,
@@ -104,6 +125,8 @@ class CampaignStore:
                 json.dumps(request.thresholds) if request.thresholds else None,
                 request.constraints,
                 created_at,
+                request.media_type,
+                request.media_path,
             ),
         )
         await self._db.conn.commit()
@@ -120,6 +143,8 @@ class CampaignStore:
             thresholds=request.thresholds,
             constraints=request.constraints,
             created_at=created_at,
+            media_type=request.media_type,
+            media_path=request.media_path,
         )
 
     async def get_campaign(self, campaign_id: str) -> CampaignResponse | None:
@@ -154,6 +179,8 @@ class CampaignStore:
             error=row["error"],
             iterations=iterations if iterations else None,
             analyses=analyses if analyses else None,
+            media_type=_row_media_type(row),
+            media_path=_row_media_path(row),
         )
 
     async def list_campaigns(self) -> CampaignListResponse:
@@ -192,11 +219,30 @@ class CampaignStore:
                 started_at=row["started_at"],
                 completed_at=row["completed_at"],
                 error=row["error"],
+                media_type=_row_media_type(row),
+                media_path=_row_media_path(row),
             )
             for row in rows
         ]
 
         return CampaignListResponse(campaigns=campaigns, total=len(campaigns))
+
+    async def get_campaign_media(
+        self, campaign_id: str
+    ) -> tuple[str, str | None] | None:
+        """Return (media_type, media_path) for a campaign, or None if missing.
+
+        Cheap lookup used by the DELETE handler so it can decide whether to
+        unlink an uploaded audio file without loading all nested iterations.
+        """
+        cursor = await self._db.conn.execute(
+            "SELECT media_type, media_path FROM campaigns WHERE id = ?",
+            (campaign_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return (_row_media_type(row), _row_media_path(row))
 
     async def delete_campaign(self, campaign_id: str) -> bool:
         """Delete a campaign and all related iterations/analyses (CASCADE). Returns True if existed."""

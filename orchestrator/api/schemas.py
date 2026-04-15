@@ -7,18 +7,40 @@ CompositeScores) are serialized as JSON text columns in SQLite (per D-08).
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 # -- Request models --
 
 
 class CampaignCreateRequest(BaseModel):
-    """Single POST request to create (and optionally start) a campaign (D-10)."""
+    """Single POST request to create (and optionally start) a campaign (D-10).
 
-    seed_content: str = Field(..., min_length=100, max_length=25000)
+    Phase 2 A.1: supports `media_type` of either `text` (default, backward-compatible)
+    or `audio`. When `media_type == "audio"`, `media_path` is required and
+    `seed_content` may be empty (it is replaced in the pipeline by the audio
+    transcript produced by TRIBE).
+    """
+
+    # Phase 2 A.1 -- media type routing (declared first so field_validators
+    # for seed_content / media_path can read it via ValidationInfo.data).
+    media_type: Literal["text", "audio"] = Field(
+        default="text",
+        description="Input modality. 'text' uses seed_content; 'audio' uses media_path.",
+    )
+    media_path: str | None = Field(
+        default=None,
+        description=(
+            "Absolute path on the orchestrator host to an uploaded audio file. "
+            "Required when media_type='audio'. Obtained from POST /api/campaigns/upload."
+        ),
+    )
+
+    # seed_content is required for text campaigns but may be empty for audio.
+    # Pydantic v2 field_validator reads already-validated media_type from info.data.
+    seed_content: str = Field(default="", max_length=25000)
     prediction_question: str = Field(..., min_length=10)
     demographic: str = Field(...)  # preset key or "custom"
     demographic_custom: str | None = None
@@ -28,6 +50,30 @@ class CampaignCreateRequest(BaseModel):
     thresholds: dict[str, float] | None = None
     constraints: str | None = None
     auto_start: bool = Field(default=True)
+
+    @field_validator("seed_content")
+    @classmethod
+    def _seed_content_required_for_text(
+        cls, v: str, info: ValidationInfo
+    ) -> str:
+        """Preserve Phase-1 minimum length when media_type='text'."""
+        media_type = info.data.get("media_type", "text")
+        if media_type == "text" and len(v) < 100:
+            raise ValueError(
+                "String should have at least 100 characters"
+            )
+        return v
+
+    @field_validator("media_path")
+    @classmethod
+    def _media_path_required_for_audio(
+        cls, v: str | None, info: ValidationInfo
+    ) -> str | None:
+        """media_path is required when media_type='audio'."""
+        media_type = info.data.get("media_type", "text")
+        if media_type == "audio" and not v:
+            raise ValueError("media_path is required when media_type='audio'")
+        return v
 
 
 # -- Score/metric models (for JSON column storage, D-08) --
@@ -82,6 +128,10 @@ class DataCompleteness(BaseModel):
     tribe_real_score_count: int = 0
     tribe_pseudo_score_count: int = 0
     missing_composite_dimensions: list[str] = []
+    # Phase 2 A.1 -- media-type awareness so downstream consumers can tell
+    # whether a given iteration was driven by a text seed or an audio seed.
+    has_audio: bool = False
+    media_type: Literal["text", "audio"] = "text"
 
 
 # -- Iteration record --
@@ -140,6 +190,21 @@ class CampaignResponse(BaseModel):
     error: str | None = None
     iterations: list[IterationRecord] | None = None
     analyses: list[AnalysisRecord] | None = None
+    # Phase 2 A.1 -- media routing
+    media_type: Literal["text", "audio"] = "text"
+    media_path: str | None = None
+
+
+# -- Audio upload response (Phase 2 A.1) --
+
+
+class AudioUploadResponse(BaseModel):
+    """Response from POST /api/campaigns/upload. Returns the absolute path to
+    the stored file along with validated metadata the UI can show to the user."""
+
+    media_path: str
+    duration_seconds: float
+    size_bytes: int
 
 
 class CampaignListResponse(BaseModel):
