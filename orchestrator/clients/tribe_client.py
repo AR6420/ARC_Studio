@@ -31,6 +31,13 @@ SCORE_TIMEOUT = 5400.0  # 90 min — enough for ~5 chunks with margin
 # Per-text budget for batch scoring — 3 chunked variants.
 BATCH_PER_TEXT_TIMEOUT = 5400.0
 
+# Per-request timeout for audio scoring (Phase 2 A.1).
+# Audio path is Wav2Vec-BERT (~2-3 GB VRAM vs ~6-8 for text), so a single
+# 60-second clip typically runs in 1-5 minutes on the target GPU. We align
+# with MAX_AUDIO_INFERENCE_TIMEOUT on the server side (30 min) and add a
+# generous client-side buffer to cover pool queueing and retries.
+SCORE_AUDIO_TIMEOUT = 1800.0  # 30 min
+
 # Retry configuration for transient failures
 MAX_RETRIES = 2
 RETRY_BACKOFF_BASE = 5.0  # seconds
@@ -300,3 +307,50 @@ class TribeClient:
             scored, len(texts), total_inference,
         )
         return results
+
+    async def score_audio(self, audio_path: str) -> dict[str, float] | None:
+        """
+        Score a single audio clip via TRIBE v2 /api/score_audio with retry logic.
+
+        Phase 2 A.1 contract:
+        - Returns a dict with 7 dimension scores + ``is_pseudo_score`` on success.
+        - Returns ``None`` on HTTP/client failure (after retries), same as text path.
+        - Pseudo-score fallbacks from the server (mid-inference exceptions) come
+          back as 200 with ``is_pseudo_score=true`` and the flag is surfaced.
+
+        Parameters
+        ----------
+        audio_path:
+            Absolute filesystem path to the audio file on the TRIBE scorer host.
+            Must be ``.wav``/``.mp3``/``.flac``/``.ogg`` and at most 60 seconds.
+        """
+
+        async def _request(timeout: float) -> httpx.Response:
+            return await self._client.post(
+                "/api/score_audio",
+                json={"audio_path": audio_path},
+                timeout=timeout,
+            )
+
+        resp = await self._retry_loop("audio scoring", _request, SCORE_AUDIO_TIMEOUT)
+        if resp is None:
+            return None
+
+        data = resp.json()
+        scores = _extract_scores(data)
+        if scores is None:
+            return None
+
+        inference_ms = data.get("inference_time_ms", 0)
+        duration_s = data.get("duration_seconds", 0)
+        logger.info(
+            "TRIBE scored audio in %.0fms inference time (duration=%.2fs)",
+            inference_ms, duration_s,
+        )
+        if scores.get("is_pseudo_score"):
+            reason = data.get("pseudo_reason") or "unspecified"
+            logger.warning(
+                "TRIBE returned PSEUDO-SCORES (not real brain-encoding) for audio: %s",
+                reason,
+            )
+        return scores
