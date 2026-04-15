@@ -4,6 +4,10 @@
  * Section headers are small-caps monospace labels, not numbered badges.
  * Seed content is a monospace editor panel with an inset background.
  * Time estimate sits inline next to the Run button; no separate section.
+ *
+ * Phase 2 A.1 — Optional audio upload sits between seed content and the
+ * prediction question. When audio is selected, the seed textarea becomes
+ * optional (audio IS the content); the prediction question stays required.
  */
 
 import { useState } from 'react';
@@ -12,12 +16,14 @@ import { toast } from 'sonner';
 import { Play, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCreateCampaign } from '@/hooks/use-campaigns';
+import { uploadMedia } from '@/api/client';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DemographicSelector } from './demographic-selector';
 import { ConfigPanel } from './config-panel';
 import { TimeEstimate } from './time-estimate';
+import { AudioUpload, type AudioFileInfo } from './audio-upload';
 
 const SEED_MIN = 100;
 const SEED_MAX = 25000;
@@ -38,25 +44,61 @@ export function CampaignForm() {
   const [thresholds, setThresholds] = useState<Record<string, number>>({});
   const [constraints, setConstraints] = useState('');
 
+  // Phase 2 A.1 — audio state
+  const [audioFile, setAudioFile] = useState<AudioFileInfo | null>(null);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+
+  const hasAudio = audioFile !== null;
   const seedLen = seedContent.length;
   const questionLen = predictionQuestion.length;
-  const seedValid = seedLen >= SEED_MIN;
+  // When audio is provided, the textarea is optional — audio IS the content.
+  // Text-only mode keeps the original 100-char minimum unchanged.
+  const seedValid = hasAudio ? true : seedLen >= SEED_MIN;
   const questionValid = questionLen >= QUESTION_MIN;
-  const canSubmit = seedValid && questionValid && !createMutation.isPending;
+  const canSubmit =
+    seedValid &&
+    questionValid &&
+    !createMutation.isPending &&
+    !uploadingAudio;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!seedValid) {
-      toast.error('Seed content must be at least 100 characters.');
+      toast.error(
+        hasAudio
+          ? 'Unexpected seed content state.'
+          : 'Seed content must be at least 100 characters.',
+      );
       return;
     }
     if (!questionValid) {
       toast.error('Prediction question must be at least 10 characters.');
       return;
     }
+
+    // Phase 2 A.1 — if audio is attached, upload it first to obtain media_path.
+    // If the upload endpoint isn't live yet, let the 404 propagate (per spec).
+    let mediaPath: string | null = null;
+    if (hasAudio && audioFile) {
+      try {
+        setUploadingAudio(true);
+        const res = await uploadMedia(audioFile.file);
+        mediaPath = res.media_path;
+      } catch (err) {
+        setUploadingAudio(false);
+        const msg = err instanceof Error ? err.message : 'Audio upload failed';
+        toast.error(`Audio upload failed: ${msg}`);
+        return;
+      }
+      setUploadingAudio(false);
+    }
+
     createMutation.mutate(
       {
-        seed_content: seedContent,
+        // When audio-only, still send a placeholder seed so the backend has
+        // something if media_type handling is partial. The audio file is the
+        // real content.
+        seed_content: hasAudio && seedContent.length === 0 ? '' : seedContent,
         prediction_question: predictionQuestion,
         demographic,
         demographic_custom: demographic === 'custom' ? demographicCustom : null,
@@ -66,6 +108,10 @@ export function CampaignForm() {
         thresholds: thresholdEnabled ? thresholds : null,
         constraints: constraints.trim() || null,
         auto_start: true,
+        // Phase 2 A.1 — media_type defaults to text; audio only when a file
+        // is attached AND the upload succeeded.
+        media_type: hasAudio ? 'audio' : 'text',
+        media_path: mediaPath,
       },
       {
         onSuccess: (data) => {
@@ -92,18 +138,37 @@ export function CampaignForm() {
               id="seed-content"
               value={seedContent}
               onChange={(e) => setSeedContent(e.target.value)}
-              placeholder="Paste the content you want to optimise — a product announcement, press release, policy draft, marketing copy…"
+              placeholder={
+                hasAudio
+                  ? 'Optional — audio is the primary content. Add text context if useful.'
+                  : 'Paste the content you want to optimise — a product announcement, press release, policy draft, marketing copy…'
+              }
               className={cn(
                 'min-h-[13rem] resize-y bg-sidebar font-mono text-[0.78rem] leading-[1.55] tracking-[-0.003em]',
                 seedLen > 0 && !seedValid && 'border-heat-mid/60',
               )}
             />
             {/* Char count overlay, bottom right */}
-            <CharCount current={seedLen} max={SEED_MAX} min={SEED_MIN} />
+            <CharCount
+              current={seedLen}
+              max={SEED_MAX}
+              min={SEED_MIN}
+              optional={hasAudio}
+            />
           </div>
           <p className="font-mono text-[0.6rem] text-muted-foreground">
             Variants are limited to 150 words each to match TRIBE v2 inference speed on laptop hardware.
           </p>
+        </div>
+
+        {/* Phase 2 A.1 — audio upload */}
+        <div className="space-y-2.5">
+          <FieldLabel>Audio (optional)</FieldLabel>
+          <AudioUpload
+            value={audioFile}
+            onChange={setAudioFile}
+            disabled={createMutation.isPending || uploadingAudio}
+          />
         </div>
 
         <div className="space-y-2.5">
@@ -169,7 +234,12 @@ export function CampaignForm() {
           disabled={!canSubmit}
           className="gap-1.5 px-5"
         >
-          {createMutation.isPending ? (
+          {uploadingAudio ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              Uploading audio…
+            </>
+          ) : createMutation.isPending ? (
             <>
               <Loader2 className="size-3.5 animate-spin" />
               Launching…
@@ -235,12 +305,16 @@ function CharCount({
   current,
   max,
   min,
+  optional = false,
 }: {
   current: number;
   max: number;
   min: number;
+  optional?: boolean;
 }) {
-  const belowMin = current > 0 && current < min;
+  // When audio provides the primary content, don't flag the textarea as
+  // below-min — it's explicitly optional in that mode.
+  const belowMin = !optional && current > 0 && current < min;
   const nearMax = current > max * 0.9;
 
   return (
@@ -258,6 +332,9 @@ function CharCount({
       </span>
       {belowMin && (
         <span className="text-muted-foreground">min {min}</span>
+      )}
+      {optional && current === 0 && (
+        <span className="text-mirofish/70">optional</span>
       )}
     </div>
   );
