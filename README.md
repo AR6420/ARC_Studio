@@ -28,6 +28,8 @@ This entire system — real TRIBE v2 brain-encoding inference, 20-agent MiroFish
 
 Real performance on that hardware: **85-minute campaigns** (2 iterations, 20 agents, 3 content variants per iteration). TRIBE v2 inference takes 5–40 minutes per variant depending on text length. Not fast. Real.
 
+Audio campaigns complete in ~9 minutes end-to-end — 4x faster than text — because TRIBE v2's Wav2Vec-BERT audio encoder uses ~2GB VRAM vs LLaMA 3.2-3B's ~6GB for text.
+
 This should be an invitation, not an apology. If you have a desktop GPU with 16–24 GB VRAM, campaigns will be significantly faster. If you have cloud access to an A100, TRIBE v2 inference drops to seconds. The architecture is identical — only the hardware constraint changes. Built solo in ~2 weeks using Claude Code.
 
 ## Validation Results
