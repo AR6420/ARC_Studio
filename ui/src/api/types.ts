@@ -22,6 +22,15 @@ export interface CampaignCreateRequest {
   thresholds?: Record<string, number> | null;
   constraints?: string | null;
   auto_start?: boolean;
+  // Phase 2 A.1 — audio input support
+  media_type?: 'text' | 'audio';
+  media_path?: string | null;
+}
+
+// -- Media upload (Phase 2 A.1) --
+
+export interface MediaUploadResponse {
+  media_path: string;
 }
 
 // -- Score / metric models (JSON column storage, D-08) --
