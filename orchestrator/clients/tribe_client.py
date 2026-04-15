@@ -218,6 +218,34 @@ class TribeClient:
                 logger.warning("TRIBE returned PSEUDO-SCORES (not real brain-encoding) for this text")
         return scores
 
+    async def score_audio(self, audio_path: str) -> dict[str, float] | None:
+        """Score an audio file via TRIBE v2's audio ingest endpoint.
+
+        Phase 2 A.1 placeholder: Agent 3 (tribe_scorer track) is responsible for
+        wiring up the actual multipart POST against TRIBE's audio endpoint and
+        the text+audio fusion pipeline. Until that lands, this method keeps the
+        orchestrator interface stable so the campaign runner can already
+        dispatch on media_type without crashing.
+
+        Expected final contract:
+          - ``audio_path`` is an absolute path on the orchestrator host to an
+            audio file that was validated by the upload endpoint.
+          - Returns the same 7-dimension score dict shape as ``score_text`` on
+            success, or None on any failure.
+
+        Current behavior: returns None (graceful degradation, per D-05), logs
+        a clear warning so operators understand why audio campaigns produce no
+        neural scores yet.
+        """
+        logger.warning(
+            "TribeClient.score_audio is a Phase 2 A.1 placeholder "
+            "(audio_path=%s). Agent 3 wires the real implementation; returning "
+            "None so the campaign runner falls back to the neural-unavailable "
+            "code path.",
+            audio_path,
+        )
+        return None
+
     async def score_texts_batch(self, texts: list[str]) -> list[dict[str, float] | None]:
         """
         Score multiple texts via TRIBE v2 batch endpoint with retry logic.

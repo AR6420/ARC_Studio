@@ -156,10 +156,35 @@ class CampaignRunner:
             )
 
             # Step 3: TRIBE scoring (if available)
+            # Phase 2 A.1: dispatch on media_type. Audio campaigns route the
+            # uploaded file to TRIBE's audio endpoint (via tribe_client.score_audio);
+            # text campaigns keep the existing batch-scoring pipeline unchanged.
+            media_type = getattr(campaign, "media_type", "text") or "text"
+            media_path = getattr(campaign, "media_path", None)
             tribe_scores_list: list[dict[str, float] | None] = []
             if availability.tribe_available:
-                logger.info("Step 3: Scoring %d variants with TRIBE v2", len(variants))
-                tribe_scores_list = await self._tribe_scoring.score_variants(variants)
+                if media_type == "audio":
+                    if not media_path:
+                        logger.warning(
+                            "Campaign %s declared media_type='audio' but has no "
+                            "media_path; skipping TRIBE scoring", campaign_id,
+                        )
+                        tribe_scores_list = [None] * len(variants)
+                    else:
+                        logger.info(
+                            "Step 3: Scoring audio seed via TRIBE v2 (%s) — "
+                            "one score broadcast to all %d variants",
+                            media_path, len(variants),
+                        )
+                        # Agent 3 will implement the real audio path. For now
+                        # a single audio score is applied uniformly across all
+                        # variants (variant-level audio mutations are a future
+                        # concern handled by Agent 3).
+                        audio_score = await self._tribe_client.score_audio(media_path)
+                        tribe_scores_list = [audio_score] * len(variants)
+                else:
+                    logger.info("Step 3: Scoring %d variants with TRIBE v2", len(variants))
+                    tribe_scores_list = await self._tribe_scoring.score_variants(variants)
             else:
                 logger.info("Step 3: Skipping TRIBE scoring (unavailable)")
                 tribe_scores_list = [None] * len(variants)
@@ -267,6 +292,8 @@ class CampaignRunner:
                 tribe_real_score_count=tribe_real,
                 tribe_pseudo_score_count=tribe_pseudo,
                 missing_composite_dimensions=sorted(missing),
+                has_audio=(media_type == "audio"),
+                media_type=media_type,
             )
 
             # Update status to completed (skip if caller manages status)

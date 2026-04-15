@@ -97,6 +97,27 @@ class Settings(BaseSettings):
         description="Path to the SQLite database file.",
     )
 
+    # ── Audio upload (Phase 2 A.1) ──────────────────────────────────────────────
+    audio_upload_dir: str = Field(
+        default="./data/uploads",
+        description=(
+            "Directory where uploaded audio seed files are persisted. "
+            "Resolved relative to the repo root when not absolute."
+        ),
+    )
+    audio_max_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        description="Maximum accepted audio upload size in bytes (default: 10 MB).",
+    )
+    audio_max_duration_seconds: float = Field(
+        default=60.0,
+        description="Maximum accepted audio duration in seconds (default: 60s).",
+    )
+    audio_allowed_extensions: tuple[str, ...] = Field(
+        default=(".wav", ".mp3", ".flac", ".ogg"),
+        description="Accepted audio file extensions (case-insensitive).",
+    )
+
     # ── Simulation defaults ─────────────────────────────────────────────────────
     default_agent_count: int = Field(
         default=40,
@@ -160,6 +181,14 @@ class Settings(BaseSettings):
     def database_path_absolute(self) -> Path:
         """Resolve DATABASE_PATH relative to the repo root."""
         p = Path(self.database_path)
+        if p.is_absolute():
+            return p
+        return (_REPO_ROOT / p).resolve()
+
+    @property
+    def audio_upload_dir_absolute(self) -> Path:
+        """Resolve AUDIO_UPLOAD_DIR relative to the repo root when not absolute."""
+        p = Path(self.audio_upload_dir)
         if p.is_absolute():
             return p
         return (_REPO_ROOT / p).resolve()

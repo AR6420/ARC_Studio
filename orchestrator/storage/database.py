@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS campaigns (
     created_at TEXT NOT NULL,
     started_at TEXT,
     completed_at TEXT,
-    error TEXT
+    error TEXT,
+    media_type TEXT NOT NULL DEFAULT 'text',
+    media_path TEXT
 );
 
 CREATE TABLE IF NOT EXISTS iterations (
@@ -90,8 +92,32 @@ class Database:
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.execute("PRAGMA foreign_keys=ON")
         await self._conn.executescript(SCHEMA_SQL)
+        await self._migrate_schema()
         await self._conn.commit()
         logger.info("Database initialized at %s", self._path)
+
+    async def _migrate_schema(self) -> None:
+        """Lightweight additive migrations for databases created before a column existed.
+
+        SQLite lacks `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, so we introspect
+        existing columns and only add the ones that are missing. This is safe to
+        run on a fresh database (no-op when columns already exist from SCHEMA_SQL).
+        """
+        cursor = await self._conn.execute("PRAGMA table_info(campaigns)")
+        rows = await cursor.fetchall()
+        existing_cols = {row["name"] for row in rows}
+
+        # Phase 2 A.1 -- add media columns to pre-existing campaigns tables.
+        if "media_type" not in existing_cols:
+            await self._conn.execute(
+                "ALTER TABLE campaigns ADD COLUMN media_type TEXT NOT NULL DEFAULT 'text'"
+            )
+            logger.info("Migrated campaigns: added media_type column")
+        if "media_path" not in existing_cols:
+            await self._conn.execute(
+                "ALTER TABLE campaigns ADD COLUMN media_path TEXT"
+            )
+            logger.info("Migrated campaigns: added media_path column")
 
     async def close(self):
         """Close the database connection."""
