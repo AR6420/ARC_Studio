@@ -40,6 +40,11 @@ if str(_pkg_root) not in sys.path:
     sys.path.insert(0, str(_pkg_root))
 
 from config import settings
+from scoring.audio_scorer import (
+    AudioValidationError,
+    score_audio,
+    validate_audio_file,
+)
 from scoring.model_loader import get_model, is_model_loaded, load_model
 from scoring.normalizer import build_baseline_from_model, get_normalizer
 from scoring.roi_extractor import extract_roi_activations
@@ -237,6 +242,34 @@ class BatchScoreResponse(BaseModel):
     scores: list[ScoreResponse]
 
 
+class AudioScoreRequest(BaseModel):
+    audio_path: str = Field(
+        ...,
+        min_length=1,
+        description="Absolute path to an audio file (.wav/.mp3/.flac/.ogg).",
+    )
+
+    # Forward-compat: allow additional fields (e.g. variant_id) without 422ing.
+    model_config = {"extra": "ignore"}
+
+
+class AudioScoreResponse(BaseModel):
+    attention_capture: float = Field(..., ge=0.0, le=100.0)
+    emotional_resonance: float = Field(..., ge=0.0, le=100.0)
+    memory_encoding: float = Field(..., ge=0.0, le=100.0)
+    reward_response: float = Field(..., ge=0.0, le=100.0)
+    threat_detection: float = Field(..., ge=0.0, le=100.0)
+    cognitive_load: float = Field(..., ge=0.0, le=100.0)
+    social_relevance: float = Field(..., ge=0.0, le=100.0)
+    inference_time_ms: float = Field(..., ge=0.0)
+    duration_seconds: float = Field(..., ge=0.0)
+    is_pseudo_score: bool = Field(default=False)
+    pseudo_reason: str | None = Field(
+        default=None,
+        description="Populated when is_pseudo_score=true — '<ExceptionClass>: <msg>'.",
+    )
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
@@ -248,6 +281,14 @@ class HealthResponse(BaseModel):
     gpu_memory_free_gb: float | None
     baseline_size: int
     startup_failed: bool
+    audio_supported: bool = Field(
+        default=True,
+        description="True if the /api/score_audio endpoint is available.",
+    )
+    audio_max_duration_seconds: float = Field(
+        default=0.0,
+        description="Maximum accepted audio duration in seconds.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -415,6 +456,58 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
     ]
 
 
+def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioScoreResponse:
+    """Blocking inference for one audio file. Runs inside a thread executor.
+
+    Raises HTTPException on pre-inference failures (missing model / stale CUDA).
+    Returns a response with ``is_pseudo_score=True`` + ``pseudo_reason`` when
+    the audio pipeline raises mid-inference (Contract 3).
+    """
+    _require_cuda_healthy()
+    model = _require_model()
+    t_start = time.perf_counter()
+
+    vertex_activations = None
+    is_pseudo = False
+    pseudo_reason: str | None = None
+
+    with _inference_lock:
+        try:
+            vertex_activations, is_pseudo = score_audio(
+                audio_path,
+                model,
+                timeout=settings.audio_inference_timeout_seconds,
+            )
+        except Exception as exc:
+            # Contract 3: surface mid-inference failures as 200 + is_pseudo_score=True.
+            logger.exception(
+                "Audio inference raised %s — returning pseudo-score response.",
+                type(exc).__name__,
+            )
+            from scoring.audio_scorer import _pseudo_score_from_audio
+
+            vertex_activations = _pseudo_score_from_audio(audio_path)
+            is_pseudo = True
+            pseudo_reason = f"{type(exc).__name__}: {exc}"
+
+    elapsed_ms = (time.perf_counter() - t_start) * 1000.0
+    raw_activations = extract_roi_activations(vertex_activations)
+    scores = get_normalizer().normalize(raw_activations)
+    return AudioScoreResponse(
+        attention_capture=scores["attention_capture"],
+        emotional_resonance=scores["emotional_resonance"],
+        memory_encoding=scores["memory_encoding"],
+        reward_response=scores["reward_response"],
+        threat_detection=scores["threat_detection"],
+        cognitive_load=scores["cognitive_load"],
+        social_relevance=scores["social_relevance"],
+        inference_time_ms=round(elapsed_ms, 2),
+        duration_seconds=round(duration_seconds, 3),
+        is_pseudo_score=is_pseudo,
+        pseudo_reason=pseudo_reason,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -452,6 +545,38 @@ async def score_batch(request: BatchScoreRequest) -> BatchScoreResponse:
     loop = asyncio.get_event_loop()
     scores = await loop.run_in_executor(None, lambda: _run_batch_score(request.texts))
     return BatchScoreResponse(scores=scores)
+
+
+@app.post(
+    "/api/score_audio",
+    response_model=AudioScoreResponse,
+    summary="Score a single audio clip",
+    description=(
+        "Run TRIBE v2 audio inference (Wav2Vec-BERT → brain-encoding) on the "
+        "provided audio file and return 7 dimension scores (0-100). The file "
+        "must exist on the server filesystem at the provided absolute path "
+        "and be at most ``MAX_AUDIO_DURATION_SECONDS`` long."
+    ),
+)
+async def score_audio_endpoint(request: AudioScoreRequest) -> AudioScoreResponse:
+    try:
+        duration = validate_audio_file(
+            request.audio_path,
+            max_duration_seconds=settings.max_audio_duration_seconds,
+        )
+    except AudioValidationError as exc:
+        logger.warning("Audio validation failed for %s: %s", request.audio_path, exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        lambda: _run_single_audio_score(request.audio_path, duration),
+    )
+    return result
 
 
 @app.get(
@@ -511,6 +636,8 @@ async def health() -> HealthResponse:
         gpu_memory_free_gb=gpu_mem_free,
         baseline_size=get_normalizer().baseline_size(),
         startup_failed=_startup_error is not None,
+        audio_supported=True,
+        audio_max_duration_seconds=settings.max_audio_duration_seconds,
     )
 
     if cuda_healthy is False:

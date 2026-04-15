@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     max_words_per_chunk: int = 500
     per_chunk_timeout: int = 900  # 15 minutes per chunk
 
+    # Audio scoring (Phase 2 A.1) — reject clips longer than this before inference.
+    max_audio_duration_seconds: float = 60.0
+    # Max wall-clock budget for a single audio inference call (Wav2Vec-BERT path).
+    audio_inference_timeout_seconds: int = 1800  # 30 minutes
+
     model_config = {"env_prefix": "", "env_file": str(_ENV_FILE), "extra": "ignore"}
 
     @property
