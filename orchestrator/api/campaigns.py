@@ -3,11 +3,15 @@ Campaign CRUD endpoints for the A.R.C Studio API.
 
 Provides POST/GET/DELETE operations for campaigns via the CampaignStore.
 Phase 2 A.1 adds POST /campaigns/upload for audio seed files.
+Phase 2 A.2 extends that endpoint to also accept video seed files
+(.mp4/.webm/.mov, ≤15s, ≤25 MB, ≤720p — auto-downscaled via ffmpeg if higher).
 """
 
 import asyncio
 import logging
 import os
+import shutil
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -28,6 +32,96 @@ router = APIRouter(tags=["campaigns"])
 
 # Read-ahead chunk size when streaming the upload to disk / counting bytes.
 _UPLOAD_CHUNK_BYTES = 1 * 1024 * 1024  # 1 MiB
+
+
+def _ffprobe_video_metadata(path: Path) -> dict:
+    """Return ``{'duration': float, 'width': int, 'height': int}`` for a video.
+
+    Raises ValueError if ffprobe is unavailable, the file isn't parseable,
+    or there's no video stream. Mirrors tribe_scorer/scoring/video_scorer.py
+    so server-side and orchestrator-side validation use the same probe.
+    """
+    if shutil.which("ffprobe") is None:
+        raise ValueError(
+            "ffprobe not found on PATH; install ffmpeg/ffprobe to enable video uploads."
+        )
+    try:
+        out = subprocess.run(
+            [
+                "ffprobe",
+                "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height,duration",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1",
+                str(path),
+            ],
+            capture_output=True, text=True, timeout=15, check=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError(f"ffprobe timed out: {exc}") from exc
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(
+            f"ffprobe failed: {exc.stderr.strip()[:200]}"
+        ) from exc
+
+    md: dict = {}
+    for line in out.stdout.splitlines():
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key, val = key.strip(), val.strip()
+        if not val or val == "N/A":
+            continue
+        if key in ("width", "height"):
+            try:
+                md[key] = int(val)
+            except ValueError:
+                pass
+        elif key == "duration":
+            try:
+                d = float(val)
+                if d > 0:
+                    md["duration"] = d
+            except ValueError:
+                pass
+
+    if "width" not in md or "height" not in md:
+        raise ValueError("No video stream found (ffprobe returned no width/height)")
+    if "duration" not in md or md["duration"] <= 0:
+        raise ValueError("Could not determine duration (ffprobe returned no value)")
+    return md
+
+
+def _ffmpeg_downscale_to_height(src: Path, dest: Path, target_height: int) -> None:
+    """Use ffmpeg to scale *src* down to *target_height* (preserving aspect ratio).
+
+    Output codec H.264 + AAC for broad compatibility. Width is auto-computed
+    via -2 to keep the value even (libx264 requires even dimensions).
+    Raises ValueError if ffmpeg fails.
+    """
+    if shutil.which("ffmpeg") is None:
+        raise ValueError(
+            "ffmpeg not found on PATH; cannot downscale oversize video."
+        )
+    try:
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-loglevel", "error",
+                "-i", str(src),
+                "-vf", f"scale=-2:{target_height}",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                "-c:a", "aac", "-b:a", "128k",
+                str(dest),
+            ],
+            capture_output=True, text=True, timeout=120, check=True,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError(f"ffmpeg downscale timed out: {exc}") from exc
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(
+            f"ffmpeg downscale failed: {exc.stderr.strip()[:300]}"
+        ) from exc
 
 
 def _measure_audio_duration_seconds(path: Path) -> float:
@@ -59,31 +153,42 @@ def _measure_audio_duration_seconds(path: Path) -> float:
 
 
 @router.post("/campaigns/upload", response_model=AudioUploadResponse)
-async def upload_audio(
+async def upload_media(
     request: Request,
     file: UploadFile = File(...),
 ) -> AudioUploadResponse:
     """
-    Accept an audio seed file for Phase 2 A.1 audio campaigns.
+    Accept an audio (Phase 2 A.1) or video (Phase 2 A.2) seed file.
 
-    Validations (server-side):
-    - Extension must be one of the configured allowed types (default: wav/mp3/flac/ogg).
-    - File size <= AUDIO_MAX_BYTES (default 10 MB).
-    - Measured duration <= AUDIO_MAX_DURATION_SECONDS (default 60s).
+    Dispatch is by extension (case-insensitive):
+    - Audio (.wav/.mp3/.flac/.ogg): ≤AUDIO_MAX_BYTES, ≤AUDIO_MAX_DURATION_SECONDS
+    - Video (.mp4/.webm/.mov):      ≤VIDEO_MAX_BYTES, ≤VIDEO_MAX_DURATION_SECONDS,
+                                    height ≤VIDEO_MAX_RESOLUTION_HEIGHT
+                                    (auto-downscaled via ffmpeg if higher)
 
-    Stores the file as `<AUDIO_UPLOAD_DIR>/<uuid4><ext>` and returns the absolute
-    path the UI can then pass to POST /api/campaigns as `media_path`.
+    Stores the file under AUDIO_UPLOAD_DIR (shared with audio — UUID filenames
+    keep them distinct) and returns the absolute path the UI passes to
+    POST /api/campaigns as `media_path`. The response carries `media_type`
+    so the UI knows what to render.
     """
     # ── Extension check (case-insensitive) ──────────────────────────────────
     original_name = file.filename or ""
     ext = Path(original_name).suffix.lower()
-    allowed = tuple(e.lower() for e in settings.audio_allowed_extensions)
-    if ext not in allowed:
+    audio_allowed = tuple(e.lower() for e in settings.audio_allowed_extensions)
+    video_allowed = tuple(e.lower() for e in settings.video_allowed_extensions)
+
+    if ext in audio_allowed:
+        media_type: str = "audio"
+        size_limit = settings.audio_max_bytes
+    elif ext in video_allowed:
+        media_type = "video"
+        size_limit = settings.video_max_bytes
+    else:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Unsupported file extension '{ext or '(none)'}'. "
-                f"Allowed: {', '.join(allowed)}"
+                f"Allowed: {', '.join(audio_allowed + video_allowed)}"
             ),
         )
 
@@ -91,7 +196,6 @@ async def upload_audio(
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     dest_path = upload_dir / f"{uuid.uuid4()}{ext}"
-    size_limit = settings.audio_max_bytes
     total_bytes = 0
 
     try:
@@ -104,7 +208,6 @@ async def upload_audio(
                     break
                 total_bytes += len(chunk)
                 if total_bytes > size_limit:
-                    # Stop reading and reject.
                     out.close()
                     dest_path.unlink(missing_ok=True)
                     raise HTTPException(
@@ -118,7 +221,6 @@ async def upload_audio(
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        # Best-effort cleanup on unexpected I/O failure.
         dest_path.unlink(missing_ok=True)
         logger.exception("Upload write failed")
         raise HTTPException(status_code=500, detail=f"Upload failed: {exc}") from exc
@@ -127,7 +229,15 @@ async def upload_audio(
         dest_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail="Empty file")
 
-    # ── Duration check (measured, per spec) ─────────────────────────────────
+    if media_type == "audio":
+        return await _finalize_audio_upload(dest_path, original_name, total_bytes)
+    return await _finalize_video_upload(dest_path, original_name, total_bytes)
+
+
+async def _finalize_audio_upload(
+    dest_path: Path, original_name: str, total_bytes: int
+) -> AudioUploadResponse:
+    """Validate measured duration and return the response for an audio upload."""
     try:
         duration = _measure_audio_duration_seconds(dest_path)
     except ValueError as exc:
@@ -151,11 +261,91 @@ async def upload_audio(
         "Accepted audio upload: %s (%.2fs, %d bytes) -> %s",
         original_name, duration, total_bytes, dest_path,
     )
-
     return AudioUploadResponse(
         media_path=str(dest_path.resolve()),
         duration_seconds=duration,
         size_bytes=total_bytes,
+        media_type="audio",
+    )
+
+
+async def _finalize_video_upload(
+    dest_path: Path, original_name: str, total_bytes: int
+) -> AudioUploadResponse:
+    """Validate duration + resolution, downscale to ≤720p height when needed."""
+    try:
+        meta = _ffprobe_video_metadata(dest_path)
+    except ValueError as exc:
+        dest_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400, detail=f"Invalid video file: {exc}"
+        ) from exc
+
+    duration = float(meta["duration"])
+    width = int(meta["width"])
+    height = int(meta["height"])
+
+    max_duration = settings.video_max_duration_seconds
+    if duration > max_duration:
+        dest_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Video too long: {duration:.2f}s exceeds "
+                f"{max_duration:.0f}s limit"
+            ),
+        )
+
+    target_h = settings.video_max_resolution_height
+    downscaled = False
+    final_size = total_bytes
+
+    if height > target_h:
+        # Downscale via ffmpeg to fit the height limit. We always re-encode to
+        # .mp4 (libx264) for downstream decoder compatibility; the original
+        # extension is preserved on disk.
+        scaled_path = dest_path.with_suffix(dest_path.suffix + ".scaled.mp4")
+        try:
+            _ffmpeg_downscale_to_height(dest_path, scaled_path, target_h)
+        except ValueError as exc:
+            dest_path.unlink(missing_ok=True)
+            scaled_path.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Video resolution {width}x{height} exceeds {target_h}p "
+                    f"and downscale failed: {exc}"
+                ),
+            ) from exc
+
+        # Replace original with downscaled output and re-probe for accurate metadata.
+        try:
+            os.replace(scaled_path, dest_path)
+            meta = _ffprobe_video_metadata(dest_path)
+            width = int(meta["width"])
+            height = int(meta["height"])
+            duration = float(meta["duration"])
+            final_size = dest_path.stat().st_size
+            downscaled = True
+        except Exception as exc:  # noqa: BLE001
+            dest_path.unlink(missing_ok=True)
+            scaled_path.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=500, detail=f"Downscale post-processing failed: {exc}"
+            ) from exc
+
+    logger.info(
+        "Accepted video upload: %s (%.2fs, %dx%d, %d bytes, downscaled=%s) -> %s",
+        original_name, duration, width, height, final_size, downscaled, dest_path,
+    )
+    return AudioUploadResponse(
+        media_path=str(dest_path.resolve()),
+        duration_seconds=duration,
+        size_bytes=final_size,
+        media_type="video",
+        width=width,
+        height=height,
+        downscaled=downscaled,
     )
 
 
@@ -229,24 +419,27 @@ async def delete_campaign(request: Request, campaign_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Campaign {campaign_id} not found")
 
-    # Best-effort cleanup of the audio file. Non-fatal on failure.
+    # Best-effort cleanup of the uploaded media file. Non-fatal on failure.
     if media is not None:
         media_type, media_path = media
-        if media_type == "audio" and media_path:
+        if media_type in ("audio", "video") and media_path:
             try:
                 p = Path(media_path)
                 if p.exists():
                     p.unlink()
-                    logger.info("Deleted audio file for campaign %s: %s", campaign_id, p)
+                    logger.info(
+                        "Deleted %s file for campaign %s: %s",
+                        media_type, campaign_id, p,
+                    )
                 else:
                     logger.warning(
-                        "Audio file for campaign %s not found on disk (already removed?): %s",
-                        campaign_id, media_path,
+                        "%s file for campaign %s not found on disk (already removed?): %s",
+                        media_type.capitalize(), campaign_id, media_path,
                     )
             except OSError as exc:
                 logger.warning(
-                    "Failed to delete audio file %s for campaign %s: %s",
-                    media_path, campaign_id, exc,
+                    "Failed to delete %s file %s for campaign %s: %s",
+                    media_type, media_path, campaign_id, exc,
                 )
 
     return None

@@ -49,6 +49,11 @@ from scoring.model_loader import get_model, is_model_loaded, load_model
 from scoring.normalizer import build_baseline_from_model, get_normalizer
 from scoring.roi_extractor import extract_roi_activations
 from scoring.text_scorer import score_text
+from scoring.video_scorer import (
+    VideoValidationError,
+    score_video,
+    validate_video_file,
+)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -270,6 +275,40 @@ class AudioScoreResponse(BaseModel):
     )
 
 
+class VideoScoreRequest(BaseModel):
+    video_path: str = Field(
+        ...,
+        min_length=1,
+        description="Absolute path to a video file (.mp4/.webm/.mov).",
+    )
+
+    # Forward-compat: allow additional fields (e.g. variant_id) without 422ing.
+    model_config = {"extra": "ignore"}
+
+
+class VideoScoreResponse(BaseModel):
+    attention_capture: float = Field(..., ge=0.0, le=100.0)
+    emotional_resonance: float = Field(..., ge=0.0, le=100.0)
+    memory_encoding: float = Field(..., ge=0.0, le=100.0)
+    reward_response: float = Field(..., ge=0.0, le=100.0)
+    threat_detection: float = Field(..., ge=0.0, le=100.0)
+    cognitive_load: float = Field(..., ge=0.0, le=100.0)
+    social_relevance: float = Field(..., ge=0.0, le=100.0)
+    inference_time_ms: float = Field(..., ge=0.0)
+    duration_seconds: float = Field(..., ge=0.0)
+    width: int = Field(..., ge=0)
+    height: int = Field(..., ge=0)
+    peak_vram_mb: float = Field(
+        default=0.0, ge=0.0,
+        description="torch.cuda.max_memory_allocated() during this inference (0 if CPU).",
+    )
+    is_pseudo_score: bool = Field(default=False)
+    pseudo_reason: str | None = Field(
+        default=None,
+        description="Populated when is_pseudo_score=true — '<ExceptionClass>: <msg>'.",
+    )
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
@@ -288,6 +327,18 @@ class HealthResponse(BaseModel):
     audio_max_duration_seconds: float = Field(
         default=0.0,
         description="Maximum accepted audio duration in seconds.",
+    )
+    video_supported: bool = Field(
+        default=True,
+        description="True if the /api/score_video endpoint is available.",
+    )
+    video_max_duration_seconds: float = Field(
+        default=0.0,
+        description="Maximum accepted video duration in seconds.",
+    )
+    video_max_resolution_height: int = Field(
+        default=0,
+        description="Maximum accepted video resolution height in pixels.",
     )
 
 
@@ -456,6 +507,70 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
     ]
 
 
+def _run_single_video_score(
+    video_path: str,
+    duration_seconds: float,
+    width: int,
+    height: int,
+) -> VideoScoreResponse:
+    """Blocking inference for one video file. Runs inside a thread executor.
+
+    Raises HTTPException on pre-inference failures (missing model / stale CUDA).
+    Returns a response with ``is_pseudo_score=True`` + ``pseudo_reason`` when
+    the video pipeline raises mid-inference (V-JEPA2 OOM, decode error, etc.).
+
+    Captures peak VRAM via ``torch.cuda.max_memory_allocated()`` during the
+    inference window so callers can verify hardware-class fit.
+    """
+    _require_cuda_healthy()
+    model = _require_model()
+    t_start = time.perf_counter()
+
+    vertex_activations = None
+    is_pseudo = False
+    pseudo_reason: str | None = None
+    peak_vram_mb = 0.0
+
+    with _inference_lock:
+        try:
+            vertex_activations, is_pseudo, peak_vram_mb = score_video(
+                video_path,
+                model,
+                timeout=settings.video_inference_timeout_seconds,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Video inference raised %s — returning pseudo-score response.",
+                type(exc).__name__,
+            )
+            from scoring.video_scorer import _pseudo_score_from_video, _read_peak_vram_mb
+
+            vertex_activations = _pseudo_score_from_video(video_path)
+            is_pseudo = True
+            pseudo_reason = f"{type(exc).__name__}: {exc}"
+            peak_vram_mb = _read_peak_vram_mb()
+
+    elapsed_ms = (time.perf_counter() - t_start) * 1000.0
+    raw_activations = extract_roi_activations(vertex_activations)
+    scores = get_normalizer().normalize(raw_activations)
+    return VideoScoreResponse(
+        attention_capture=scores["attention_capture"],
+        emotional_resonance=scores["emotional_resonance"],
+        memory_encoding=scores["memory_encoding"],
+        reward_response=scores["reward_response"],
+        threat_detection=scores["threat_detection"],
+        cognitive_load=scores["cognitive_load"],
+        social_relevance=scores["social_relevance"],
+        inference_time_ms=round(elapsed_ms, 2),
+        duration_seconds=round(duration_seconds, 3),
+        width=width,
+        height=height,
+        peak_vram_mb=round(peak_vram_mb, 1),
+        is_pseudo_score=is_pseudo,
+        pseudo_reason=pseudo_reason,
+    )
+
+
 def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioScoreResponse:
     """Blocking inference for one audio file. Runs inside a thread executor.
 
@@ -579,6 +694,45 @@ async def score_audio_endpoint(request: AudioScoreRequest) -> AudioScoreResponse
     return result
 
 
+@app.post(
+    "/api/score_video",
+    response_model=VideoScoreResponse,
+    summary="Score a single video clip",
+    description=(
+        "Run TRIBE v2 video inference (V-JEPA2 → brain-encoding) on the "
+        "provided video file and return 7 dimension scores (0-100). The file "
+        "must exist on the server filesystem at the provided absolute path, "
+        "be at most ``MAX_VIDEO_DURATION_SECONDS`` long, and have a height "
+        "no greater than ``MAX_VIDEO_RESOLUTION_HEIGHT`` pixels."
+    ),
+)
+async def score_video_endpoint(request: VideoScoreRequest) -> VideoScoreResponse:
+    try:
+        meta = validate_video_file(
+            request.video_path,
+            max_duration_seconds=settings.max_video_duration_seconds,
+            max_resolution_height=settings.max_video_resolution_height,
+        )
+    except VideoValidationError as exc:
+        logger.warning("Video validation failed for %s: %s", request.video_path, exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        lambda: _run_single_video_score(
+            request.video_path,
+            meta["duration_seconds"],
+            meta["width"],
+            meta["height"],
+        ),
+    )
+    return result
+
+
 @app.get(
     "/api/health",
     response_model=HealthResponse,
@@ -638,6 +792,9 @@ async def health() -> HealthResponse:
         startup_failed=_startup_error is not None,
         audio_supported=True,
         audio_max_duration_seconds=settings.max_audio_duration_seconds,
+        video_supported=True,
+        video_max_duration_seconds=settings.max_video_duration_seconds,
+        video_max_resolution_height=settings.max_video_resolution_height,
     )
 
     if cuda_healthy is False:

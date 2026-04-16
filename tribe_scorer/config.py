@@ -47,6 +47,14 @@ class Settings(BaseSettings):
     # Max wall-clock budget for a single audio inference call (Wav2Vec-BERT path).
     audio_inference_timeout_seconds: int = 1800  # 30 minutes
 
+    # Video scoring (Phase 2 A.2) — V-JEPA2 path. Tighter limits to bound VRAM
+    # peak (vendor lazy-loads V-JEPA2 + brain encoder ≈ 5-6 GB) and inference
+    # time (audio extract → transcribe → V-JEPA2 → brain encoding all run
+    # sequentially per the _free_extractor_model pattern).
+    max_video_duration_seconds: float = 15.0
+    max_video_resolution_height: int = 720
+    video_inference_timeout_seconds: int = 1800  # 30 minutes
+
     model_config = {"env_prefix": "", "env_file": str(_ENV_FILE), "extra": "ignore"}
 
     @property

@@ -118,6 +118,29 @@ class Settings(BaseSettings):
         description="Accepted audio file extensions (case-insensitive).",
     )
 
+    # ── Video upload (Phase 2 A.2) ──────────────────────────────────────────────
+    # Same upload dir as audio (data/uploads/) — UUID filenames keep them distinct.
+    video_max_bytes: int = Field(
+        default=25 * 1024 * 1024,
+        description="Maximum accepted video upload size in bytes (default: 25 MB).",
+    )
+    video_max_duration_seconds: float = Field(
+        default=15.0,
+        description="Maximum accepted video duration in seconds (default: 15s).",
+    )
+    video_max_resolution_height: int = Field(
+        default=720,
+        description=(
+            "Maximum accepted video resolution height in pixels (default: 720). "
+            "Videos taller than this are downscaled to this height on upload via ffmpeg "
+            "(width is scaled proportionally to preserve aspect ratio)."
+        ),
+    )
+    video_allowed_extensions: tuple[str, ...] = Field(
+        default=(".mp4", ".webm", ".mov"),
+        description="Accepted video file extensions (case-insensitive).",
+    )
+
     # ── Simulation defaults ─────────────────────────────────────────────────────
     default_agent_count: int = Field(
         default=40,

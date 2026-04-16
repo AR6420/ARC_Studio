@@ -26,7 +26,7 @@ class CampaignCreateRequest(BaseModel):
 
     # Phase 2 A.1 -- media type routing (declared first so field_validators
     # for seed_content / media_path can read it via ValidationInfo.data).
-    media_type: Literal["text", "audio"] = Field(
+    media_type: Literal["text", "audio", "video"] = Field(
         default="text",
         description="Input modality. 'text' uses seed_content; 'audio' uses media_path.",
     )
@@ -128,10 +128,11 @@ class DataCompleteness(BaseModel):
     tribe_real_score_count: int = 0
     tribe_pseudo_score_count: int = 0
     missing_composite_dimensions: list[str] = []
-    # Phase 2 A.1 -- media-type awareness so downstream consumers can tell
-    # whether a given iteration was driven by a text seed or an audio seed.
+    # Phase 2 A.1/A.2 -- media-type awareness so downstream consumers can tell
+    # whether a given iteration was driven by a text/audio/video seed.
     has_audio: bool = False
-    media_type: Literal["text", "audio"] = "text"
+    has_video: bool = False
+    media_type: Literal["text", "audio", "video"] = "text"
 
 
 # -- Iteration record --
@@ -191,7 +192,7 @@ class CampaignResponse(BaseModel):
     iterations: list[IterationRecord] | None = None
     analyses: list[AnalysisRecord] | None = None
     # Phase 2 A.1 -- media routing
-    media_type: Literal["text", "audio"] = "text"
+    media_type: Literal["text", "audio", "video"] = "text"
     media_path: str | None = None
 
 
@@ -200,11 +201,34 @@ class CampaignResponse(BaseModel):
 
 class AudioUploadResponse(BaseModel):
     """Response from POST /api/campaigns/upload. Returns the absolute path to
-    the stored file along with validated metadata the UI can show to the user."""
+    the stored file along with validated metadata the UI can show to the user.
+
+    Phase 2 A.2: this endpoint now also accepts video files; the response is
+    polymorphic via the ``media_type`` field. The legacy class name is kept
+    so existing imports stay valid; downstream code reads media_type to
+    branch.
+    """
 
     media_path: str
     duration_seconds: float
     size_bytes: int
+    media_type: Literal["audio", "video"] = "audio"
+    width: int | None = Field(
+        default=None,
+        description="Pixel width — populated for video uploads, None for audio.",
+    )
+    height: int | None = Field(
+        default=None,
+        description=(
+            "Pixel height — populated for video uploads, None for audio. "
+            "Reflects the post-downscale height when the orchestrator had to "
+            "downscale a too-tall input."
+        ),
+    )
+    downscaled: bool = Field(
+        default=False,
+        description="True when the orchestrator ran ffmpeg to fit MAX_VIDEO_RESOLUTION_HEIGHT.",
+    )
 
 
 class CampaignListResponse(BaseModel):

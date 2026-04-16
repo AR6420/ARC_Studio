@@ -5,9 +5,10 @@
  * Seed content is a monospace editor panel with an inset background.
  * Time estimate sits inline next to the Run button; no separate section.
  *
- * Phase 2 A.1 — Optional audio upload sits between seed content and the
- * prediction question. When audio is selected, the seed textarea becomes
- * optional (audio IS the content); the prediction question stays required.
+ * Phase 2 A.1/A.2 — Optional audio OR video upload sits between seed content
+ * and the prediction question. When media is selected, the seed textarea
+ * becomes optional (the media IS the content); the prediction question stays
+ * required. Media type is detected from extension by the upload component.
  */
 
 import { useState } from 'react';
@@ -23,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { DemographicSelector } from './demographic-selector';
 import { ConfigPanel } from './config-panel';
 import { TimeEstimate } from './time-estimate';
-import { AudioUpload, type AudioFileInfo } from './audio-upload';
+import { MediaUpload, type MediaFileInfo } from './media-upload';
 
 const SEED_MIN = 100;
 const SEED_MAX = 25000;
@@ -44,28 +45,28 @@ export function CampaignForm() {
   const [thresholds, setThresholds] = useState<Record<string, number>>({});
   const [constraints, setConstraints] = useState('');
 
-  // Phase 2 A.1 — audio state
-  const [audioFile, setAudioFile] = useState<AudioFileInfo | null>(null);
-  const [uploadingAudio, setUploadingAudio] = useState(false);
+  // Phase 2 A.1/A.2 — media state (audio or video)
+  const [mediaFile, setMediaFile] = useState<MediaFileInfo | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
-  const hasAudio = audioFile !== null;
+  const hasMedia = mediaFile !== null;
   const seedLen = seedContent.length;
   const questionLen = predictionQuestion.length;
-  // When audio is provided, the textarea is optional — audio IS the content.
+  // When media is provided, the textarea is optional — the media IS the content.
   // Text-only mode keeps the original 100-char minimum unchanged.
-  const seedValid = hasAudio ? true : seedLen >= SEED_MIN;
+  const seedValid = hasMedia ? true : seedLen >= SEED_MIN;
   const questionValid = questionLen >= QUESTION_MIN;
   const canSubmit =
     seedValid &&
     questionValid &&
     !createMutation.isPending &&
-    !uploadingAudio;
+    !uploadingMedia;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!seedValid) {
       toast.error(
-        hasAudio
+        hasMedia
           ? 'Unexpected seed content state.'
           : 'Seed content must be at least 100 characters.',
       );
@@ -76,29 +77,31 @@ export function CampaignForm() {
       return;
     }
 
-    // Phase 2 A.1 — if audio is attached, upload it first to obtain media_path.
-    // If the upload endpoint isn't live yet, let the 404 propagate (per spec).
+    // Phase 2 A.1/A.2 — if media is attached, upload it first to obtain media_path.
     let mediaPath: string | null = null;
-    if (hasAudio && audioFile) {
+    let mediaType: 'text' | 'audio' | 'video' = 'text';
+    if (hasMedia && mediaFile) {
       try {
-        setUploadingAudio(true);
-        const res = await uploadMedia(audioFile.file);
+        setUploadingMedia(true);
+        const res = await uploadMedia(mediaFile.file);
         mediaPath = res.media_path;
+        // Trust the server's classification (matches client-side detection
+        // but the server is the source of truth, esp. after downscale).
+        mediaType = res.media_type;
       } catch (err) {
-        setUploadingAudio(false);
-        const msg = err instanceof Error ? err.message : 'Audio upload failed';
-        toast.error(`Audio upload failed: ${msg}`);
+        setUploadingMedia(false);
+        const msg = err instanceof Error ? err.message : 'Media upload failed';
+        toast.error(`${mediaFile.mediaType === 'video' ? 'Video' : 'Audio'} upload failed: ${msg}`);
         return;
       }
-      setUploadingAudio(false);
+      setUploadingMedia(false);
     }
 
     createMutation.mutate(
       {
-        // When audio-only, still send a placeholder seed so the backend has
-        // something if media_type handling is partial. The audio file is the
-        // real content.
-        seed_content: hasAudio && seedContent.length === 0 ? '' : seedContent,
+        // When media-only, still send the seed (possibly empty) so the
+        // backend schema has the field; the media is the real content.
+        seed_content: hasMedia && seedContent.length === 0 ? '' : seedContent,
         prediction_question: predictionQuestion,
         demographic,
         demographic_custom: demographic === 'custom' ? demographicCustom : null,
@@ -108,9 +111,7 @@ export function CampaignForm() {
         thresholds: thresholdEnabled ? thresholds : null,
         constraints: constraints.trim() || null,
         auto_start: true,
-        // Phase 2 A.1 — media_type defaults to text; audio only when a file
-        // is attached AND the upload succeeded.
-        media_type: hasAudio ? 'audio' : 'text',
+        media_type: mediaType,
         media_path: mediaPath,
       },
       {
@@ -139,8 +140,8 @@ export function CampaignForm() {
               value={seedContent}
               onChange={(e) => setSeedContent(e.target.value)}
               placeholder={
-                hasAudio
-                  ? 'Optional — audio is the primary content. Add text context if useful.'
+                hasMedia
+                  ? `Optional — ${mediaFile?.mediaType ?? 'media'} is the primary content. Add text context if useful.`
                   : 'Paste the content you want to optimise — a product announcement, press release, policy draft, marketing copy…'
               }
               className={cn(
@@ -153,7 +154,7 @@ export function CampaignForm() {
               current={seedLen}
               max={SEED_MAX}
               min={SEED_MIN}
-              optional={hasAudio}
+              optional={hasMedia}
             />
           </div>
           <p className="font-mono text-[0.6rem] text-muted-foreground">
@@ -161,13 +162,13 @@ export function CampaignForm() {
           </p>
         </div>
 
-        {/* Phase 2 A.1 — audio upload */}
+        {/* Phase 2 A.1/A.2 — audio or video upload */}
         <div className="space-y-2.5">
-          <FieldLabel>Audio (optional)</FieldLabel>
-          <AudioUpload
-            value={audioFile}
-            onChange={setAudioFile}
-            disabled={createMutation.isPending || uploadingAudio}
+          <FieldLabel>Audio or Video (optional)</FieldLabel>
+          <MediaUpload
+            value={mediaFile}
+            onChange={setMediaFile}
+            disabled={createMutation.isPending || uploadingMedia}
           />
         </div>
 
@@ -234,10 +235,10 @@ export function CampaignForm() {
           disabled={!canSubmit}
           className="gap-1.5 px-5"
         >
-          {uploadingAudio ? (
+          {uploadingMedia ? (
             <>
               <Loader2 className="size-3.5 animate-spin" />
-              Uploading audio…
+              Uploading {mediaFile?.mediaType ?? 'media'}…
             </>
           ) : createMutation.isPending ? (
             <>
