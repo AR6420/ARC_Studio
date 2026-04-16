@@ -176,12 +176,26 @@ class CampaignRunner:
                             "one score broadcast to all %d variants",
                             media_path, len(variants),
                         )
-                        # Agent 3 will implement the real audio path. For now
-                        # a single audio score is applied uniformly across all
-                        # variants (variant-level audio mutations are a future
-                        # concern handled by Agent 3).
+                        # Single seed-audio score broadcast across variants —
+                        # variant-level audio mutations are out of scope for A.1.
                         audio_score = await self._tribe_client.score_audio(media_path)
                         tribe_scores_list = [audio_score] * len(variants)
+                elif media_type == "video":
+                    if not media_path:
+                        logger.warning(
+                            "Campaign %s declared media_type='video' but has no "
+                            "media_path; skipping TRIBE scoring", campaign_id,
+                        )
+                        tribe_scores_list = [None] * len(variants)
+                    else:
+                        logger.info(
+                            "Step 3: Scoring video seed via TRIBE v2 V-JEPA2 (%s) — "
+                            "one score broadcast to all %d variants",
+                            media_path, len(variants),
+                        )
+                        # Same broadcast pattern as audio (Phase 2 A.2).
+                        video_score = await self._tribe_client.score_video(media_path)
+                        tribe_scores_list = [video_score] * len(variants)
                 else:
                     logger.info("Step 3: Scoring %d variants with TRIBE v2", len(variants))
                     tribe_scores_list = await self._tribe_scoring.score_variants(variants)
@@ -293,6 +307,7 @@ class CampaignRunner:
                 tribe_pseudo_score_count=tribe_pseudo,
                 missing_composite_dimensions=sorted(missing),
                 has_audio=(media_type == "audio"),
+                has_video=(media_type == "video"),
                 media_type=media_type,
             )
 
