@@ -283,6 +283,7 @@ ARC_Studio/
 - **Single-user only.** No concurrent campaign support.
 - **Claude API credentials from subscription rotate periodically.** LiteLLM auto-refreshes but long campaigns may encounter brief interruptions.
 - **MiroFish simulation quality scales with agent count.** 20 agents is the minimum for meaningful social dynamics. 100+ agents produce richer results but proportionally longer runtimes.
+- **Video input support is implemented but requires a GPU with 24GB+ VRAM for real TRIBE v2 inference** (V-JEPA2 ViT-Giant peaks at ~14GB). On the RTX 5070 Ti, video campaigns run with pseudo-score fallback. Text and audio produce real neural scores on laptop hardware.
 
 ## Roadmap
 
