@@ -22,15 +22,23 @@ export interface CampaignCreateRequest {
   thresholds?: Record<string, number> | null;
   constraints?: string | null;
   auto_start?: boolean;
-  // Phase 2 A.1 — audio input support
-  media_type?: 'text' | 'audio';
+  // Phase 2 A.1 / A.2 — audio + video input support
+  media_type?: 'text' | 'audio' | 'video';
   media_path?: string | null;
 }
 
-// -- Media upload (Phase 2 A.1) --
+// -- Media upload (Phase 2 A.1 + A.2) --
 
 export interface MediaUploadResponse {
   media_path: string;
+  duration_seconds: number;
+  size_bytes: number;
+  media_type: 'audio' | 'video';
+  // Video-only fields. Reflect post-downscale dimensions when the orchestrator
+  // had to fit MAX_VIDEO_RESOLUTION_HEIGHT.
+  width?: number | null;
+  height?: number | null;
+  downscaled?: boolean;
 }
 
 // -- Score / metric models (JSON column storage, D-08) --
