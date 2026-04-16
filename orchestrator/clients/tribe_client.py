@@ -38,6 +38,11 @@ BATCH_PER_TEXT_TIMEOUT = 5400.0
 # generous client-side buffer to cover pool queueing and retries.
 SCORE_AUDIO_TIMEOUT = 1800.0  # 30 min
 
+# Per-request timeout for video scoring (Phase 2 A.2). V-JEPA2 + brain encoding
+# is slower than audio (audio extract → transcribe → V-JEPA2 sequential), but
+# bounded by the 15s clip-duration limit. Match audio's budget for symmetry.
+SCORE_VIDEO_TIMEOUT = 1800.0  # 30 min
+
 # Retry configuration for transient failures
 MAX_RETRIES = 2
 RETRY_BACKOFF_BASE = 5.0  # seconds
@@ -323,6 +328,54 @@ class TribeClient:
             reason = data.get("pseudo_reason") or "unspecified"
             logger.warning(
                 "TRIBE returned PSEUDO-SCORES (not real brain-encoding) for audio: %s",
+                reason,
+            )
+        return scores
+
+    async def score_video(self, video_path: str) -> dict[str, float] | None:
+        """
+        Score a single video clip via TRIBE v2 /api/score_video with retry logic.
+
+        Phase 2 A.2 contract (mirrors score_audio):
+        - Returns a dict with 7 dimension scores + ``is_pseudo_score`` on success.
+        - Returns ``None`` on HTTP/client failure (after retries).
+        - Pseudo-score fallbacks from the server (mid-inference exceptions) come
+          back as 200 with ``is_pseudo_score=true`` and the flag is surfaced.
+
+        Parameters
+        ----------
+        video_path:
+            Absolute filesystem path to a video file on the TRIBE scorer host.
+            Must be ``.mp4``/``.webm``/``.mov``, ≤15 seconds, and ≤720p height.
+        """
+
+        async def _request(timeout: float) -> httpx.Response:
+            return await self._client.post(
+                "/api/score_video",
+                json={"video_path": video_path},
+                timeout=timeout,
+            )
+
+        resp = await self._retry_loop("video scoring", _request, SCORE_VIDEO_TIMEOUT)
+        if resp is None:
+            return None
+
+        data = resp.json()
+        scores = _extract_scores(data)
+        if scores is None:
+            return None
+
+        inference_ms = data.get("inference_time_ms", 0)
+        duration_s = data.get("duration_seconds", 0)
+        peak_vram_mb = data.get("peak_vram_mb", 0.0)
+        logger.info(
+            "TRIBE scored video in %.0fms inference (duration=%.2fs, peak VRAM=%.0f MB)",
+            inference_ms, duration_s, peak_vram_mb,
+        )
+        if scores.get("is_pseudo_score"):
+            reason = data.get("pseudo_reason") or "unspecified"
+            logger.warning(
+                "TRIBE returned PSEUDO-SCORES (not real brain-encoding) for video: %s",
                 reason,
             )
         return scores
