@@ -72,3 +72,18 @@ docs/
 
 # Claude Code agent memory (nested instances)
 **/.claude/
+
+# Playwright MCP cache
+.playwright-mcp/
+
+# Local data directory (sqlite + scratch)
+data/
+
+# Ad-hoc local scripts and test payloads (not committed source)
+probe_video.py
+run_a2_regression.py
+run_a2_validation.py
+tribe_test_payload.json
+
+# Test media artifacts
+test_video.*
