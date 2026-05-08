@@ -1,0 +1,376 @@
+{
+  "campaign_id": "40061b4d-74df-4fb3-80f9-a5d6df09c20c",
+  "iterations": [
+    {
+      "campaign_id": "40061b4d-74df-4fb3-80f9-a5d6df09c20c",
+      "iteration_number": 1,
+      "variants": [
+        {
+          "id": "v1_technical_benchmark",
+          "content": "Stop measuring dashboard velocity. We're measuring forecast deviation. The Acme AI Pro platform doesn't just automate visualizations; it rewrites the statistical inference engine your enterprise relies on. Our zookeepers partner with Azure, AWS, and Snowflake to inject closed-loop validation, not just faster charts. In pilot deployments across healthcare systems, we observed 40% tighter R\u00b2 values on demand forecasting. Developers report writing less boilerplate for anomaly detection. CTOs demand this because it shifts operations from discovery to validation. We strip away the slack in your pipeline. No marketing fluff. Just measurable precision. Implement the validation layer today.",
+          "strategy": "Addresses technical skepticism by focusing on hard metrics and removing marketing language, appealing directly to engineering leaders' need for precision and validation.",
+          "key_psychological_mechanisms": [
+            "Demonstration Evidence",
+            "Precision Framing",
+            "Technical Negation"
+          ],
+          "expected_strengths": [
+            "Builds immediate credibility with skeptical technical audiences",
+            "Aligns with decision-makers' criteria for enterprise software evaluation"
+          ],
+          "potential_risks": [
+            "May alienate users seeking a softer onboarding experience or comprehensive platform feature warning"
+          ]
+        },
+        {
+          "id": "v2_systemic_pressure",
+          "content": "Your competitors are compressing five hours of data science work into five minutes. Acme Pro turns that margin into a systemic advantage. When Microsoft Azure, AWS, and Snowflake recalibrate on your stack, your decision speed becomes the bottleneck. Industry standards decay rapidly; stick with static tools at your peril. You need a platform that scales inference with your data volume, not just your seat count. Benchmarks show 30% reductions in build cycles, but the hidden metric is opportunity loss during the delay. Acme Pro connects prediction models to operational reality, automating the translation of raw signals into executive-ready decisions.",
+          "strategy": "Leverages competitive pressure and FOMO from competitors to create urgency, while positioning Acme as the critical infrastructure needed to maintain market pace.",
+          "key_psychological_mechanisms": [
+            "Competitive Pressure",
+            "Loss Aversion",
+            "Systemic Integration"
+          ],
+          "expected_strengths": [
+            "Appeals to engineering leadership's competitive instincts",
+            "Frames the product as essential infrastructure rather than a luxury"
+          ],
+          "potential_risks": [
+            "May cause defensive posturing rather than positive engagement from neutral audiences"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        {
+          "attention_capture": 57.0,
+          "emotional_resonance": 54.4,
+          "memory_encoding": 54.2,
+          "reward_response": 52.4,
+          "threat_detection": 53.0,
+          "cognitive_load": 49.6,
+          "social_relevance": 53.4,
+          "is_pseudo_score": false
+        },
+        {
+          "attention_capture": 67.3,
+          "emotional_resonance": 65.7,
+          "memory_encoding": 64.2,
+          "reward_response": 62.3,
+          "threat_detection": 60.8,
+          "cognitive_load": 62.9,
+          "social_relevance": 61.8,
+          "is_pseudo_score": false
+        }
+      ],
+      "mirofish_metrics": [
+        {
+          "organic_shares": 14,
+          "sentiment_trajectory": [
+            0.0
+          ],
+          "counter_narrative_count": 0,
+          "peak_virality_cycle": 1,
+          "sentiment_drift": 0.0,
+          "coalition_formation": 1,
+          "influence_concentration": 0.793,
+          "platform_divergence": 0.0
+        },
+        {
+          "organic_shares": 6,
+          "sentiment_trajectory": [
+            0.0
+          ],
+          "counter_narrative_count": 0,
+          "peak_virality_cycle": 1,
+          "sentiment_drift": 0.0,
+          "coalition_formation": 1,
+          "influence_concentration": 0.95,
+          "platform_divergence": 0.0
+        }
+      ],
+      "composite_scores": [
+        {
+          "attention_score": 56.0,
+          "virality_potential": 41.0,
+          "backlash_risk": 0.0,
+          "memory_durability": 14.7,
+          "conversion_potential": 5.6,
+          "audience_fit": 52.4,
+          "polarization_index": 0.0
+        },
+        {
+          "attention_score": 66.7,
+          "virality_potential": 19.4,
+          "backlash_risk": 0.0,
+          "memory_durability": 21.1,
+          "conversion_potential": 6.9,
+          "audience_fit": 62.1,
+          "polarization_index": 0.0
+        }
+      ],
+      "analysis": {
+        "iteration_number": 1,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v1_technical_benchmark",
+            "neural_summary": "This variant shows moderate neural engagement with attention_capture at 57.0 and emotional_resonance at 54.4, indicating it registers but doesn't strongly activate biological attention or emotional circuits. The cognitive_load of 49.6 suggests manageable complexity for the technical audience, while social_relevance at 53.4 shows moderate activation of social processing networks.",
+            "social_summary": "MiroFish simulation reveals 14 organic_shares with peak_virality_cycle at 1, indicating early but limited spread. The sentiment_trajectory remained flat (start=0.000, end=0.000) with sentiment_drift of 0.0, showing no opinion movement. Influence_concentration at 0.793 indicates a few agents drove outcomes rather than distributed adoption.",
+            "cross_system_insight": "The moderate attention_capture (57.0) and social_relevance (53.4) scores correlate with the 14 organic_shares, but the flat sentiment_trajectory and 0.0 sentiment_drift suggest the technical precision failed to create emotional momentum needed for broader adoption.",
+            "strengths": [
+              "Lower cognitive_load (49.6) matched audience preference for precision, reducing barriers to understanding",
+              "Zero counter_narrative_count indicates no defensive pushback from skeptical technical audience"
+            ],
+            "weaknesses": [
+              "Modest emotional_resonance (54.4) failed to generate sentiment_drift (0.0), limiting persuasive power",
+              "High influence_concentration (0.793) suggests content only resonated with a narrow subset of agents"
+            ],
+            "composite_assessment": "Technically sound but emotionally inert, resulting in limited social spread despite audience alignment."
+          },
+          {
+            "variant_id": "v2_systemic_pressure",
+            "neural_summary": "This variant achieved significantly higher neural activation with attention_capture at 67.3 and emotional_resonance at 65.7, indicating strong biological engagement. However, threat_detection at 60.8 and cognitive_load at 62.9 suggest the competitive pressure framing triggered defensiveness and complexity concerns.",
+            "social_summary": "Despite higher neural scores, MiroFish shows only 6 organic_shares with peak_virality_cycle at 1, indicating even weaker spread than v1. The influence_concentration of 0.95 reveals extreme concentration among few agents, while sentiment_trajectory remained completely flat (0.000 throughout).",
+            "cross_system_insight": "The elevated threat_detection (60.8) likely triggered defensive processing that suppressed organic_shares (6), creating a paradox where higher attention (67.3) produced lower social spread due to audience resistance to competitive framing.",
+            "strengths": [
+              "Highest attention_capture (67.3) and memory_encoding (64.2) among both variants, ensuring content registration",
+              "Strong reward_response (62.3) indicates perceived value despite resistance"
+            ],
+            "weaknesses": [
+              "High threat_detection (60.8) correlated with lowest organic_shares (6), showing competitive framing backfired",
+              "Elevated cognitive_load (62.9) may have overwhelmed the technical audience's processing capacity"
+            ],
+            "composite_assessment": "Higher neural engagement but counterproductive social outcomes due to threat-based framing that triggered audience defensiveness."
+          }
+        ],
+        "ranking": [
+          "v1_technical_benchmark",
+          "v2_systemic_pressure"
+        ],
+        "cross_system_insights": [
+          "v1's lower threat_detection (53.0) directly correlated with higher organic_shares (14 vs 6), demonstrating that reduced defensiveness enables better social spread even with lower attention_capture (57.0 vs 67.3)",
+          "Both variants show 0.0 sentiment_drift despite varying emotional_resonance scores (54.4 vs 65.7), indicating the technical audience requires different emotional triggers than those activated by either approach",
+          "High influence_concentration in both variants (0.793 and 0.95) correlates with moderate social_relevance scores (53.4 and 61.8), suggesting content failed to activate broader social processing networks needed for distributed adoption"
+        ],
+        "iteration_improvement_notes": "First iteration establishing baseline patterns. Key finding: technical audience responds better to low-threat technical precision (v1) than competitive pressure (v2), despite v2's higher attention scores. Both variants failed to generate sentiment movement or distributed sharing.",
+        "recommendations_for_next_iteration": [
+          "Reduce threat_detection below 50 by removing competitive comparison language and focusing on collaborative infrastructure benefits",
+          "Increase social_relevance above 60 by emphasizing community knowledge-sharing and technical peer validation rather than individual advantage",
+          "Lower cognitive_load below 45 by simplifying technical claims while maintaining precision, using visual data representations instead of dense text"
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "Neither variant achieved meaningful sentiment_drift (both 0.0), organic_shares below 20 threshold, or distributed influence (both >0.75 concentration). Technical audience requires different neural-social activation pattern than tested."
+        }
+      },
+      "system_availability": {
+        "tribe_available": true,
+        "mirofish_available": true
+      },
+      "data_completeness": "tribe_available=True mirofish_available=True tribe_real_score_count=2 tribe_pseudo_score_count=0 missing_composite_dimensions=[] has_audio=False has_video=False media_type='text'",
+      "warnings": []
+    },
+    {
+      "campaign_id": "40061b4d-74df-4fb3-80f9-a5d6df09c20c",
+      "iteration_number": 2,
+      "variants": [
+        {
+          "id": "v3_architectural_shift",
+          "content": "Tableau and Databricks pipelines are 800+ lines long. Acme's Pro reduces this to 200 with automated schema inference.\n\nWe recently refactored healthcare billing workflows using Acme's native connectors. The dashboard rebuild took three days instead of three weeks.\n\nThis isn't a dashboard tool. It's a synthesis layer for heterogeneous data sources. Azure, AWS, Snowflake integrations are native, not bolt-ons. Your CI/CD pipelines now validate schema migrations automatically.\n\nCTOs: Stop fighting vendor lock-in. Start building. Acme runs alongside existing infrastructure, removing friction while your engineering teams focus on model architecture.\n\nJoin the technical working group. We're sharing the query optimization patterns we developed during the healthcare beta cycle. No sales calls. Just architecture.",
+          "strategy": "Positions the product as foundational architecture rather than a point tool, using specific technical specifications to demonstrate reduced cognitive load while emphasizing infrastructure benefits over competitive threats.",
+          "key_psychological_mechanisms": [
+            "specificity heuristic",
+            "credibility by technical precision",
+            "reduction of uncertainty"
+          ],
+          "expected_strengths": [
+            "resonates with engineering leaders focused on architecture",
+            "avoids defensive competitive framing",
+            "high perceived utility"
+          ],
+          "potential_risks": [
+            "perceived as dry and lacking emotional engagement",
+            "may not appeal to non-technical decision makers"
+          ]
+        },
+        {
+          "id": "v4_peer_validation",
+          "content": "Our engineering team's latest production deployment reduced report generation time from six hours to twelve minutes.\n\nWe didn't just upgrade the dashboard. We replaced a three-year legacy workflow with Acme Pro's automated data synthesis engine. The Snowflake integration handles null-value reconciliation without custom SQL.\n\nThree community members joined us on the enterprise beta. They're the ones who documented the schema migration patterns that saved our latency budget.\n\nAcme doesn't sell dashboards. It clears the path for technical teams to build quickly without compromising data integrity. Microsoft Azure and AWS partners are now using our connectors as their standard.\n\nIf you're planning Q3 infrastructure, start with the TSO integration roadmap shared in our Slack community. Architecture-first decisions compound early.",
+          "strategy": "Leverages social proof and community validation by showcasing real-world adoption and technical contributions from peers, establishing trust through tangible implementation stories rather than marketing claims.",
+          "key_psychological_mechanisms": [
+            "social proof",
+            "trust transfer",
+            "communal identity"
+          ],
+          "expected_strengths": [
+            "high virality potential through technical networks",
+            "builds authentic credibility",
+            "reduces skepticism through peer recommendations"
+          ],
+          "potential_risks": [
+            "may be perceived as overly niche if audience lacks the referenced tools",
+            "complex integration details could increase cognitive load"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        {
+          "attention_capture": 75.0,
+          "emotional_resonance": 72.9,
+          "memory_encoding": 72.1,
+          "reward_response": 70.6,
+          "threat_detection": 68.6,
+          "cognitive_load": 70.7,
+          "social_relevance": 70.6,
+          "is_pseudo_score": false
+        },
+        {
+          "attention_capture": 75.8,
+          "emotional_resonance": 75.4,
+          "memory_encoding": 73.6,
+          "reward_response": 73.1,
+          "threat_detection": 73.0,
+          "cognitive_load": 72.1,
+          "social_relevance": 71.9,
+          "is_pseudo_score": false
+        }
+      ],
+      "mirofish_metrics": [
+        {
+          "organic_shares": 8,
+          "sentiment_trajectory": [
+            0.0
+          ],
+          "counter_narrative_count": 0,
+          "peak_virality_cycle": 1,
+          "sentiment_drift": 0.0,
+          "coalition_formation": 1,
+          "influence_concentration": 0.8,
+          "platform_divergence": 0.0
+        },
+        {
+          "organic_shares": 6,
+          "sentiment_trajectory": [
+            0.0
+          ],
+          "counter_narrative_count": 0,
+          "peak_virality_cycle": 1,
+          "sentiment_drift": 0.0,
+          "coalition_formation": 1,
+          "influence_concentration": 0.85,
+          "platform_divergence": 0.0
+        }
+      ],
+      "composite_scores": [
+        {
+          "attention_score": 74.2,
+          "virality_potential": 29.1,
+          "backlash_risk": 0.0,
+          "memory_durability": 26.3,
+          "conversion_potential": 7.7,
+          "audience_fit": 69.9,
+          "polarization_index": 0.0
+        },
+        {
+          "attention_score": 75.6,
+          "virality_potential": 22.6,
+          "backlash_risk": 0.0,
+          "memory_durability": 27.7,
+          "conversion_potential": 7.6,
+          "audience_fit": 71.9,
+          "polarization_index": 0.0
+        }
+      ],
+      "analysis": {
+        "iteration_number": 2,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v3_architectural_shift",
+            "neural_summary": "This variant achieved elevated neural engagement with attention_capture at 75.0 and emotional_resonance at 72.9, indicating strong biological registration and emotional activation. However, threat_detection at 68.6 and cognitive_load at 70.7 remain concerning, suggesting the technical comparison framing still triggers defensiveness and processing strain despite infrastructure-focused positioning.",
+            "social_summary": "MiroFish simulation shows 8 organic_shares with peak_virality_cycle at 1, indicating early but limited spread. The sentiment_trajectory remained completely flat (start=0.000, end=0.000) with 0.0 sentiment_drift, showing no opinion movement. Influence_concentration at 0.8 indicates outcomes driven by few agents rather than distributed adoption.",
+            "cross_system_insight": "The elevated threat_detection (68.6) and cognitive_load (70.7) likely suppressed broader social spread despite strong attention_capture (75.0), correlating with only 8 organic_shares and 0.8 influence_concentration, suggesting technical audience still perceives competitive framing as defensive.",
+            "strengths": [
+              "Highest attention_capture (75.0) among all variants ensures content registration with technical audience",
+              "Strong memory_encoding (72.1) and reward_response (70.6) indicate perceived value and retention potential",
+              "Zero counter_narrative_count shows no active pushback despite threat_detection at 68.6"
+            ],
+            "weaknesses": [
+              "Threat_detection (68.6) remains above recommended 50 threshold, correlating with limited organic_shares (8)",
+              "Cognitive_load (70.7) exceeds audience processing capacity, likely contributing to 0.0 sentiment_drift",
+              "High influence_concentration (0.8) indicates content only resonated with narrow agent subset rather than distributed network"
+            ],
+            "composite_assessment": "Improved neural engagement but persistent threat and complexity barriers prevent meaningful social spread and sentiment movement."
+          },
+          {
+            "variant_id": "v4_peer_validation",
+            "neural_summary": "This variant achieved the highest neural activation with attention_capture at 75.8 and emotional_resonance at 75.4, indicating optimal biological engagement. However, threat_detection at 73.0 and cognitive_load at 72.1 represent the highest levels across all variants, suggesting peer validation framing paradoxically increased defensiveness and complexity perception.",
+            "social_summary": "MiroFish simulation shows 6 organic_shares with peak_virality_cycle at 1, indicating even weaker spread than v3. The sentiment_trajectory remained flat (start=0.000, end=0.000) with 0.0 sentiment_drift. Influence_concentration at 0.85 indicates extreme concentration among few agents.",
+            "cross_system_insight": "The highest threat_detection (73.0) and cognitive_load (72.1) directly correlated with lowest organic_shares (6) and highest influence_concentration (0.85), demonstrating that peer validation framing triggered defensive processing that suppressed social spread despite highest attention_capture (75.8).",
+            "strengths": [
+              "Highest attention_capture (75.8) and emotional_resonance (75.4) ensure maximum biological registration and emotional activation",
+              "Strong memory_encoding (73.6) and reward_response (73.1) indicate excellent retention and perceived value",
+              "Zero counter_narrative_count shows no active opposition despite elevated threat_detection"
+            ],
+            "weaknesses": [
+              "Highest threat_detection (73.0) across all variants correlates with lowest organic_shares (6), showing peer framing backfired",
+              "Cognitive_load (72.1) exceeds audience capacity, contributing to 0.0 sentiment_drift and limited spread",
+              "Highest influence_concentration (0.85) indicates extreme narrow adoption, failing to activate distributed social networks"
+            ],
+            "composite_assessment": "Highest neural engagement but worst social outcomes due to threat and complexity barriers that suppressed sharing despite strong emotional activation."
+          }
+        ],
+        "ranking": [
+          "v3_architectural_shift",
+          "v4_peer_validation"
+        ],
+        "cross_system_insights": [
+          "v3's lower threat_detection (68.6 vs 73.0) and cognitive_load (70.7 vs 72.1) directly correlated with higher organic_shares (8 vs 6), demonstrating that reduced defensiveness enables better social spread even with similar attention_capture scores (75.0 vs 75.8)",
+          "Both variants show 0.0 sentiment_drift despite high emotional_resonance scores (72.9 vs 75.4), indicating the technical audience requires different emotional triggers than those activated by either infrastructure or peer validation framing",
+          "High influence_concentration in both variants (0.8 and 0.85) correlates with elevated threat_detection (68.6 and 73.0), suggesting defensive processing prevents activation of broader social processing networks needed for distributed adoption",
+          "The paradox of highest neural engagement (v4: attention 75.8, emotional 75.4) producing lowest social spread (6 shares) reveals that threat_detection and cognitive_load act as neural gatekeepers that override attention and emotion for this skeptical technical audience"
+        ],
+        "iteration_improvement_notes": "Iteration 2 variants increased neural engagement significantly (attention_capture 75.0-75.8 vs 57.0-67.3 in iteration 1) but failed to address threat_detection and cognitive_load barriers. Both variants still show 0.0 sentiment_drift and high influence_concentration, indicating the fundamental neural-social activation pattern remains unresolved. Peer validation (v4) paradoxically increased threat_detection more than architectural framing (v3).",
+        "recommendations_for_next_iteration": [
+          "Reduce threat_detection below 50 by removing all competitive comparison language (Tableau, Databricks references) and focusing exclusively on collaborative infrastructure benefits without mentioning competitors",
+          "Lower cognitive_load below 55 by replacing text-heavy technical specifications with visual data representations and simplified claims that maintain precision without density",
+          "Increase social_relevance above 70 by emphasizing community knowledge-sharing and open technical collaboration rather than individual or team advantage, potentially using open-source contribution framing",
+          "Test non-competitive value propositions that activate reward_response without triggering threat_detection, such as efficiency gains framed as time-saved for innovation rather than competitive advantage"
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "Neither variant achieved meaningful sentiment_drift (both 0.0), organic_shares below 20 threshold (8 and 6), or distributed influence (both >0.75 concentration at 0.8 and 0.85). Threat_detection remains above 50 threshold (68.6 and 73.0), cognitive_load exceeds 55 capacity (70.7 and 72.1), and social_relevance below 70 (70.6 and 71.9). Technical audience requires fundamentally different neural activation pattern that avoids defensive processing while maintaining engagement."
+        }
+      },
+      "system_availability": {
+        "tribe_available": true,
+        "mirofish_available": true
+      },
+      "data_completeness": "tribe_available=True mirofish_available=True tribe_real_score_count=2 tribe_pseudo_score_count=0 missing_composite_dimensions=[] has_audio=False has_video=False media_type='text'",
+      "warnings": []
+    }
+  ],
+  "stop_reason": "max_iterations",
+  "iterations_completed": 2,
+  "best_scores_history": [
+    {
+      "attention_score": 66.7,
+      "virality_potential": 19.4,
+      "backlash_risk": 0.0,
+      "memory_durability": 21.1,
+      "conversion_potential": 6.9,
+      "audience_fit": 62.1,
+      "polarization_index": 0.0
+    },
+    {
+      "attention_score": 74.2,
+      "virality_potential": 29.1,
+      "backlash_risk": 0.0,
+      "memory_durability": 26.3,
+      "conversion_potential": 7.7,
+      "audience_fit": 69.9,
+      "polarization_index": 0.0
+    }
+  ],
+  "improvement_history": [
+    22.008703389221665
+  ]
+}
