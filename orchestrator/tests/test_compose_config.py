@@ -144,6 +144,25 @@ class TestModelEnvWiring:
         cmd = " ".join(str(c) for c in rocm_compose["services"]["vllm-agents"]["command"])
         assert "Qwen/Qwen3.5-9B" in cmd, "primary agent default model not set"
 
+    def test_orchestrator_uses_enforce_eager(self, rocm_compose):
+        """
+        Phase 3 finding: Qwen3.5-27B + vLLM 0.17.1 + ROCm crashes during
+        FULL CUDA-graph capture. --enforce-eager skips graph capture.
+        """
+        cmd = [str(c) for c in rocm_compose["services"]["vllm-orchestrator"]["command"]]
+        assert "--enforce-eager" in cmd, (
+            "--enforce-eager required on orchestrator tier; without it "
+            "Qwen3.5-27B startup crashes during decode CUDA-graph capture"
+        )
+
+    def test_agents_does_not_use_enforce_eager(self, rocm_compose):
+        """The 9B agent tier doesn't need eager mode and would lose ~10% perf."""
+        cmd = [str(c) for c in rocm_compose["services"]["vllm-agents"]["command"]]
+        assert "--enforce-eager" not in cmd, (
+            "agent tier should not use --enforce-eager (perf cost, no benefit "
+            "for the 9B model on vLLM 0.17.1)"
+        )
+
 
 # ── MiroFish routing through vllm-agents ────────────────────────────────────
 

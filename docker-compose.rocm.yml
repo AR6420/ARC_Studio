@@ -66,6 +66,13 @@ services:
       - --max-model-len=${VLLM_ORCHESTRATOR_MAX_MODEL_LEN:-16384}
       - --dtype=bfloat16
       - --served-model-name=${VLLM_ORCHESTRATOR_MODEL:-Qwen/Qwen3.5-27B}
+      # --enforce-eager: skip torch.compile + CUDA-graph capture. Required
+      # ONLY for the orchestrator tier on Qwen3.5-27B with vLLM 0.17.1 +
+      # ROCm — the FULL-mode CUDA-graph capture during decode profiling
+      # crashes with AssertionError in qwen3_5.py:738 (Phase 3 droplet
+      # finding). Adding this on the agent tier (9B) is unnecessary and
+      # would cost ~10% latency. Drop the flag once vLLM ships a fix.
+      - --enforce-eager
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/v1/models || exit 1"]
       interval: 30s
