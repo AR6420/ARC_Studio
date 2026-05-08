@@ -90,6 +90,14 @@ class TribeScores(BaseModel):
     cognitive_load: float
     social_relevance: float
     is_pseudo_score: bool = False
+    # Phase 1 (AMD hackathon): per-window time-series for the same 7 channels.
+    # Keys mirror the aggregated score names; values are equal-length lists of
+    # raw ROI activations (NOT 0-100 normalised). Null when TRIBE returned a
+    # pseudo score or the timeline could not be built. tr_seconds is the
+    # per-window duration in seconds; index i × tr_seconds = wallclock offset.
+    # Surfaced to the UI in Phase 5 for the playback-synced timeline chart.
+    timeline: dict[str, list[float]] | None = None
+    tr_seconds: float | None = None
 
 
 class MirofishMetrics(BaseModel):

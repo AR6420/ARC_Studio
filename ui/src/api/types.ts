@@ -43,6 +43,18 @@ export interface MediaUploadResponse {
 
 // -- Score / metric models (JSON column storage, D-08) --
 
+// 7 brain-region channels emitted in TribeScores.timeline.
+export type TribeChannel =
+  | "attention_capture"
+  | "emotional_resonance"
+  | "memory_encoding"
+  | "reward_response"
+  | "threat_detection"
+  | "cognitive_load"
+  | "social_relevance";
+
+export type TribeTimeline = Record<TribeChannel, number[]>;
+
 export interface TribeScores {
   attention_capture: number;
   emotional_resonance: number;
@@ -52,6 +64,11 @@ export interface TribeScores {
   cognitive_load: number;
   social_relevance: number;
   is_pseudo_score?: boolean;
+  // Phase 5: per-window time-series (one array per channel, equal length).
+  // Null when TRIBE returned a pseudo score or the timeline could not be
+  // built. tr_seconds is the per-window duration; idx × tr_seconds = wallclock.
+  timeline?: TribeTimeline | null;
+  tr_seconds?: number | null;
 }
 
 export interface MirofishMetrics {
