@@ -111,7 +111,7 @@ docker compose logs -f vllm-orchestrator
 - [ ] Same `/v1/models` + chat smoke as step 5, on port 18000
 - [ ] **VRAM check**: `rocm-smi --showmemuse` total used should be < 130 GB. If it's higher, you have no headroom for KV-cache burst — reduce one of the `MEM_UTIL` settings and recreate.
 
-## 7. Bring up the rest of the stack (~5 min)
+## 7. Bring up the rest of the stack (~10 min — tribe baseline is the slow part)
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.rocm.yml up -d \
@@ -119,40 +119,51 @@ docker compose -f docker-compose.yml -f docker-compose.rocm.yml up -d \
 docker compose ps
 ```
 
-- [ ] All services `healthy` (may take ~3 min for tribe_scorer + mirofish to clear `start_period`)
-- [ ] `curl http://127.0.0.1:8001/api/health | jq` → TRIBE shows `gpu_available=true`
+> **Phase 3 finding — tribe_scorer baseline blocks for ~5 min before health passes.** TRIBE's lifespan in `tribe_scorer/main.py` runs `build_baseline_from_model` *synchronously* before yielding to uvicorn. With 15 reference texts and 15-30s per text on real GPU, the HTTP server doesn't accept requests for ~3-5 min after container start. `curl :8001/api/health` returns `Empty reply from server` during this window — that's normal. Wait for the docker healthcheck `start_period: 120s` to elapse plus another ~3 min for baseline. Watch `docker logs -f arc-tribe-scorer` for `Baseline ready. Service is up.`
+
+- [ ] All services `healthy` (tribe_scorer takes ~5 min to clear `start_period` + baseline; mirofish ~2 min)
+- [ ] `curl http://127.0.0.1:8001/api/health | jq` → TRIBE shows `gpu_available=true`, `baseline_size: 15`
 - [ ] `curl http://127.0.0.1:5001/health` → MiroFish OK
 
 ## 8. Native orchestrator on host (3 min)
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+# AMD Quick Start image already binds host :8000 to its jupyter/dashboard.
+# Use port 8002 to avoid collision (see .env.hackathon.example for ORCHESTRATOR_PORT).
+apt-get install -y python3.12-venv     # not in the Quick Start image by default
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r orchestrator/requirements.txt
-python -m uvicorn orchestrator.api:create_app --factory --port 8000 &
-sleep 5
-curl http://127.0.0.1:8000/api/health | jq
+# setsid + nohup + redirect: SSH-resilient backgrounding so killing the SSH
+# session doesn't terminate uvicorn.
+setsid nohup .venv/bin/python -m uvicorn orchestrator.api:create_app \
+  --factory --host 0.0.0.0 --port 8002 < /dev/null > /tmp/orch.log 2>&1 &
+sleep 6
+curl http://127.0.0.1:8002/api/health | jq
 ```
 
 - [ ] Health response shows `tribe_available=true` and `mirofish_available=true`
 - [ ] Orchestrator log line `LLM provider: vllm (OpenAICompatClient -> http://127.0.0.1:18000/v1)`
+- [ ] **Second log line**: `Separate agent-tier endpoint: http://127.0.0.1:18001/v1` (proves dual-base-URL wiring is live)
 
-## 9. Smoke campaign — N=10 agents (~5 min)
+## 9. Smoke campaign — N=20 agents (~9 min)
+
+> **Phase 3 finding — Pydantic validation gates**: `seed_content` requires ≥100 chars and `agent_count` ≥20. Earlier runbook said N=10 — that fails validation. Use N=20 and ensure the seed copy is at least 100 characters.
 
 ```bash
-python -m orchestrator.cli \
-  --seed-content "Free shipping on orders over fifty dollars this weekend only." \
+.venv/bin/python -m orchestrator.cli \
+  --seed-content "Free shipping on every order over fifty dollars this weekend only at our online store. Limited time offer ends Sunday at midnight. Sign up for our newsletter to unlock exclusive discounts." \
   --prediction-question "Will users find this offer compelling?" \
   --demographic tech_professionals \
-  --agent-count 10 \
+  --agent-count 20 \
   --max-iterations 1 \
   --output /tmp/smoke.json
 ```
 
 - [ ] CLI exits 0
 - [ ] `/tmp/smoke.json` contains non-pseudo TRIBE scores (`is_pseudo_score: false`)
-- [ ] Composite scores are non-null
-- [ ] Cross-system Opus-equivalent analysis (Qwen) returned structured JSON
-- [ ] Total wallclock: `_______________` s (target: < 5 min for N=10)
+- [ ] Composite scores: `attention_score`, `conversion_potential`, `audience_fit` non-null. mirofish-dependent ones (virality, backlash, memory_durability, polarization) MAY be `None` until items #2 + #3 from the Phase 3.5 backport list land.
+- [ ] Qwen3.5-27B "Opus" analysis returned structured JSON
+- [ ] Total wallclock: `_______________` s (Phase 3 actual: ~9 min for N=20, including 3 report-layer Qwen calls)
 
 ## 10. Snapshot + tear down (5 min)
 

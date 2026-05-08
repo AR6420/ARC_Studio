@@ -4,6 +4,10 @@
 # ── Web framework ─────────────────────────────────────────────────────────────
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
+# python-multipart: required by FastAPI for any route that takes Form() or
+# UploadFile parameters. Missing-dep error surfaces only at first request to
+# such a route, not at import time — caught on the Phase 3 droplet smoke run.
+python-multipart>=0.0.9
 
 # ── LLM clients ───────────────────────────────────────────────────────────────
 # anthropic: production path (LLM_PROVIDER=anthropic, default)
