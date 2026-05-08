@@ -1,0 +1,170 @@
+{
+  "campaign_id": "3d7aab1f-64c2-4287-8abe-1ad209d86861",
+  "iterations": [
+    {
+      "campaign_id": "3d7aab1f-64c2-4287-8abe-1ad209d86861",
+      "iteration_number": 1,
+      "variants": [
+        {
+          "id": "v1_anthropomorphic_engineering_efficiency",
+          "content": "For engineers, shipping overhead is a constraint, not opportunity. Eliminate it. Over $50, shipping is free this weekend. No thresholds, no confusion, just efficiency. Sign up for our newsletter to access internal API endpoints for exclusive bulk discounts. Offer expires Sunday midnight. We optimize code; you optimize costs. Stack with other active promotions if you're managing procurement across multiple vendors. Authenticate your setup to test edge cases. Precision matters.",
+          "strategy": "Frames the offer as an engineering optimization problem that developers can control and test, appealing to their desire for efficiency and precision.",
+          "key_psychological_mechanisms": [
+            "framing as problem-solving tool",
+            "technical language mirroring",
+            "control and precision appeal"
+          ],
+          "expected_strengths": [
+            "high credibility with skeptical technical audience",
+            "avoids marketing fluff",
+            "appeals to systematic thinking habit"
+          ],
+          "potential_risks": [
+            "may appear too robotic and feel disconnected from human motivation"
+          ]
+        },
+        {
+          "id": "v2_decentralized_vulnerability_mapping",
+          "content": "Infrastructure decisions compound. Shipping costs fragment your margins. One vendor giving free overhead on orders exceeding $50 this weekend signals zero friction for vendor consolidation. Newsletter signup reveals hidden discount tiers for procurement automation. Lock in before Sunday midnight. We build resilient systems; your logistics stack shouldn't be brittle. Test the deltas. If procurement teams see this as wasteful, why isn't your supplier model doing the same? Precision builds leverage.",
+          "strategy": "Positions the offer as part of a broader systems optimization narrative, appealing to decision-makers' responsibility for resilient, efficient infrastructure.",
+          "key_psychological_mechanisms": [
+            "framing as systems optimization",
+            "reciprocity framing for newsletter reward",
+            "vulnerability/social responsibility appeal"
+          ],
+          "expected_strengths": [
+            "aligns with CTO mindset of collateral impact",
+            "builds shared purpose around efficiency",
+            "provides actionable leverage language"
+          ],
+          "potential_risks": [
+            "may seem too complex for implementation",
+            "could overwhelm smaller companies with scaling focus"
+          ]
+        }
+      ],
+      "tribe_scores": [
+        {
+          "attention_capture": 70.3,
+          "emotional_resonance": 70.0,
+          "memory_encoding": 68.9,
+          "reward_response": 66.7,
+          "threat_detection": 67.4,
+          "cognitive_load": 65.9,
+          "social_relevance": 66.5,
+          "is_pseudo_score": false
+        },
+        {
+          "attention_capture": 55.6,
+          "emotional_resonance": 55.1,
+          "memory_encoding": 54.4,
+          "reward_response": 52.6,
+          "threat_detection": 52.6,
+          "cognitive_load": 52.0,
+          "social_relevance": 51.8,
+          "is_pseudo_score": false
+        }
+      ],
+      "mirofish_metrics": [
+        null,
+        null
+      ],
+      "composite_scores": [
+        {
+          "attention_score": 70.2,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": 7.0,
+          "audience_fit": 66.5,
+          "polarization_index": null
+        },
+        {
+          "attention_score": 55.4,
+          "virality_potential": null,
+          "backlash_risk": null,
+          "memory_durability": null,
+          "conversion_potential": 5.6,
+          "audience_fit": 52.3,
+          "polarization_index": null
+        }
+      ],
+      "analysis": {
+        "iteration_number": 1,
+        "per_variant_assessment": [
+          {
+            "variant_id": "v1_anthropomorphic_engineering_efficiency",
+            "neural_summary": "TRIBE v2 shows elevated attention_capture (70.3) and emotional_resonance (70.0), indicating strong initial engagement. However, threat_detection (67.4) and cognitive_load (65.9) are notably high, suggesting the technical framing may trigger defensiveness and perceived complexity.",
+            "social_summary": "MiroFish simulation data is unavailable for this variant, preventing assessment of organic_shares, sentiment_trajectory, or coalition_formation. Without social simulation metrics, viral potential and backlash risk cannot be quantified.",
+            "cross_system_insight": "The high threat_detection (67.4) and cognitive_load (65.9) scores suggest this variant may generate counter-narratives or resistance in a social environment, though MiroFish data is needed to confirm.",
+            "strengths": [
+              "High attention_capture (70.3) indicates strong initial engagement potential",
+              "Elevated emotional_resonance (70.0) suggests the engineering framing resonates with target audience values"
+            ],
+            "weaknesses": [
+              "High threat_detection (67.4) may trigger skepticism or defensiveness in the developer audience",
+              "Elevated cognitive_load (65.9) could reduce message clarity and retention",
+              "No MiroFish simulation data prevents assessment of actual social spread and sentiment dynamics"
+            ],
+            "composite_assessment": "Strong neural engagement but high cognitive and threat signals suggest potential audience resistance that requires social simulation validation."
+          },
+          {
+            "variant_id": "v2_decentralized_vulnerability_mapping",
+            "neural_summary": "TRIBE v2 scores are consistently moderate across all dimensions, with attention_capture (55.6) and emotional_resonance (55.1) below v1. The lower cognitive_load (52.0) and threat_detection (52.6) suggest reduced complexity and defensiveness.",
+            "social_summary": "MiroFish simulation data is unavailable for this variant, preventing assessment of organic_shares, sentiment_trajectory, or coalition_formation. Without social simulation metrics, viral potential and backlash risk cannot be quantified.",
+            "cross_system_insight": "The lower threat_detection (52.6) and cognitive_load (52.0) compared to v1 suggest this variant may face less resistance in social environments, though MiroFish data is needed to confirm sentiment drift and coalition patterns.",
+            "strengths": [
+              "Lower cognitive_load (52.0) suggests easier message processing for the audience",
+              "Reduced threat_detection (52.6) indicates less likely to trigger defensiveness or skepticism"
+            ],
+            "weaknesses": [
+              "Lower attention_capture (55.6) and emotional_resonance (55.1) may result in weaker initial engagement",
+              "No MiroFish simulation data prevents assessment of actual social spread and sentiment dynamics",
+              "Lower reward_response (52.6) suggests reduced perceived value of the offer"
+            ],
+            "composite_assessment": "Moderate neural engagement with lower risk signals, but insufficient attention and reward scores may limit overall impact without social validation."
+          }
+        ],
+        "ranking": [
+          "v1_anthropomorphic_engineering_efficiency",
+          "v2_decentralized_vulnerability_mapping"
+        ],
+        "cross_system_insights": [
+          "v1's high threat_detection (67.4) and cognitive_load (65.9) may correlate with higher counter_narrative_count and coalition_formation in MiroFish, though simulation data is unavailable to confirm this pattern",
+          "v2's lower threat_detection (52.6) and cognitive_load (52.0) suggest potential for more stable sentiment_trajectory and lower polarization_index in social simulation, pending MiroFish validation",
+          "Both variants lack MiroFish data, preventing definitive cross-system analysis of how neural patterns translate to actual social outcomes like organic_shares or sentiment_drift"
+        ],
+        "iteration_improvement_notes": "First iteration analysis. MiroFish simulation unavailable for both variants, limiting cross-system validation. TRIBE v2 data shows v1 has stronger engagement but higher risk signals, while v2 has lower risk but weaker engagement.",
+        "recommendations_for_next_iteration": [
+          "Run MiroFish simulation for both variants to validate whether v1's high threat_detection (67.4) actually generates counter_narratives or coalition_formation",
+          "Test a hybrid variant combining v1's attention_capture (70.3) with v2's lower cognitive_load (52.0) to optimize engagement while reducing resistance",
+          "Add A/B testing with real developer audience to ground-truth whether TRIBE v2's emotional_resonance (70.0 vs 55.1) translates to actual conversion behavior"
+        ],
+        "thresholds_assessment": {
+          "met": false,
+          "notes": "MiroFish simulation data unavailable for both variants, preventing complete cross-system analysis. TRIBE v2 thresholds for attention_capture (>60) and threat_detection (<55) not consistently met across variants."
+        }
+      },
+      "system_availability": {
+        "tribe_available": true,
+        "mirofish_available": true
+      },
+      "data_completeness": "tribe_available=True mirofish_available=False tribe_real_score_count=2 tribe_pseudo_score_count=0 missing_composite_dimensions=['backlash_risk', 'memory_durability', 'polarization_index', 'virality_potential'] has_audio=False has_video=False media_type='text'",
+      "warnings": []
+    }
+  ],
+  "stop_reason": "max_iterations",
+  "iterations_completed": 1,
+  "best_scores_history": [
+    {
+      "attention_score": 70.2,
+      "virality_potential": null,
+      "backlash_risk": null,
+      "memory_durability": null,
+      "conversion_potential": 7.0,
+      "audience_fit": 66.5,
+      "polarization_index": null
+    }
+  ],
+  "improvement_history": []
+}
