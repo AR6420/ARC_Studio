@@ -37,6 +37,19 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 # vLLM accepts any non-empty api_key when started without `--api-key`.
 DUMMY_API_KEY = "vllm-no-auth"
 
+# Reasoning models (Qwen3.5, MiniMax M2.5, ...) emit <think>...</think>
+# blocks before the final answer in non-JSON mode. JSON-mode (the
+# response_format=json_object path) suppresses them via vLLM's structured
+# output constraint, so this only matters for call_opus / call_haiku
+# (raw-text). Mirror what mirofish/backend/app/utils/llm_client.py:85
+# already does for the same reason.
+_THINK_BLOCK = re.compile(r"<think>[\s\S]*?</think>")
+
+
+def _strip_think_blocks(text: str) -> str:
+    """Remove <think>...</think> reasoning prefaces from model output."""
+    return _THINK_BLOCK.sub("", text).strip()
+
 
 def _extract_json_from_text(text: str) -> dict[str, Any]:
     """
@@ -192,17 +205,19 @@ class OpenAICompatClient:
 
     async def call_opus(self, system: str, user: str, max_tokens: int = 4096) -> str:
         logger.debug("Calling orchestrator-tier model %s (max_tokens=%d)", self._orchestrator_model, max_tokens)
-        return await self._chat(
+        text = await self._chat(
             model=self._orchestrator_model,
             system=system, user=user, max_tokens=max_tokens, json_mode=False,
         )
+        return _strip_think_blocks(text)
 
     async def call_haiku(self, system: str, user: str, max_tokens: int = 4096) -> str:
         logger.debug("Calling agent-tier model %s (max_tokens=%d)", self._agent_model, max_tokens)
-        return await self._chat(
+        text = await self._chat(
             model=self._agent_model,
             system=system, user=user, max_tokens=max_tokens, json_mode=False,
         )
+        return _strip_think_blocks(text)
 
     async def call_opus_json(
         self, system: str, user: str, max_tokens: int = 4096

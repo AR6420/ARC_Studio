@@ -21,6 +21,7 @@ from openai import APIStatusError
 from orchestrator.clients.openai_compat_client import (
     OpenAICompatClient,
     _extract_json_from_text,
+    _strip_think_blocks,
 )
 
 
@@ -299,6 +300,61 @@ async def test_dual_endpoints_route_by_model():
     assert agent.await_count == 1
     assert orch.await_args.kwargs["model"] == "Qwen/Qwen3.5-27B"
     assert agent.await_args.kwargs["model"] == "Qwen/Qwen3.5-9B"
+
+
+# ── 7. <think> block stripping (Phase 3 backport) ──────────────────────────
+
+
+def test_strip_think_blocks_removes_single_block():
+    out = _strip_think_blocks("<think>reasoning here</think>\n\nFinal answer: 42")
+    assert out == "Final answer: 42"
+
+
+def test_strip_think_blocks_removes_multiple_blocks():
+    out = _strip_think_blocks(
+        "<think>step 1</think>middle<think>step 2</think>end"
+    )
+    assert out == "middleend"
+
+
+def test_strip_think_blocks_handles_multiline_content():
+    out = _strip_think_blocks(
+        "<think>line one\nline two\n  indented line three</think>\n\nResult"
+    )
+    assert out == "Result"
+
+
+def test_strip_think_blocks_passthrough_when_no_block():
+    assert _strip_think_blocks("just plain text") == "just plain text"
+
+
+@pytest.mark.asyncio
+async def test_call_opus_strips_think_block(stub_async_openai):
+    """Phase 3 finding: Qwen3.5 emits <think>...</think> in non-JSON mode."""
+    stub_async_openai.chat.completions.create.return_value = _make_completion(
+        "<think>analysing prompt</think>PONG"
+    )
+    client = OpenAICompatClient(
+        base_url="http://fake/v1",
+        orchestrator_model="orch",
+        agent_model="agent",
+    )
+    out = await client.call_opus(system="s", user="u")
+    assert out == "PONG"
+
+
+@pytest.mark.asyncio
+async def test_call_haiku_strips_think_block(stub_async_openai):
+    stub_async_openai.chat.completions.create.return_value = _make_completion(
+        "<think>thinking</think>\n\nVariant body."
+    )
+    client = OpenAICompatClient(
+        base_url="http://fake/v1",
+        orchestrator_model="orch",
+        agent_model="agent",
+    )
+    out = await client.call_haiku(system="s", user="u")
+    assert out == "Variant body."
 
 
 @pytest.mark.asyncio
