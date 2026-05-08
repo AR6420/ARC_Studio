@@ -82,6 +82,15 @@ class MirofishClient:
             logger.warning("MiroFish health check failed: %s", e)
             return False
 
+        # On the AMD hackathon stack MiroFish is wired directly to vllm-agents
+        # (docker-compose.rocm.yml's mirofish override sets LLM_BASE_URL to
+        # http://vllm-agents:8001/v1). LiteLLM is bypassed entirely. Skip the
+        # claude-haiku probe — it would 401 because no Anthropic key is set,
+        # and that's by design.
+        import os
+        if os.environ.get("LLM_PROVIDER", "").lower() == "vllm":
+            return True
+
         # Check LiteLLM proxy (MiroFish's LLM backend)
         try:
             async with httpx.AsyncClient() as check_client:
@@ -119,7 +128,16 @@ class MirofishClient:
         If the token is expired (401), attempts to refresh from Claude
         credentials and restart the LiteLLM container. Returns False only
         if refresh also fails.
+
+        On the AMD hackathon stack (LLM_PROVIDER=vllm) MiroFish reaches
+        vllm-agents directly and LiteLLM is bypassed — return True
+        unconditionally so mirofish_runner doesn't skip every variant.
+        Phase 3 droplet smoke confirmed this is the only blocker between
+        a working mirofish container and populated mirofish_metrics.
         """
+        import os
+        if os.environ.get("LLM_PROVIDER", "").lower() == "vllm":
+            return True
         try:
             async with httpx.AsyncClient() as check_client:
                 resp = await check_client.post(
