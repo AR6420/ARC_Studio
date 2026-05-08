@@ -2,12 +2,143 @@
 # Intended use:
 #   docker compose -f docker-compose.yml -f docker-compose.rocm.yml up -d
 #
-# Adds the tribe_scorer service (which on main runs natively via
-# tribe_scorer/start.sh) so the whole stack lives in containers on the
-# cloud VM. vLLM is NOT included here — it lives in a separate compose
-# file added in Phase 2 so model lifecycles can be managed independently.
+# Adds two vLLM services (orchestrator-tier + agent-tier) and the
+# containerised tribe_scorer. Overrides the base mirofish service so
+# its LLM calls go to vllm-agents instead of LiteLLM.
+#
+# The orchestrator FastAPI process itself is NOT containerised here —
+# it runs natively on the cloud VM (`uvicorn orchestrator.api:create_app
+# --factory --port 8000`) and reaches vllm-orchestrator via the host
+# port binding 127.0.0.1:18000 (mapped to the container's 8000). MiroFish,
+# which IS in a container, reaches vllm-agents via the docker network
+# hostname `vllm-agents`.
+#
+# Port summary (host -> container)
+#   127.0.0.1:8001  -> tribe_scorer:8001        (TRIBE FastAPI)
+#   127.0.0.1:5001  -> mirofish:5001            (MiroFish Flask, from base compose)
+#   127.0.0.1:18000 -> vllm-orchestrator:8000   (Qwen3.5-27B chat)
+#   127.0.0.1:18001 -> vllm-agents:8001         (Qwen3.5-9B chat)
+#
+# Inside the docker network, services reach each other by service name:
+#   orchestrator-on-host          -> http://127.0.0.1:18000/v1
+#   mirofish-in-container         -> http://vllm-agents:8001/v1
+#   orchestrator-in-container*    -> http://vllm-orchestrator:8000/v1
+#   *if it gets containerised in a future phase
 
 services:
+
+  # ── vLLM, orchestrator tier ──────────────────────────────────────────────
+  # Serves the larger Qwen at the orchestrator role (Opus-equivalent).
+  # Default model: Qwen/Qwen3.5-27B (~58 GB bf16 incl. vision tower).
+  # Fallback (one .env edit): Qwen/Qwen3-32B (~64 GB bf16).
+  vllm-orchestrator:
+    image: ${VLLM_IMAGE:-rocm/vllm:latest}
+    container_name: arc-vllm-orchestrator
+    ports:
+      # Host bind so the natively-run orchestrator process can hit it
+      # at http://127.0.0.1:18000/v1. Inside the docker network, other
+      # containers should still use http://vllm-orchestrator:8000/v1.
+      - "127.0.0.1:18000:8000"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      VLLM_LOGGING_LEVEL: ${VLLM_LOG_LEVEL:-INFO}
+    volumes:
+      # Share the HF cache with vllm-agents so models are downloaded
+      # once. /root/.cache/huggingface is the default HF_HOME inside
+      # rocm/vllm images.
+      - vllm_hf_cache:/root/.cache/huggingface
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    shm_size: "16gb"
+    restart: unless-stopped
+    command:
+      - --model=${VLLM_ORCHESTRATOR_MODEL:-Qwen/Qwen3.5-27B}
+      - --port=8000
+      - --gpu-memory-utilization=${VLLM_ORCHESTRATOR_MEM_UTIL:-0.40}
+      - --max-model-len=${VLLM_ORCHESTRATOR_MAX_MODEL_LEN:-16384}
+      - --dtype=bfloat16
+      - --served-model-name=${VLLM_ORCHESTRATOR_MODEL:-Qwen/Qwen3.5-27B}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/v1/models || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s   # 10 min — first model download + vLLM warmup
+
+  # ── vLLM, agent tier ─────────────────────────────────────────────────────
+  # Serves the smaller Qwen at the MiroFish-agent role (Haiku-equivalent).
+  # Default: Qwen/Qwen3.5-9B. Fallback: Qwen/Qwen3-8B.
+  vllm-agents:
+    image: ${VLLM_IMAGE:-rocm/vllm:latest}
+    container_name: arc-vllm-agents
+    ports:
+      - "127.0.0.1:18001:8001"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      VLLM_LOGGING_LEVEL: ${VLLM_LOG_LEVEL:-INFO}
+    volumes:
+      - vllm_hf_cache:/root/.cache/huggingface
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    shm_size: "16gb"
+    restart: unless-stopped
+    command:
+      - --model=${VLLM_AGENT_MODEL:-Qwen/Qwen3.5-9B}
+      - --port=8001
+      - --gpu-memory-utilization=${VLLM_AGENT_MEM_UTIL:-0.40}
+      - --max-model-len=${VLLM_AGENT_MAX_MODEL_LEN:-8192}
+      - --dtype=bfloat16
+      - --served-model-name=${VLLM_AGENT_MODEL:-Qwen/Qwen3.5-9B}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/v1/models || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+
+  # ── MiroFish: route LLM through vllm-agents instead of LiteLLM ───────────
+  # This is a service-level override — `services.mirofish` in the base
+  # compose has the LiteLLM-pointed env vars, and compose merges by
+  # service name so we only need to redefine the env block here.
+  mirofish:
+    environment:
+      LLM_API_KEY: "vllm-no-auth"
+      LLM_BASE_URL: http://vllm-agents:8001/v1
+      LLM_MODEL_NAME: ${VLLM_AGENT_MODEL:-Qwen/Qwen3.5-9B}
+      OPENAI_API_KEY: "vllm-no-auth"
+      OPENAI_API_BASE_URL: http://vllm-agents:8001/v1
+      # Neo4j (unchanged)
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set in .env}
+      EMBEDDING_MODEL: nomic-embed-text
+      EMBEDDING_BASE_URL: http://host.docker.internal:11434
+      FLASK_HOST: "0.0.0.0"
+      FLASK_PORT: "5001"
+      FLASK_DEBUG: "false"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      vllm-agents:
+        condition: service_healthy
+
+  # ── TRIBE v2 scorer (built from tribe_scorer/Dockerfile.rocm) ────────────
   tribe_scorer:
     build:
       context: ./tribe_scorer
@@ -24,11 +155,9 @@ services:
       - tribe_hf_cache:/cache/hf
       - tribe_exca_cache:/cache/tribe
     devices:
-      # AMD GPU passthrough (kfd = kernel driver, dri = render nodes)
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
     group_add:
-      # Required so the container user can access /dev/dri/render*
       - video
     cap_add:
       - SYS_PTRACE
@@ -47,3 +176,4 @@ services:
 volumes:
   tribe_hf_cache:
   tribe_exca_cache:
+  vllm_hf_cache:

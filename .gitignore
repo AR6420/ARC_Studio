@@ -5,6 +5,7 @@
 # Environment
 .env
 .env.local
+.env.hackathon
 
 # Python
 __pycache__/

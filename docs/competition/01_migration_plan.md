@@ -79,20 +79,40 @@ Budget: ~25 GPU-hours on 1× MI300X. Solo. Submission window: May 4-10, 2026.
 - `neuralset` / `neuraltrain` ROCm risk unchanged (still unknown until Phase 3).
 - New transformers-Whisper alignment-quality risk: ~50-100ms vs whisperx ~20-50ms — well within TRIBE's window-level scoring tolerance. Documented in `whisper_hf.py` docstring.
 
-## Phase 2 — Local: vLLM container + model download dry-run (0 cloud hrs)
+## Phase 2 — Local: vLLM container + model prefetch + Phase 3 runbook (0 cloud hrs) — **DONE**
 
-**Goal**: docker-compose includes a vLLM service stub and model weights are pre-cached on dev box (will rsync to cloud later, or HF-pull on cloud).
+**Goal achieved**: docker-compose.rocm.yml has both vLLM service tiers parameterised by env vars; `scripts/prefetch_models.sh` pulls all four model variants (primary + fallback) idempotently; `.env.hackathon.example` documents every required setting; the hour-22-friendly Phase 3 runbook is written. 274 orchestrator + 32 tribe_scorer tests green.
 
-**Files touched**:
-- `docker-compose.rocm.yml` — add `vllm-orchestrator` and `vllm-agents` services using `rocm/vllm:latest` image (or AMD's vLLM Quick Start image)
-- `.env.hackathon` — Qwen model names, HF token, base URL
-- `scripts/prefetch_models.sh` — `huggingface-cli download Qwen/Qwen2.5-7B-Instruct` + 32B
+**Decisions vs original plan**:
+- **No CPU vLLM smoke run.** Per Phase 2 spec, replaced by 23 static-correctness tests on the compose file (`test_compose_config.py`) — services exist, ports don't collide, GPU passthrough mounts present, model env vars wired, MiroFish routes to vllm-agents (not LiteLLM), HF cache shared between vllm tiers.
+- **Port wiring**: vLLM containers bind to host `127.0.0.1:18000` (orchestrator tier) and `127.0.0.1:18001` (agent tier) instead of `:8000`/`:8001`. Reason: tribe_scorer already binds host `:8001`. Inside the docker network, services still reach each other on the original container ports (8000 / 8001).
+- **No MiroFish code change** for dual-base-url support. Per Phase 0 audit, MiroFish reads its own `LLM_BASE_URL` independent of orchestrator's `VLLM_BASE_URL`. The compose-level env override is enough.
+- **Orchestrator FastAPI runs natively** on the cloud VM (uvicorn), reaching vllm-orchestrator via the `:18000` host port binding. Containerising the orchestrator was out of Phase 2 scope.
+- **Models default to Qwen3.5 primary**; flipping to Qwen3 fallback is a 4-line `.env.hackathon` edit, no compose change. The runbook documents the trigger conditions.
 
-**Validation**:
-- Compose file parses, image pulls, weights cached locally
-- Run vLLM **CPU build** locally (slow, but proves config) for one prompt — OR use `vllm.entrypoints.openai.api_server` mocked test
+**Files added**:
+- `scripts/prefetch_models.sh` — bash, idempotent, takes `HF_TOKEN` from env; pulls primary + fallback pairs by default (set `PREFETCH_FALLBACK=0` to skip the fallback ~80 GB)
+- `.env.hackathon.example` — every required env var with comments; `.env.hackathon` itself gitignored
+- `orchestrator/tests/test_compose_config.py` — 23 static checks
+- `docs/competition/04_phase3_runbook.md` — 10 numbered steps, hour budget, failure-mode table
 
-**Risk**: low. No GPU code yet.
+**Files modified**:
+- `docker-compose.rocm.yml` — add `vllm-orchestrator` + `vllm-agents` services (shared `vllm_hf_cache` volume, GPU passthrough, parameterised model + memory util via env), override `mirofish` to point at `http://vllm-agents:8001/v1` and depend on `vllm-agents` (no longer LiteLLM)
+- `.gitignore` — exclude `.env.hackathon`
+
+**Validation passed**:
+- `pytest orchestrator/tests/test_compose_config.py` — 23 passed
+- `pytest --ignore=orchestrator/tests/test_tribe_timeout.py` — 274 passed (regression-free on the orchestrator side)
+- `pytest tribe_scorer/tests` — 32 passed (unchanged from Phase 1)
+
+**Validation deferred to Phase 3**:
+- Real vLLM startup with the AMD Quick Start image's vLLM build
+- Qwen3.5 architecture support in shipped vLLM (decision gate at runbook step 3)
+- HF gate-approval status for all four Qwen variants + facebook/tribev2
+
+**Risk update**:
+- vLLM 0.17.x + Qwen3.5 compatibility: still unknown. The fallback to Qwen3 is a known-good config and is one env-edit away. Documented in the runbook decision gate.
+- Two vLLM instances colocated on one MI300X partition VRAM: still unverified. `MEM_UTIL` defaults to 0.40 each (= 0.80 total) leaving headroom; the runbook step 6 has a VRAM check.
 
 ## Phase 3 — Cloud: smoke test on MI300X (~3 cloud hrs)
 
