@@ -9,28 +9,44 @@ The script you follow at hour 22 of the hackathon. **Read every line before SSH.
 - [ ] Confirm latest commits pushed: `git log --oneline competition/amd-hackathon ^main` shows Phase 0 + 1 + 2 commits.
 - [ ] Confirm HF_TOKEN you'll use is in your password manager. **Do not commit it.**
 - [ ] Confirm you've requested access to `Qwen/Qwen3.5-9B`, `Qwen/Qwen3.5-27B`, `Qwen/Qwen3-8B`, `Qwen/Qwen3-32B`, AND `facebook/tribev2` on huggingface.co — gate-approval can take hours.
+- [ ] Confirm SSH key exists: `ls ~/.ssh/amd_dev` (private) and `~/.ssh/amd_dev.pub` (public, already added to AMD Cloud).
 - [ ] Open this runbook in a browser tab on your laptop.
 
 ## 1. Provision MI300X droplet (~5 min wallclock)
 
 - [ ] AMD Developer Cloud → New instance → MI300X 1× → vLLM Quick Start image
 - [ ] Note the **vLLM image tag/version** the Quick Start uses. Write it here: `_______________`
-- [ ] SSH in: `ssh ubuntu@<droplet-ip>`
+- [ ] SSH in: `ssh -i ~/.ssh/amd_dev ubuntu@<droplet-ip>`
 - [ ] Confirm GPU visible: `rocm-smi` should list 1× MI300X 192GB.
+
+> **Note on the Quick Start image**: the AMD vLLM Quick Start ships with vLLM pre-installed at the host OS level. We don't use that. Our compose stack runs vLLM from `rocm/vllm:latest` containers instead. The Quick Start image is functioning here as "ROCm + Docker + GPU passthrough, ready to go." Don't try to mix host-vLLM with container-vLLM — pick one. (We pick container.)
 
 ## 2. Clone repo + env (~5 min)
 
+**Local (before SSH)** — prepare the env file with secrets so you don't type them on the meter:
+
 ```bash
-git clone -b competition/amd-hackathon https://github.com/<your-fork>/ARC_Studio
+cp .env.hackathon.example .env.hackathon
+$EDITOR .env.hackathon                # paste HF_TOKEN, set NEO4J_PASSWORD
+scp -i ~/.ssh/amd_dev .env.hackathon ubuntu@<droplet-ip>:~/.env.hackathon
+```
+
+**On droplet (after SSH)**:
+
+```bash
+git clone -b competition/amd-hackathon https://github.com/AR6420/ARC_Studio.git
 cd ARC_Studio
 git submodule update --init --recursive
-cp .env.hackathon.example .env.hackathon
-nano .env.hackathon         # paste HF_TOKEN, set NEO4J_PASSWORD
-set -a; source .env.hackathon; set +a
+mv ~/.env.hackathon .env.hackathon
+ln -s .env.hackathon .env             # so docker compose's default discovery works
+set -a; source .env.hackathon; set +a # so the shell has the vars for ad-hoc curl/echo
 ```
+
+The symlink is so `docker compose` picks the file up automatically (compose looks for `.env` by default, not `.env.hackathon`, so without the link `${VAR}` substitutions in the compose files would silently fall back to defaults). The `source` line is so the shell has the same vars for ad-hoc commands.
 
 - [ ] `echo $LLM_PROVIDER` prints `vllm`
 - [ ] `echo $HF_TOKEN | head -c 10` prints `hf_xxxxx` (not the literal placeholder)
+- [ ] `ls -l .env` shows `.env -> .env.hackathon`
 
 ## 3. Pre-flight: vLLM version (2 min)
 
@@ -150,13 +166,17 @@ python -m orchestrator.cli \
 | Step | Budget | Cumulative |
 |------|--------|-----------|
 | 0–4  | 35 min | 0:35 |
-| 5–6  | 30 min | 1:05 |
-| 7–8  | 10 min | 1:15 |
-| 9    | 10 min | 1:25 |
-| 10   | 5 min  | 1:30 |
-| Slack| 1:30   | 3:00 |
+| 5    | 30 min | 1:05 | <- includes ~5–10 min `rocm/vllm:latest` first pull
+| 6    | 15 min | 1:20 | <- second tier reuses the pulled image
+| 7    | 20 min | 1:40 | <- includes ~10–15 min local build of `tribe_scorer/Dockerfile.rocm`
+| 8    | 5 min  | 1:45 |
+| 9    | 10 min | 1:55 |
+| 10   | 5 min  | 2:00 |
+| Slack| 0:55   | 2:55 |
 
-**If you hit 3:00 with step 9 still failing, snapshot and destroy.** Diagnose offline; come back with a fixed plan, not on the meter.
+First-time overhead is real and visible: the first `docker compose up vllm-agents` blocks on a `rocm/vllm:latest` pull (~10 GB), and `tribe_scorer` builds locally on the droplet because the image isn't in any registry. Net effect: slack drops from ~1:30 (Phase 2 estimate) to ~0:55. If a step blows its budget, **don't reach into slack until you've decided whether the failure is a known issue from the failure-mode table below**.
+
+**If you hit 2:55 with step 9 still failing, snapshot and destroy.** Diagnose offline; come back with a fixed plan, not on the meter.
 
 ## What can go wrong (and what to do)
 
@@ -168,6 +188,9 @@ python -m orchestrator.cli \
 | TRIBE startup hangs > 5 min | first-time HF download of `facebook/tribev2` | Wait; first weight pull is slow on cloud-to-HF network. If > 15 min, check `docker compose logs tribe_scorer` for actual error |
 | `neuralset` import error | Meta-internal lib not ROCm-compatible | Out-of-budget for Phase 3; mark TRIBE as pseudo-only for the demo and proceed |
 | MiroFish 30-agent semaphore stalls | KV-cache exhaustion on Qwen3.5-9B | Reduce `--max-num-seqs` (add `command:` arg `--max-num-seqs=15`) |
+| `git clone` 404 / auth prompt | Repo not public, or wrong URL | Verify URL via `git remote get-url origin` on local box; if private, generate GitHub PAT and clone over HTTPS with token |
+| `docker compose` errors with "variable is not set" | `.env` symlink missing or .env.hackathon not sourced | Confirm `ls -l .env` shows symlink to `.env.hackathon`; re-run `set -a; source .env.hackathon; set +a` |
+| `docker: command not found` | Quick Start image somehow without Docker (rare) | `sudo systemctl start docker` first; if missing, install per AMD docs (out of Phase 3 budget — escalate) |
 
 ## Out-of-scope for Phase 3
 
