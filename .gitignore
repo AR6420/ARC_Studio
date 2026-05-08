@@ -64,8 +64,9 @@ tribe_scorer/vendor/tribev2/weights/
 ollama_data/
 tribe_scorer/vendor/tribev2/
 
-# Internal docs (local only)
-docs/
+# Internal docs (local only) — except competition/ (hackathon deliverables)
+docs/*
+!docs/competition/
 
 # Campaign results (generated output, not source)
 /results/

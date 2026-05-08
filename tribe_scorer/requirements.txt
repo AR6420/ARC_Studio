@@ -10,11 +10,12 @@ pydantic-settings>=2.2.0,<3.0.0
 
 # Scientific / ML stack (must be compatible with tribev2 requirements)
 numpy>=2.0.0,<3.0.0
-# PyTorch 2.5.1-2.6.x: Last versions before native sm_120 (Blackwell) support.
-# RTX 5070 Ti (sm_120) works via JIT fallback in 2.6. Native support expected in 2.8+.
-# See docs/pytorch_upgrade_path.md for the upgrade plan.
-# Pin ceiling at <2.7 until pyannote.audio and WhisperX confirm 2.8 compatibility.
-torch>=2.5.1,<2.7
+# PyTorch >=2.5.1: needed for tribev2 + transformers compatibility.
+# Upper ceiling relaxed (was <2.7 as a sm_120-workaround pin) — local preflight
+# confirms torch 2.8+/cu128 has native sm_120 support; ROCm 6.2+ wheels exist
+# for the same range. Hackathon target (MI300X / ROCm) and dev box (sm_120)
+# both want the freedom to install >=2.7.
+torch>=2.5.1,<3.0
 
 # Required by tribev2 directly (listed here for explicit visibility)
 transformers>=4.40.0

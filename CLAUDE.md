@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dependency**: TRIBE v2 requires HuggingFace LLaMA 3.2-3B gated model approval
 - **Dependency**: MiroFish-Offline is a Git submodule — minimal modifications to enable upstream merges
 - **Performance**: Full campaign (40 agents, 4 iterations) must complete in <= 20 minutes
-- **PyTorch**: Pinned to 2.5.1-2.6.x (no native sm_120 support). See `docs/pytorch_upgrade_path.md` for upgrade path to 2.8+.
+- **PyTorch**: `>=2.5.1,<3.0`. sm_120 native support landed in 2.8; ROCm 6.2 wheels exist in the same range. (Earlier `<2.7` pin was a sm_120 workaround, no longer needed.)
 - **Scope**: Phase 1 POC only — no auth, no HTTPS, no multi-user
 <!-- GSD:project-end -->
 
@@ -154,6 +154,17 @@ Use these entry points:
 
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
 <!-- GSD:workflow-end -->
+
+## AMD Hackathon (competition/amd-hackathon)
+
+In-flight migration of the orchestrator + TRIBE off Anthropic/CUDA onto a single MI300X with ROCm + vLLM-served Qwen models. Branch: `competition/amd-hackathon`. See `docs/competition/`:
+- `00_audit.md` — repo state, swap points, ROCm risk audit, VRAM math
+- `01_migration_plan.md` — 7-phase plan (Phase 0 = LLM-provider abstraction, complete)
+- `02_open_questions.md` — open decisions
+- `MODELS.md` — Qwen3.5 primary / Qwen3 fallback model pairs
+- `03_run_locally.md` — how to run the orchestrator against a mock vLLM endpoint
+
+`main` is unchanged.
 
 <!-- GSD:profile-start -->
 ## Developer Profile
