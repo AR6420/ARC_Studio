@@ -159,16 +159,19 @@ Budget: ~25 GPU-hours on 1× MI300X. Solo. Submission window: May 4-10, 2026.
 
 **Goal**: 4-iteration campaign with 40 agents, both Qwen tiers active, completing under 20 min (CLAUDE.md target).
 
-**Files touched**: tuning only — vLLM `--max-num-seqs`, `--max-model-len`, `gpu_memory_utilization`. No source changes if Phase 3 passed.
+**See**: [`docs/competition/05_phase4_runbook.md`](05_phase4_runbook.md) for the snapshot-restore + validation + tuning runbook.
+
+**Files touched**: tuning only — vLLM `--max-num-seqs`, `--max-model-len`, `gpu_memory_utilization`. No source changes if Phase 3.5 backports stick.
 
 **Validation**:
 - End-to-end campaign matches `<= 20 min` constraint from CLAUDE.md
+- `mirofish_metrics` non-None on every variant (Phase 3.5 items 2+3 unlock this)
 - All 7 composite scoring formulas produce values within plausible ranges
-- Cross-system Opus analysis produces non-trivial output
+- Cross-system Qwen3.5-27B analysis produces non-trivial output
 
-**Cloud-hour budget**: 6 hrs (mostly tuning + repeat runs).
+**Cloud-hour budget**: 6 hrs total (4 hr / session × 1–2 sessions).
 
-**Risk**: medium. KV-cache OOM is the most likely hiccup; mitigation is `--max-num-seqs` reduction.
+**Risk**: medium. KV-cache OOM is the most likely hiccup; mitigation is `--max-num-seqs` reduction. Secondary risk: backport items 2+3 don't fully unlock MiroFish — runbook step 4 has the validation gate that catches this before a real campaign burns budget.
 
 ## Phase 5 — Cloud: 1000-agent demo path + viz wiring (~6 cloud hrs)
 
