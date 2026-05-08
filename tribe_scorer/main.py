@@ -43,17 +43,27 @@ from config import settings
 from scoring.audio_scorer import (
     AudioValidationError,
     score_audio,
+    score_audio_with_timeline,
     validate_audio_file,
 )
 from scoring.model_loader import get_model, is_model_loaded, load_model
 from scoring.normalizer import build_baseline_from_model, get_normalizer
-from scoring.roi_extractor import extract_roi_activations
-from scoring.text_scorer import score_text
+from scoring.roi_extractor import (
+    extract_roi_activations,
+    extract_roi_activations_per_window,
+)
+from scoring.text_scorer import score_text, score_text_with_timeline
 from scoring.video_scorer import (
     VideoValidationError,
     score_video,
+    score_video_with_timeline,
     validate_video_file,
 )
+from scoring.whisper_hf import install_eventstransforms_patch
+
+# TR (window) duration in seconds — TRIBE v2 default. Surfaced in API
+# responses so the consumer can map per-window indices to wallclock time.
+TRIBE_TR_SECONDS = 1.49
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -142,6 +152,15 @@ async def lifespan(app: FastAPI):
                 return
         except Exception as exc:
             logger.warning("GPU pre-flight check failed (non-fatal): %s", exc)
+
+    # Replace whisperx in the vendored TRIBE source with a transformers-based
+    # Whisper-large-v3 path. ctranslate2 (whisperx's backend) ships CUDA-only
+    # wheels and would block ROCm migration; this patch keeps the vendored
+    # tribev2 source unchanged on disk.
+    try:
+        install_eventstransforms_patch()
+    except Exception as exc:
+        logger.warning("whisperx -> transformers patch failed (non-fatal): %s", exc)
 
     try:
         logger.info("Loading TRIBE v2 model (this may take 30-60 s)...")
@@ -233,6 +252,22 @@ class ScoreResponse(BaseModel):
         default=False,
         description="True if scores are text-feature approximations, not real brain-encoding predictions.",
     )
+    timeline: dict[str, list[float]] | None = Field(
+        default=None,
+        description=(
+            "Optional per-window (per-TR) ROI activations. Same 7 keys as "
+            "the aggregated scores; values are equal-length lists of length "
+            "n_windows. None when inference fell back to pseudo or when the "
+            "endpoint does not produce a timeline (e.g. /api/score/batch)."
+        ),
+    )
+    tr_seconds: float | None = Field(
+        default=None,
+        description=(
+            "Seconds per window (TR). Multiply timeline-array index by this "
+            "value to get wallclock time. None when timeline is None."
+        ),
+    )
 
 
 class BatchScoreRequest(BaseModel):
@@ -273,6 +308,8 @@ class AudioScoreResponse(BaseModel):
         default=None,
         description="Populated when is_pseudo_score=true — '<ExceptionClass>: <msg>'.",
     )
+    timeline: dict[str, list[float]] | None = Field(default=None)
+    tr_seconds: float | None = Field(default=None)
 
 
 class VideoScoreRequest(BaseModel):
@@ -307,6 +344,8 @@ class VideoScoreResponse(BaseModel):
         default=None,
         description="Populated when is_pseudo_score=true — '<ExceptionClass>: <msg>'.",
     )
+    timeline: dict[str, list[float]] | None = Field(default=None)
+    tr_seconds: float | None = Field(default=None)
 
 
 class HealthResponse(BaseModel):
@@ -400,11 +439,30 @@ def _require_model() -> Any:
 
 
 def _score_response_from_activations(
-    vertex_activations, normalizer, elapsed_ms: float, is_pseudo: bool = False
+    vertex_activations,
+    normalizer,
+    elapsed_ms: float,
+    is_pseudo: bool = False,
+    preds_per_window=None,
 ) -> ScoreResponse:
-    """Convert vertex activations to a ScoreResponse."""
+    """Convert vertex activations to a ScoreResponse.
+
+    When ``preds_per_window`` is a 2-D array, populate the optional
+    ``timeline`` field with per-TR ROI activations so consumers (Phase 5
+    UI) can render a time-series of the 7 channels alongside the
+    aggregated score. ``timeline`` stays ``None`` when the input is None
+    (pseudo path or batch endpoints).
+    """
     raw_activations = extract_roi_activations(vertex_activations)
     scores = normalizer.normalize(raw_activations)
+    timeline = None
+    tr_seconds = None
+    if preds_per_window is not None:
+        try:
+            timeline = extract_roi_activations_per_window(preds_per_window)
+            tr_seconds = TRIBE_TR_SECONDS
+        except ValueError as exc:
+            logger.warning("Could not build timeline (%s); omitting field", exc)
     return ScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -415,6 +473,8 @@ def _score_response_from_activations(
         social_relevance=scores["social_relevance"],
         inference_time_ms=round(elapsed_ms, 2),
         is_pseudo_score=is_pseudo,
+        timeline=timeline,
+        tr_seconds=tr_seconds,
     )
 
 
@@ -424,9 +484,10 @@ def _run_single_score(text: str) -> ScoreResponse:
     model = _require_model()
     t_start = time.perf_counter()
 
+    preds_per_window = None
     with _inference_lock:
         try:
-            vertex_activations, is_pseudo = score_text(
+            vertex_activations, is_pseudo, preds_per_window = score_text_with_timeline(
                 text, model,
                 max_words_per_chunk=settings.max_words_per_chunk,
                 per_chunk_timeout=settings.per_chunk_timeout,
@@ -445,7 +506,11 @@ def _run_single_score(text: str) -> ScoreResponse:
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     return _score_response_from_activations(
-        vertex_activations, get_normalizer(), elapsed_ms, is_pseudo
+        vertex_activations,
+        get_normalizer(),
+        elapsed_ms,
+        is_pseudo,
+        preds_per_window=preds_per_window,
     )
 
 
@@ -530,13 +595,16 @@ def _run_single_video_score(
     is_pseudo = False
     pseudo_reason: str | None = None
     peak_vram_mb = 0.0
+    preds_per_window = None
 
     with _inference_lock:
         try:
-            vertex_activations, is_pseudo, peak_vram_mb = score_video(
-                video_path,
-                model,
-                timeout=settings.video_inference_timeout_seconds,
+            vertex_activations, is_pseudo, peak_vram_mb, preds_per_window = (
+                score_video_with_timeline(
+                    video_path,
+                    model,
+                    timeout=settings.video_inference_timeout_seconds,
+                )
             )
         except Exception as exc:
             logger.exception(
@@ -553,6 +621,14 @@ def _run_single_video_score(
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     raw_activations = extract_roi_activations(vertex_activations)
     scores = get_normalizer().normalize(raw_activations)
+    timeline = None
+    tr_seconds = None
+    if preds_per_window is not None:
+        try:
+            timeline = extract_roi_activations_per_window(preds_per_window)
+            tr_seconds = TRIBE_TR_SECONDS
+        except ValueError as exc:
+            logger.warning("Could not build video timeline (%s); omitting field", exc)
     return VideoScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -568,6 +644,8 @@ def _run_single_video_score(
         peak_vram_mb=round(peak_vram_mb, 1),
         is_pseudo_score=is_pseudo,
         pseudo_reason=pseudo_reason,
+        timeline=timeline,
+        tr_seconds=tr_seconds,
     )
 
 
@@ -585,10 +663,11 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
     vertex_activations = None
     is_pseudo = False
     pseudo_reason: str | None = None
+    preds_per_window = None
 
     with _inference_lock:
         try:
-            vertex_activations, is_pseudo = score_audio(
+            vertex_activations, is_pseudo, preds_per_window = score_audio_with_timeline(
                 audio_path,
                 model,
                 timeout=settings.audio_inference_timeout_seconds,
@@ -608,6 +687,14 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     raw_activations = extract_roi_activations(vertex_activations)
     scores = get_normalizer().normalize(raw_activations)
+    timeline = None
+    tr_seconds = None
+    if preds_per_window is not None:
+        try:
+            timeline = extract_roi_activations_per_window(preds_per_window)
+            tr_seconds = TRIBE_TR_SECONDS
+        except ValueError as exc:
+            logger.warning("Could not build audio timeline (%s); omitting field", exc)
     return AudioScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -620,6 +707,8 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
         duration_seconds=round(duration_seconds, 3),
         is_pseudo_score=is_pseudo,
         pseudo_reason=pseudo_reason,
+        timeline=timeline,
+        tr_seconds=tr_seconds,
     )
 
 

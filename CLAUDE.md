@@ -93,7 +93,7 @@ MiroFish (Docker) → LiteLLM (4000) → Anthropic API
 
 ### Pipeline flow (per campaign iteration)
 1. **Variant generation** — Claude Haiku generates N content variants from seed + feedback
-2. **TRIBE v2 scoring** — Each variant scored on 7 neural dimensions (text → TTS → WhisperX → LLaMA 3.2-3B → brain-encoding → ROI extraction → normalization)
+2. **TRIBE v2 scoring** — Each variant scored on 7 neural dimensions (text → TTS → Whisper-large-v3 → LLaMA 3.2-3B → brain-encoding → ROI extraction → normalization). Whisper runs as a transformers in-process pipeline (replaced whisperx + ctranslate2 in Phase 1 of the AMD hackathon migration to keep the dep tree pure PyTorch on ROCm).
 3. **MiroFish simulation** — Multi-agent social simulation with Claude Haiku agents (create ontology → spawn agents → simulate → extract metrics)
 4. **Composite scoring** — 7 formulas blend TRIBE neural scores + MiroFish social metrics
 5. **Cross-system analysis** — Claude Opus analyzes why neural patterns led to social outcomes
@@ -134,7 +134,7 @@ MiroFish (Docker) → LiteLLM (4000) → Anthropic API
 |-------|-----------|
 | Frontend | React 19, Vite 8, TypeScript 5.9, Tailwind CSS 4, shadcn/ui, TanStack React Query, Recharts, React Router 7 |
 | Orchestrator API | FastAPI, Pydantic v2, uvicorn, httpx, aiosqlite, anthropic SDK |
-| TRIBE v2 Scorer | FastAPI, PyTorch, Transformers (LLaMA 3.2-3B), WhisperX, gTTS, spaCy |
+| TRIBE v2 Scorer | FastAPI, PyTorch, Transformers (LLaMA 3.2-3B + Whisper-large-v3), gTTS, spaCy |
 | MiroFish | Flask (Docker), Neo4j 5.18, CAMEL-AI/OASIS agents |
 | LLM Proxy | LiteLLM (Docker, OpenAI→Anthropic translation) |
 | Embeddings | Ollama (nomic-embed-text, host-native) |

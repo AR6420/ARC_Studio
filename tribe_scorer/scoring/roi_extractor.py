@@ -252,3 +252,55 @@ def extract_roi_activations(vertex_activations: np.ndarray) -> dict[str, float]:
             result[spec.name] = 0.0
 
     return result
+
+
+def extract_roi_activations_per_window(
+    preds_per_window: np.ndarray,
+) -> dict[str, list[float]]:
+    """
+    Apply :func:`extract_roi_activations` to each window (TR) in turn and
+    return a dict of per-channel time-series.
+
+    Parameters
+    ----------
+    preds_per_window:
+        2-D float array of shape ``(n_windows, n_vertices)`` — the raw
+        TRIBE v2 output before temporal reduction. ``n_windows`` is the
+        number of TRs (~1.49 s each by default).
+
+    Returns
+    -------
+    dict[str, list[float]]
+        Mapping from each of the 7 dimension names to a list of length
+        ``n_windows`` with the per-window mean ROI activation. The lists
+        are aligned: index ``i`` is the same TR across every channel.
+
+    Raises
+    ------
+    ValueError
+        If ``preds_per_window`` is not 2-D or has fewer columns than
+        ``N_VERTICES_TOTAL``.
+    """
+    if preds_per_window.ndim != 2:
+        raise ValueError(
+            f"preds_per_window must be 2-D, got shape {preds_per_window.shape}"
+        )
+    if preds_per_window.shape[1] < N_VERTICES_TOTAL:
+        raise ValueError(
+            f"preds_per_window has {preds_per_window.shape[1]} vertices; "
+            f"expected at least {N_VERTICES_TOTAL} for fsaverage5."
+        )
+
+    # Vectorised: for each ROI, gather the columns and mean over them per row.
+    timeline: dict[str, list[float]] = {}
+    for spec in _ROI_SPECS:
+        cols: list[np.ndarray] = []
+        for start, stop in spec.ranges:
+            cols.append(preds_per_window[:, start:stop])
+        if cols:
+            stacked = np.concatenate(cols, axis=1)  # (n_windows, n_roi_vertices)
+            per_window = stacked.mean(axis=1).astype(np.float32)
+            timeline[spec.name] = per_window.tolist()
+        else:
+            timeline[spec.name] = [0.0] * preds_per_window.shape[0]
+    return timeline

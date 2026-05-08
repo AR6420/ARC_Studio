@@ -1,0 +1,49 @@
+# Compose overlay for the AMD MI300X / ROCm hackathon stack.
+# Intended use:
+#   docker compose -f docker-compose.yml -f docker-compose.rocm.yml up -d
+#
+# Adds the tribe_scorer service (which on main runs natively via
+# tribe_scorer/start.sh) so the whole stack lives in containers on the
+# cloud VM. vLLM is NOT included here — it lives in a separate compose
+# file added in Phase 2 so model lifecycles can be managed independently.
+
+services:
+  tribe_scorer:
+    build:
+      context: ./tribe_scorer
+      dockerfile: Dockerfile.rocm
+    container_name: arc-tribe-scorer
+    ports:
+      - "127.0.0.1:8001:8001"
+    environment:
+      TRIBE_DEVICE: cuda
+      TRIBE_MODEL_PATH: ${TRIBE_MODEL_PATH:-facebook/tribev2}
+      TRIBE_SCORER_URL: http://localhost:8001
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - tribe_hf_cache:/cache/hf
+      - tribe_exca_cache:/cache/tribe
+    devices:
+      # AMD GPU passthrough (kfd = kernel driver, dri = render nodes)
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      # Required so the container user can access /dev/dri/render*
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    shm_size: "16gb"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  tribe_hf_cache:
+  tribe_exca_cache:

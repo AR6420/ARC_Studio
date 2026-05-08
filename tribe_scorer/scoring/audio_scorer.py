@@ -237,6 +237,48 @@ def score_audio(
     return avg_pred, False
 
 
+def score_audio_with_timeline(
+    audio_path: str,
+    model,
+    *,
+    timeout: int = _DEFAULT_AUDIO_TIMEOUT,
+) -> tuple[np.ndarray, bool, np.ndarray | None]:
+    """
+    Same as :func:`score_audio` but additionally returns the unreduced
+    per-window TRIBE predictions for timeline visualisation.
+
+    Returns ``(vertex_activations, is_pseudo, preds_per_window_or_None)``.
+    The third value is ``None`` whenever the model fell back to pseudo
+    or the predictions were degenerate.
+    """
+    t0 = time.perf_counter()
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        future = executor.submit(_run_pipeline, audio_path, model)
+        try:
+            preds, _segments = future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            executor.shutdown(wait=False, cancel_futures=True)
+            return _pseudo_score_from_audio(audio_path), True, None
+        except Exception as exc:
+            logger.warning(
+                "Audio inference failed (%s: %s) -- falling back to pseudo.",
+                type(exc).__name__, exc,
+            )
+            executor.shutdown(wait=False, cancel_futures=True)
+            return _pseudo_score_from_audio(audio_path), True, None
+        else:
+            executor.shutdown(wait=False)
+    finally:
+        pass
+
+    if preds is None or preds.ndim != 2 or preds.shape[0] == 0:
+        return _pseudo_score_from_audio(audio_path), True, None
+
+    avg_pred = preds.mean(axis=0).astype(np.float32)
+    return avg_pred, False, preds.astype(np.float32)
+
+
 def _pseudo_score_from_audio(audio_path: str) -> np.ndarray:
     """Deterministic pseudo vertex activations derived from audio file metadata.
 

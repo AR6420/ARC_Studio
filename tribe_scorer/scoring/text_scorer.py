@@ -51,8 +51,17 @@ def _chunk_text(text: str, max_words: int) -> list[str]:
 
 def _score_single_chunk(
     chunk_text: str, model, timeout: int,
-) -> tuple[np.ndarray | None, bool, float]:
-    """Score one chunk of text. Returns (activations_or_None, is_pseudo, elapsed_s)."""
+) -> tuple[np.ndarray | None, bool, float, np.ndarray | None]:
+    """
+    Score one chunk of text.
+
+    Returns ``(activations_or_None, is_pseudo, elapsed_s, raw_preds_or_None)``.
+    ``raw_preds`` is the unreduced per-TR prediction array (shape
+    ``(n_TRs, n_vertices)``); it is ``None`` whenever inference failed.
+    The legacy 3-tuple shape was widened in Phase 1 to expose per-window
+    data through the API; ``score_text`` continues to drop it for
+    backward compatibility.
+    """
 
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, encoding="utf-8",
@@ -74,12 +83,12 @@ def _score_single_chunk(
         except concurrent.futures.TimeoutError:
             executor.shutdown(wait=False, cancel_futures=True)
             elapsed = time.perf_counter() - t0
-            return None, True, elapsed
+            return None, True, elapsed, None
         except Exception as exc:
             logger.warning("Chunk inference failed (%s: %s)", type(exc).__name__, exc)
             executor.shutdown(wait=False, cancel_futures=True)
             elapsed = time.perf_counter() - t0
-            return None, True, elapsed
+            return None, True, elapsed, None
         else:
             executor.shutdown(wait=False)
     finally:
@@ -88,10 +97,10 @@ def _score_single_chunk(
     elapsed = time.perf_counter() - t0
 
     if preds.ndim != 2 or preds.shape[0] == 0:
-        return None, True, elapsed
+        return None, True, elapsed, None
 
     avg_pred = preds.mean(axis=0).astype(np.float32)
-    return avg_pred, False, elapsed
+    return avg_pred, False, elapsed, preds.astype(np.float32)
 
 
 def _try_free_vram() -> None:
@@ -158,7 +167,7 @@ def score_text(
             _try_free_vram()
             logger.info("[CHUNK] Scoring chunk %d/%d (%d words)...", i + 1, len(chunks), len(chunk.split()))
 
-            act, is_pseudo, elapsed = _score_single_chunk(chunk, model, per_chunk_timeout)
+            act, is_pseudo, elapsed, _preds = _score_single_chunk(chunk, model, per_chunk_timeout)
             chunk_times.append(round(elapsed, 1))
             chunk_pseudos.append(is_pseudo)
 
@@ -189,7 +198,7 @@ def score_text(
             return (_pseudo_score_from_text(text), True)
 
     # --- Non-chunked path (short text or chunking disabled) ---
-    act, is_pseudo, elapsed = _score_single_chunk(text, model, per_chunk_timeout)
+    act, is_pseudo, elapsed, _preds = _score_single_chunk(text, model, per_chunk_timeout)
     if act is not None and not is_pseudo:
         return (act, False)
     else:
@@ -198,6 +207,72 @@ def score_text(
             elapsed,
         )
         return (_pseudo_score_from_text(text), True)
+
+
+def score_text_with_timeline(
+    text: str,
+    model,
+    *,
+    max_words_per_chunk: int = 0,
+    per_chunk_timeout: int = _DEFAULT_CHUNK_TIMEOUT,
+) -> tuple[np.ndarray, bool, np.ndarray | None]:
+    """
+    Same as :func:`score_text` but additionally returns the unreduced
+    per-window predictions concatenated across chunks.
+
+    Returns
+    -------
+    tuple[np.ndarray, bool, np.ndarray | None]
+        ``(vertex_activations, is_pseudo, preds_per_window)``. The third
+        value is ``None`` when every chunk fell back to pseudo (no real
+        TR data to expose). When non-None it has shape ``(n_TRs_total,
+        n_vertices)`` with rows concatenated across chunks in input order.
+
+    The vertex_activations and is_pseudo values match what
+    :func:`score_text` returns, so this function is a strict superset.
+    """
+    text = text.strip()
+    if not text:
+        raise ValueError("text must be non-empty")
+
+    word_count = len(text.split())
+    chunks = (
+        _chunk_text(text, max_words_per_chunk)
+        if max_words_per_chunk > 0 and word_count > max_words_per_chunk
+        else [text]
+    )
+
+    chunk_avgs: list[np.ndarray] = []
+    chunk_preds: list[np.ndarray] = []
+    chunk_pseudos: list[bool] = []
+
+    for i, chunk in enumerate(chunks):
+        if len(chunks) > 1:
+            _try_free_vram()
+            logger.info(
+                "[TIMELINE] Scoring chunk %d/%d (%d words)...",
+                i + 1, len(chunks), len(chunk.split()),
+            )
+        act, is_pseudo, _elapsed, preds_raw = _score_single_chunk(
+            chunk, model, per_chunk_timeout,
+        )
+        chunk_pseudos.append(is_pseudo)
+        if act is not None and not is_pseudo:
+            chunk_avgs.append(act)
+            if preds_raw is not None:
+                chunk_preds.append(preds_raw)
+
+    if not chunk_avgs:
+        # Every chunk failed; fall back to pseudo and emit no timeline.
+        return _pseudo_score_from_text(text), True, None
+
+    avg = np.mean(chunk_avgs, axis=0).astype(np.float32)
+    preds_concat = (
+        np.concatenate(chunk_preds, axis=0).astype(np.float32)
+        if chunk_preds
+        else None
+    )
+    return avg, False, preds_concat
 
 
 def _pseudo_score_from_text(text: str) -> np.ndarray:

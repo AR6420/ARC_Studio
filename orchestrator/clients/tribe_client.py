@@ -75,6 +75,14 @@ def _extract_scores(data: dict[str, Any]) -> dict[str, float] | None:
         )
         return None
     scores["is_pseudo_score"] = bool(data.get("is_pseudo_score", False))
+    # Phase 1: optional per-window timeline. Pass through untouched so
+    # Phase 5's UI can render a 7-channel time-series alongside the
+    # aggregated scores. Older TRIBE responses without these fields stay
+    # backward-compatible (timeline=None, tr_seconds=None).
+    timeline = data.get("timeline")
+    if timeline is not None:
+        scores["timeline"] = timeline
+        scores["tr_seconds"] = data.get("tr_seconds")
     return scores
 
 

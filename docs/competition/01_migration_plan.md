@@ -40,23 +40,44 @@ Budget: ~25 GPU-hours on 1× MI300X. Solo. Submission window: May 4-10, 2026.
 - `test_tribe_timeout.py` is pre-existing broken on `main` (imports `CHUNK_SIZE_WORDS` that doesn't exist; commit `495956b`). Out of scope for Phase 0.
 - E2E smoke: variant_generator → OpenAICompatClient → in-process FastAPI fake vLLM → parsed variants. Wiring confirmed before MI300X provisioning.
 
-## Phase 1 — Local: TRIBE GPU-path un-pinning + ROCm dockerfile (0 cloud hrs)
+## Phase 1 — Local: TRIBE GPU-path un-pinning + whisperx replacement + ROCm dockerfile (0 cloud hrs) — **DONE**
 
-**Goal**: TRIBE source no longer hard-codes CPU; ROCm container image builds.
+**Goal achieved**: TRIBE source no longer hard-codes CPU at runtime; whisperx swapped for transformers Whisper-large-v3 (Path B); ROCm Dockerfile + compose overlay written; per-window timeline preserved through the API for Phase 5 UI. 251 orchestrator tests + 32 tribe_scorer tests green.
 
-**Files touched**:
-- `tribe_scorer/vendor/tribev2/tribev2/eventstransforms.py:104-105` — restore device-aware path (parametrize via env, default to model loader's device)
-- `tribe_scorer/scoring/model_loader.py:16-25` — keep CPU fallback escape hatch but driven by env, not always-on
-- new `tribe_scorer/Dockerfile.rocm` — base on `rocm/pytorch:rocm6.2_ubuntu22.04_py3.11_pytorch_2.5.1`, install requirements, deal with `ctranslate2` (see Risk below)
-- new `docker-compose.rocm.yml` — overrides `tribe_scorer` service to use the ROCm image and mount `/dev/kfd` + `/dev/dri`
+**Decisions vs original plan**:
+- **Path B confirmed** (transformers Whisper). ctranslate2 + faster-whisper out of the dep tree entirely.
+- **Vendored TRIBE source NOT edited.** `tribe_scorer/vendor/tribev2/` is tracked as a git **submodule** (separate `.git`, gitignored in parent, gitlink at commit `7fd7b41`). Editing files inside means committing to inner repo + bumping parent pointer — high cost for a one-line monkey-patch. **Cleaner alternative used**: install a startup monkey-patch from `tribe_scorer/scoring/whisper_hf.py:install_eventstransforms_patch()` that replaces `ExtractWordsFromAudio._get_transcript_from_audio` in-process. Vendored source on disk stays Meta-upstream (zero submodule pointer churn). The hard-coded `device="cpu"` and `compute_type="float32"` lines at `vendor/tribev2/tribev2/eventstransforms.py:104-105` become dead code — replaced wholesale at startup before any whisperx import can fire.
+- **Per-window timeline added** as a parallel set of functions (`score_text_with_timeline`, `score_audio_with_timeline`, `score_video_with_timeline`) instead of refactoring existing scorers' return signatures. Keeps the 7 chunking tests + baseline-seeding code paths untouched. Single endpoints emit `timeline` + `tr_seconds`; batch endpoint stays scalar-only (consumer-deferred).
 
-**Validation**:
-- Image builds on local machine (no GPU exec needed yet)
-- `pytest tribe_scorer/tests` still passes in CPU mode (existing path preserved)
+**Files added**:
+- `tribe_scorer/scoring/whisper_hf.py` — transformers Whisper-large-v3 wrapper + idempotent monkey-patch installer
+- `tribe_scorer/Dockerfile.rocm` — `rocm/pytorch:rocm6.2_ubuntu22.04_py3.11_pytorch_2.5.1` base, ffmpeg + Python deps, preserves the preinstalled ROCm torch wheel
+- `docker-compose.rocm.yml` — overlay adding the tribe_scorer container with `/dev/kfd` + `/dev/dri` passthrough, video group, host IPC, 16 GB shm
+- `tribe_scorer/tests/test_whisper_hf.py` — 8 tests, mocked HF pipeline (no weights downloaded)
+- `tribe_scorer/tests/test_timeline_output.py` — 8 tests covering per-window ROI extraction + score_text_with_timeline
+- `docs/competition/TRIBE_API.md` — response shape contract for Phase 5
 
-**Risk**: **MEDIUM** — `ctranslate2` ROCm wheel does not exist publicly. Two paths:
-- **Path A (preferred)**: build `ctranslate2` from source in the dockerfile against ROCm. Time-expensive; may not work.
-- **Path B (fallback)**: replace whisperx with HF `transformers` Whisper-large-v3 + manual alignment. Loses some perf but pure PyTorch. **Decide on Path A vs B in Phase 0** so this phase doesn't block.
+**Files modified**:
+- `tribe_scorer/main.py` — wire whisper_hf patch at startup; add `timeline` + `tr_seconds` fields to `ScoreResponse`/`AudioScoreResponse`/`VideoScoreResponse`; switch single endpoints to `_with_timeline` scorer variants
+- `tribe_scorer/scoring/text_scorer.py` — `_score_single_chunk` returns 4-tuple (now includes raw `preds`); legacy `score_text` drops the new value; add `score_text_with_timeline`
+- `tribe_scorer/scoring/audio_scorer.py` — add `score_audio_with_timeline`
+- `tribe_scorer/scoring/video_scorer.py` — add `score_video_with_timeline`
+- `tribe_scorer/scoring/roi_extractor.py` — add `extract_roi_activations_per_window`
+- `tribe_scorer/requirements.txt` — bump `transformers` to `>=4.45.0` (needed for Whisper-large-v3 word timestamps), add `torchaudio>=2.5.0,<3.0`. whisperx/faster-whisper/ctranslate2 were never in `requirements.txt` (installed ad-hoc via README per the audit), so nothing to remove
+- `orchestrator/clients/tribe_client.py:_extract_scores` — passthrough `timeline` + `tr_seconds`
+- `CLAUDE.md` — note whisperx removed; transformers Whisper is the new path
+
+**Validation passed**:
+- `pytest tribe_scorer/tests` — 32 passed
+- `pytest --ignore=orchestrator/tests/test_tribe_timeout.py` — 251 passed (orchestrator suite, regression-free)
+
+**Validation deferred**:
+- `docker build -f tribe_scorer/Dockerfile.rocm tribe_scorer/` — Docker daemon was not running on the local box during this session. Image build will be re-validated either (a) in a follow-up session with Docker Desktop running, or (b) on first cloud provisioning in Phase 3 (the Dockerfile is intentionally minimal so first-build iteration is cheap).
+
+**Risk update**:
+- `ctranslate2` risk gone (eliminated by Path B).
+- `neuralset` / `neuraltrain` ROCm risk unchanged (still unknown until Phase 3).
+- New transformers-Whisper alignment-quality risk: ~50-100ms vs whisperx ~20-50ms — well within TRIBE's window-level scoring tolerance. Documented in `whisper_hf.py` docstring.
 
 ## Phase 2 — Local: vLLM container + model download dry-run (0 cloud hrs)
 

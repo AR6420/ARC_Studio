@@ -253,6 +253,54 @@ def score_video(
     return avg_pred, False, peak_vram_mb
 
 
+def score_video_with_timeline(
+    video_path: str,
+    model,
+    *,
+    timeout: int = _DEFAULT_VIDEO_TIMEOUT,
+) -> tuple[np.ndarray, bool, float, np.ndarray | None]:
+    """
+    Same as :func:`score_video` but additionally returns the unreduced
+    per-window TRIBE predictions for timeline visualisation.
+
+    Returns ``(vertex_activations, is_pseudo, peak_vram_mb,
+    preds_per_window_or_None)``.
+    """
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        try:
+            torch.cuda.reset_peak_memory_stats()
+        except Exception:  # noqa: BLE001
+            pass
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        future = executor.submit(_run_pipeline, video_path, model)
+        try:
+            preds, _segments = future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            executor.shutdown(wait=False, cancel_futures=True)
+            return _pseudo_score_from_video(video_path), True, _read_peak_vram_mb(), None
+        except Exception as exc:
+            logger.warning(
+                "Video inference failed (%s: %s) -- falling back to pseudo.",
+                type(exc).__name__, exc,
+            )
+            executor.shutdown(wait=False, cancel_futures=True)
+            return _pseudo_score_from_video(video_path), True, _read_peak_vram_mb(), None
+        else:
+            executor.shutdown(wait=False)
+    finally:
+        pass
+
+    peak_vram_mb = _read_peak_vram_mb()
+    if preds is None or preds.ndim != 2 or preds.shape[0] == 0:
+        return _pseudo_score_from_video(video_path), True, peak_vram_mb, None
+
+    avg_pred = preds.mean(axis=0).astype(np.float32)
+    return avg_pred, False, peak_vram_mb, preds.astype(np.float32)
+
+
 def _read_peak_vram_mb() -> float:
     """Return torch.cuda.max_memory_allocated() in MB, or 0.0 if CUDA unavailable."""
     if not torch.cuda.is_available():

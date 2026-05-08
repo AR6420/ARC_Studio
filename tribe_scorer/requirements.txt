@@ -18,7 +18,11 @@ numpy>=2.0.0,<3.0.0
 torch>=2.5.1,<3.0
 
 # Required by tribev2 directly (listed here for explicit visibility)
-transformers>=4.40.0
+# transformers>=4.45.0 needed for Whisper-large-v3 with return_timestamps="word"
+# (replaces whisperx + ctranslate2 + faster-whisper to keep the dep tree pure
+# PyTorch on ROCm — see scoring/whisper_hf.py).
+transformers>=4.45.0
+torchaudio>=2.5.0,<3.0
 huggingface_hub>=0.23.0
 einops>=0.7.0
 gtts>=2.5.0
