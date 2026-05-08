@@ -93,7 +93,7 @@ class OpenAICompatClient:
         orchestrator_model: str | None = None,
         agent_model: str | None = None,
         api_key: str | None = None,
-        timeout_s: float = 120.0,
+        timeout_s: float = 300.0,
         agent_base_url: str | None = None,
     ) -> None:
         # Deferred import to keep the protocol module light.
