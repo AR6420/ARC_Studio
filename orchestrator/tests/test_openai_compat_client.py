@@ -20,7 +20,9 @@ from openai import APIStatusError
 
 from orchestrator.clients.openai_compat_client import (
     OpenAICompatClient,
+    _clean_response_text,
     _extract_json_from_text,
+    _strip_naked_preamble,
     _strip_think_blocks,
 )
 
@@ -380,3 +382,79 @@ async def test_no_agent_url_means_single_endpoint_for_both_tiers():
     assert list(instances.keys()) == ["http://only.fake/v1"]
     create = instances["http://only.fake/v1"].chat.completions.create
     assert create.await_count == 2
+
+
+# ── 8. Naked-preamble stripping (Phase 4 backport) ─────────────────────────
+
+
+def test_naked_preamble_passthrough_when_no_marker():
+    """Clean response with no preamble marker is returned unchanged."""
+    text = "**Verdict**\n\nThis ad is strong because..."
+    assert _strip_naked_preamble(text) == text
+
+
+def test_naked_preamble_strips_thinking_process_with_heading_transition():
+    """Phase 4 finding: 'Thinking Process: 1. ... \\n\\n**Verdict**' -> strip."""
+    text = (
+        "Thinking Process:\n"
+        "1. **Analyze the Request:** The user wants...\n"
+        "2. **Score the variants:** I'll rank...\n\n"
+        "**Verdict**\n\nThe winner is variant 2."
+    )
+    out = _strip_naked_preamble(text)
+    assert out == "**Verdict**\n\nThe winner is variant 2."
+
+
+def test_naked_preamble_strips_let_me_think_variant():
+    text = (
+        "Let me think through this carefully. The seed is about X "
+        "and the audience is Y, so...\n\n"
+        "**Analysis**\n\nReal content here."
+    )
+    out = _strip_naked_preamble(text)
+    assert out == "**Analysis**\n\nReal content here."
+
+
+def test_naked_preamble_does_not_strip_response_that_is_legit_reasoning():
+    """
+    Edge case: marker is present but no `\\n\\n**Heading**` transition exists.
+    The response IS the reasoning — under-strip rather than over-strip.
+    """
+    text = (
+        "Reasoning: the variant scored higher because of stronger "
+        "emotional resonance and better pacing in the closing line."
+    )
+    assert _strip_naked_preamble(text) == text
+
+
+def test_naked_preamble_does_not_strip_when_marker_is_mid_response():
+    """Marker only matches at the start of the response."""
+    text = (
+        "**Verdict**\n\nThe winner is variant 2. "
+        "Reasoning: stronger emotional resonance."
+    )
+    assert _strip_naked_preamble(text) == text
+
+
+def test_clean_response_combines_think_block_and_preamble():
+    """Both signals together: <think> wrap removed, then naked preamble removed."""
+    text = (
+        "<think>private</think>\n"
+        "Thinking Process:\n1. analyze\n2. respond\n\n"
+        "**Verdict**\n\nFinal."
+    )
+    assert _clean_response_text(text) == "**Verdict**\n\nFinal."
+
+
+@pytest.mark.asyncio
+async def test_call_opus_strips_naked_preamble(stub_async_openai):
+    stub_async_openai.chat.completions.create.return_value = _make_completion(
+        "Thinking Process:\n1. step\n2. step\n\n**Verdict**\n\nA wins."
+    )
+    client = OpenAICompatClient(
+        base_url="http://fake/v1",
+        orchestrator_model="orch",
+        agent_model="agent",
+    )
+    out = await client.call_opus(system="s", user="u")
+    assert out == "**Verdict**\n\nA wins."

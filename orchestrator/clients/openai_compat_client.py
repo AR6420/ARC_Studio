@@ -45,10 +45,50 @@ DUMMY_API_KEY = "vllm-no-auth"
 # already does for the same reason.
 _THINK_BLOCK = re.compile(r"<think>[\s\S]*?</think>")
 
+# Phase 4 finding: Qwen3.5-27B sometimes emits naked reasoning preambles —
+# no <think> wrap, just leading prose like "Thinking Process: 1. **Analyze
+# the Request:** ..." followed by a blank line and the real answer (usually
+# starting with a markdown heading). Strip only when both signals match:
+# (a) a known leading marker at the very start of the response, and
+# (b) a clear transition into "real" content (blank line + **Heading**).
+# Either alone is too loose — false-positives on responses that legitimately
+# start with reasoning.
+_NAKED_PREAMBLE_MARKERS = (
+    "thinking process",
+    "reasoning:",
+    "let me think",
+    "let me analyze",
+    "first, let me analyze",
+    "first, let me think",
+)
+_PREAMBLE_TRANSITION = re.compile(r"\n\n(?=\*\*[^\n*]+\*\*)")
+
 
 def _strip_think_blocks(text: str) -> str:
     """Remove <think>...</think> reasoning prefaces from model output."""
     return _THINK_BLOCK.sub("", text).strip()
+
+
+def _strip_naked_preamble(text: str) -> str:
+    """
+    Remove naked-reasoning preambles that some Qwen3.5 generations emit
+    without `<think>` tags. Conservative: only strips when the response
+    starts with a known marker AND a `\\n\\n**Heading**` transition exists.
+    Returns the input unchanged otherwise.
+    """
+    stripped = text.lstrip()
+    lower = stripped.lower()
+    if not any(lower.startswith(m) for m in _NAKED_PREAMBLE_MARKERS):
+        return text
+    match = _PREAMBLE_TRANSITION.search(stripped)
+    if not match:
+        return text
+    return stripped[match.end():].lstrip()
+
+
+def _clean_response_text(text: str) -> str:
+    """Apply both <think>...</think> removal and naked-preamble stripping."""
+    return _strip_naked_preamble(_strip_think_blocks(text))
 
 
 def _extract_json_from_text(text: str) -> dict[str, Any]:
@@ -209,7 +249,7 @@ class OpenAICompatClient:
             model=self._orchestrator_model,
             system=system, user=user, max_tokens=max_tokens, json_mode=False,
         )
-        return _strip_think_blocks(text)
+        return _clean_response_text(text)
 
     async def call_haiku(self, system: str, user: str, max_tokens: int = 4096) -> str:
         logger.debug("Calling agent-tier model %s (max_tokens=%d)", self._agent_model, max_tokens)
@@ -217,7 +257,7 @@ class OpenAICompatClient:
             model=self._agent_model,
             system=system, user=user, max_tokens=max_tokens, json_mode=False,
         )
-        return _strip_think_blocks(text)
+        return _clean_response_text(text)
 
     async def call_opus_json(
         self, system: str, user: str, max_tokens: int = 4096
