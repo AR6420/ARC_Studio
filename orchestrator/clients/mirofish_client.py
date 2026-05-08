@@ -33,7 +33,7 @@ POLL_INITIAL_INTERVAL = 2.0  # seconds
 POLL_MAX_INTERVAL = 10.0  # seconds
 POLL_BACKOFF_FACTOR = 1.5
 GRAPH_BUILD_TIMEOUT = 300.0  # 5 minutes max for graph build
-SIM_PREPARE_TIMEOUT = 300.0  # 5 minutes max for simulation prepare
+SIM_PREPARE_TIMEOUT = 600.0  # 10 minutes max for simulation prepare (Phase 4: bumped from 300s — race where prepare completes at the same instant the timeout fires on slower GPU clocks)
 SIM_RUN_TIMEOUT = 600.0  # 10 minutes max for simulation run
 SIMULATION_RUN_TIMEOUT = 600  # 10 minutes — wall-clock timeout for run-status polling
 
