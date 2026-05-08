@@ -8,24 +8,37 @@ Budget: ~25 GPU-hours on 1× MI300X. Solo. Submission window: May 4-10, 2026.
 - **Cloud-only for ROCm validation and demo** (Phases 3-6). Land on MI300X with image already built and code already passing locally.
 - Reserve **~5 hours buffer** for the unknown. Do not exceed budget on validation phases.
 
-## Phase 0 — Local: orchestrator LLM-provider abstraction (0 cloud hrs)
+## Phase 0 — Local: orchestrator LLM-provider abstraction (0 cloud hrs) — **DONE**
 
-**Goal**: orchestrator can call either Anthropic or any OpenAI-compatible endpoint via env var.
+**Goal achieved**: orchestrator routes LLM calls through either Anthropic SDK (default) or any OpenAI-compatible endpoint via `LLM_PROVIDER` env var. 251 tests pass (235 baseline + 16 new). Production behaviour identical when `LLM_PROVIDER=anthropic`.
 
-**Files touched**:
-- `orchestrator/clients/claude_client.py` — extract interface, keep as Anthropic impl
-- new `orchestrator/clients/openai_compat_client.py` — vLLM client mirroring same surface (`call_opus_json`, `call_haiku_json`, `call_opus`, `call_haiku`)
-- new `orchestrator/clients/llm_factory.py` — provider selector (`LLM_PROVIDER` env)
-- `orchestrator/config.py` — add `llm_provider`, `vllm_base_url`, `vllm_orchestrator_model`, `vllm_agent_model`
-- `orchestrator/api/__init__.py` — skip `_refresh_litellm_api_key` when provider is vllm
-- All call sites of `ClaudeClient` use factory output (DI already in place per fixtures)
-- Tests: extend `mock_claude_client` fixture to cover both impls; add `test_openai_compat_client.py` with mocked httpx
+**Decisions vs original plan**:
+- **Models bumped** to Qwen3.5 dense (Apr 2026) primary, Qwen3 dense (Apr 2025) documented fallback. See `MODELS.md`. Code is model-name-agnostic — swap is a config change.
+- **No edits to `claude_client.py`.** It already conforms to the new `LLMClient` Protocol via duck typing; touching it risks regressing the production path. Protocol is a `typing.Protocol`, not a forced ABC.
+- **No `mock_claude_client` fixture changes.** It's a generic `AsyncMock` already provider-agnostic; works with both clients unchanged.
+- **B4 read finding**: the legacy `llm_fallback_*` settings in `config.py` are aspirational (zero call sites). Left in place but flagged as superseded by `LLM_PROVIDER`. See `00_audit.md` Appendix A.
+- **B1 read finding**: MiroFish concurrency is hard-capped at `semaphore=30` per OASIS env (60 across parallel mode). Phase 5 KV-cache sizing on Qwen3.5-9B is comfortable. See `00_audit.md` Appendix B.
 
-**Validation**:
-- `pytest` green (194+ tests)
-- Local mock vLLM (a tiny FastAPI mimicking `/v1/chat/completions`) → full campaign smoke run completes against TRIBE-pseudo-mode + MiroFish
+**Files added**:
+- `orchestrator/clients/llm_protocol.py`
+- `orchestrator/clients/openai_compat_client.py`
+- `orchestrator/clients/llm_factory.py`
+- `orchestrator/tests/test_openai_compat_client.py` (12 tests)
+- `orchestrator/tests/test_vllm_smoke.py` (1 in-process E2E)
+- `docs/competition/MODELS.md`, `docs/competition/03_run_locally.md`
 
-**Risk**: low. Pure refactor. Existing tests catch regressions.
+**Files modified**:
+- `orchestrator/config.py`, `orchestrator/api/__init__.py`, `orchestrator/cli.py`, `orchestrator/clients/__init__.py`, `orchestrator/requirements.txt`
+- `orchestrator/tests/test_cli.py`, `orchestrator/tests/test_integration_loop.py` (patch target moved from `ClaudeClient` to `build_llm_client`)
+- `tribe_scorer/requirements.txt` (torch pin relaxed `<2.7` → `<3.0`)
+- `CLAUDE.md` (drop stale sm_120/CPU-fallback claim, add hackathon section)
+- `.env.example` (drop leftover `TRIBE_TEXT_ONLY`)
+- `.gitignore` (carve out `docs/competition/`)
+
+**Validation passed**:
+- `pytest --ignore=orchestrator/tests/test_tribe_timeout.py` — 251 passed.
+- `test_tribe_timeout.py` is pre-existing broken on `main` (imports `CHUNK_SIZE_WORDS` that doesn't exist; commit `495956b`). Out of scope for Phase 0.
+- E2E smoke: variant_generator → OpenAICompatClient → in-process FastAPI fake vLLM → parsed variants. Wiring confirmed before MI300X provisioning.
 
 ## Phase 1 — Local: TRIBE GPU-path un-pinning + ROCm dockerfile (0 cloud hrs)
 
