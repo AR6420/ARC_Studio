@@ -245,3 +245,82 @@ def test_factory_rejects_unknown_provider():
     from orchestrator.clients.llm_factory import build_llm_client
     with pytest.raises(ValueError, match="Unknown LLM_PROVIDER"):
         build_llm_client(provider="bogus")
+
+
+# ── 6. Dual base URL routing (Phase 3 backport) ─────────────────────────────
+
+
+def _make_routed_async_openai():
+    """
+    Patch AsyncOpenAI to return a fresh stub instance per call AND record
+    the base_url used to construct each one. Returns (cls_mock,
+    instances_by_base_url, calls_by_base_url) so tests can assert which
+    endpoint a request hit.
+    """
+    instances: dict[str, MagicMock] = {}
+
+    def _factory(*, base_url, api_key, timeout):  # match AsyncOpenAI signature
+        inst = MagicMock()
+        inst.chat = MagicMock()
+        inst.chat.completions = MagicMock()
+        inst.chat.completions.create = AsyncMock(return_value=_make_completion("ok"))
+        inst._base_url = base_url
+        instances[base_url] = inst
+        return inst
+
+    return _factory, instances
+
+
+@pytest.mark.asyncio
+async def test_dual_endpoints_route_by_model():
+    """
+    With agent_base_url set, call_opus must hit the orchestrator endpoint
+    and call_haiku must hit the agent endpoint. Confirms the Phase 3
+    finding that the two vLLM tiers live on different ports.
+    """
+    factory, instances = _make_routed_async_openai()
+    with patch(
+        "orchestrator.clients.openai_compat_client.AsyncOpenAI",
+        side_effect=factory,
+    ):
+        client = OpenAICompatClient(
+            base_url="http://orch.fake/v1",
+            agent_base_url="http://agent.fake/v1",
+            orchestrator_model="Qwen/Qwen3.5-27B",
+            agent_model="Qwen/Qwen3.5-9B",
+        )
+        await client.call_opus(system="s", user="u")
+        await client.call_haiku(system="s", user="u")
+
+    assert set(instances.keys()) == {"http://orch.fake/v1", "http://agent.fake/v1"}
+    orch = instances["http://orch.fake/v1"].chat.completions.create
+    agent = instances["http://agent.fake/v1"].chat.completions.create
+    assert orch.await_count == 1
+    assert agent.await_count == 1
+    assert orch.await_args.kwargs["model"] == "Qwen/Qwen3.5-27B"
+    assert agent.await_args.kwargs["model"] == "Qwen/Qwen3.5-9B"
+
+
+@pytest.mark.asyncio
+async def test_no_agent_url_means_single_endpoint_for_both_tiers():
+    """
+    Backward-compat: when agent_base_url is empty (the dev / Ollama case),
+    call_opus and call_haiku BOTH hit the orchestrator endpoint and only
+    one AsyncOpenAI instance is constructed.
+    """
+    factory, instances = _make_routed_async_openai()
+    with patch(
+        "orchestrator.clients.openai_compat_client.AsyncOpenAI",
+        side_effect=factory,
+    ):
+        client = OpenAICompatClient(
+            base_url="http://only.fake/v1",
+            orchestrator_model="orch",
+            agent_model="agent",
+        )
+        await client.call_opus(system="s", user="u")
+        await client.call_haiku(system="s", user="u")
+
+    assert list(instances.keys()) == ["http://only.fake/v1"]
+    create = instances["http://only.fake/v1"].chat.completions.create
+    assert create.await_count == 2

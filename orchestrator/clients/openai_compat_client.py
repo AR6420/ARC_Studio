@@ -81,6 +81,7 @@ class OpenAICompatClient:
         agent_model: str | None = None,
         api_key: str | None = None,
         timeout_s: float = 120.0,
+        agent_base_url: str | None = None,
     ) -> None:
         # Deferred import to keep the protocol module light.
         from orchestrator.config import settings
@@ -93,11 +94,30 @@ class OpenAICompatClient:
             api_key=api_key or DUMMY_API_KEY,
             timeout=timeout_s,
         )
+        # Optional separate endpoint for the agent tier. The AMD hackathon
+        # stack runs orchestrator-tier and agent-tier as two distinct vLLM
+        # instances on different ports, so call_haiku* must hit a different
+        # base_url than call_opus*. When agent_base_url is empty / None the
+        # agent client aliases the orchestrator client (single-endpoint
+        # deployment, e.g. local Ollama dev).
+        agent_url = (agent_base_url or settings.vllm_agent_base_url or "").strip()
+        if agent_url:
+            self._agent_client = AsyncOpenAI(
+                base_url=agent_url,
+                api_key=api_key or DUMMY_API_KEY,
+                timeout=timeout_s,
+            )
+            self._agent_base_url = agent_url
+            logger.info("Separate agent-tier endpoint: %s", agent_url)
+        else:
+            self._agent_client = self._client
+            self._agent_base_url = self._base_url
         logger.info(
-            "OpenAICompatClient initialised: base_url=%s, orchestrator=%s, agent=%s",
+            "OpenAICompatClient initialised: base_url=%s, orchestrator=%s, agent=%s, agent_base_url=%s",
             self._base_url,
             self._orchestrator_model,
             self._agent_model,
+            self._agent_base_url,
         )
 
     async def _chat(
@@ -120,10 +140,14 @@ class OpenAICompatClient:
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
+        # Pick the right client: agent-tier model goes to the agent endpoint,
+        # everything else to the orchestrator endpoint. In single-endpoint
+        # deployments self._agent_client is self._client so this is a no-op.
+        client = self._agent_client if model == self._agent_model else self._client
         last_exc: Exception | None = None
         for attempt in range(MAX_RETRIES + 1):
             try:
-                response = await self._client.chat.completions.create(**kwargs)
+                response = await client.chat.completions.create(**kwargs)
                 content = response.choices[0].message.content
                 return content or ""
 

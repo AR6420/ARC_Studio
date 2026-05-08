@@ -182,7 +182,21 @@ class Settings(BaseSettings):
     )
     vllm_base_url: str = Field(
         default="http://localhost:8000/v1",
-        description="OpenAI-compatible base URL when LLM_PROVIDER=vllm.",
+        description=(
+            "OpenAI-compatible base URL for the orchestrator-tier vLLM "
+            "(serves call_opus*). When LLM_PROVIDER=vllm and "
+            "vllm_agent_base_url is empty, this URL also serves agent-tier "
+            "calls (single-endpoint deployment)."
+        ),
+    )
+    vllm_agent_base_url: str = Field(
+        default="",
+        description=(
+            "Optional separate base URL for the agent-tier vLLM (serves "
+            "call_haiku*). Used on the AMD hackathon stack where the two "
+            "tiers run as two distinct vLLM instances on different ports. "
+            "Empty string falls back to vllm_base_url."
+        ),
     )
     vllm_orchestrator_model: str = Field(
         default="Qwen/Qwen3.5-27B",
