@@ -8,7 +8,17 @@ Provides async client wrappers for:
 """
 
 from orchestrator.clients.claude_client import ClaudeClient
+from orchestrator.clients.llm_factory import build_llm_client
+from orchestrator.clients.llm_protocol import LLMClient
 from orchestrator.clients.mirofish_client import MirofishClient
+from orchestrator.clients.openai_compat_client import OpenAICompatClient
 from orchestrator.clients.tribe_client import TribeClient
 
-__all__ = ["ClaudeClient", "MirofishClient", "TribeClient"]
+__all__ = [
+    "ClaudeClient",
+    "LLMClient",
+    "MirofishClient",
+    "OpenAICompatClient",
+    "TribeClient",
+    "build_llm_client",
+]

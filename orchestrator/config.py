@@ -172,7 +172,36 @@ class Settings(BaseSettings):
         description="Default number of simulation time cycles in each MiroFish run.",
     )
 
-    # ── LLM fallback ────────────────────────────────────────────────────────────
+    # ── LLM provider selection (AMD hackathon) ──────────────────────────────────
+    # "anthropic" (default) routes through the ClaudeClient + Anthropic SDK.
+    # "vllm" routes through the OpenAICompatClient against any
+    # /v1/chat/completions endpoint (vLLM on MI300X is the primary target).
+    llm_provider: str = Field(
+        default="anthropic",
+        description="LLM provider: 'anthropic' or 'vllm'.",
+    )
+    vllm_base_url: str = Field(
+        default="http://localhost:8000/v1",
+        description="OpenAI-compatible base URL when LLM_PROVIDER=vllm.",
+    )
+    vllm_orchestrator_model: str = Field(
+        default="Qwen/Qwen3.5-27B",
+        description=(
+            "Model id served at the orchestrator tier (replaces Opus). "
+            "Primary: Qwen/Qwen3.5-27B. Fallback: Qwen/Qwen3-32B "
+            "(see docs/competition/MODELS.md for trigger conditions)."
+        ),
+    )
+    vllm_agent_model: str = Field(
+        default="Qwen/Qwen3.5-9B",
+        description=(
+            "Model id served at the agent tier (replaces Haiku). "
+            "Primary: Qwen/Qwen3.5-9B. Fallback: Qwen/Qwen3-8B."
+        ),
+    )
+
+    # ── LLM fallback (legacy, aspirational — see 00_audit.md Appendix A) ────────
+    # Configured but not yet wired to any code path; superseded by LLM_PROVIDER.
     llm_fallback_enabled: bool = Field(
         default=True,
         description=(

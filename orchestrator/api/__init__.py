@@ -136,7 +136,7 @@ async def lifespan(app: FastAPI):
     from orchestrator.storage.campaign_store import CampaignStore
     from orchestrator.clients.tribe_client import TribeClient
     from orchestrator.clients.mirofish_client import MirofishClient
-    from orchestrator.clients.claude_client import ClaudeClient
+    from orchestrator.clients.llm_factory import build_llm_client
     from orchestrator.engine.variant_generator import VariantGenerator
     from orchestrator.engine.tribe_scorer import TribeScoringPipeline
     from orchestrator.engine.mirofish_runner import MirofishRunner
@@ -144,8 +144,15 @@ async def lifespan(app: FastAPI):
     from orchestrator.engine.campaign_runner import CampaignRunner
     from orchestrator.engine.report_generator import ReportGenerator
 
-    # Startup -- refresh LiteLLM API key from Claude credentials
-    _refresh_litellm_api_key()
+    # Startup -- refresh LiteLLM API key from Claude credentials.
+    # Skip when running on the vLLM provider (LiteLLM is bypassed entirely
+    # on the AMD hackathon stack — MiroFish points directly at vLLM).
+    if settings.llm_provider.lower() == "anthropic":
+        _refresh_litellm_api_key()
+    else:
+        logger.info(
+            "LLM_PROVIDER=%s -- skipping LiteLLM key refresh", settings.llm_provider
+        )
 
     db = Database(str(settings.database_path_absolute))
     await db.connect()
@@ -165,7 +172,12 @@ async def lifespan(app: FastAPI):
     app.state.mirofish_client = MirofishClient(
         mirofish_http, litellm_url=settings.litellm_url
     )
-    app.state.claude_client = ClaudeClient()
+    # Construct the LLM client through the factory so LLM_PROVIDER chooses
+    # between Anthropic SDK (ClaudeClient) and OpenAI-compat (vLLM).
+    # `app.state.claude_client` retains its name to keep request-handler
+    # call sites unchanged; the object satisfies the LLMClient protocol
+    # regardless of provider.
+    app.state.claude_client = build_llm_client()
     app.state.tribe_http = tribe_http
     app.state.mirofish_http = mirofish_http
 

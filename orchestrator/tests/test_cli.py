@@ -174,7 +174,7 @@ class TestRunCampaignMocked:
 
         with patch("orchestrator.cli.Database", return_value=mock_db) as mock_db_cls, \
              patch("orchestrator.cli.CampaignStore", return_value=mock_store), \
-             patch("orchestrator.cli.ClaudeClient") as mock_claude_cls, \
+             patch("orchestrator.cli.build_llm_client") as mock_claude_cls, \
              patch("orchestrator.cli.TribeClient") as mock_tribe_cls, \
              patch("orchestrator.cli.MirofishClient") as mock_mirofish_cls, \
              patch("orchestrator.cli.VariantGenerator") as mock_vargen_cls, \
@@ -248,7 +248,7 @@ class TestRunCampaignMocked:
 
         with patch("orchestrator.cli.Database", return_value=mock_db), \
              patch("orchestrator.cli.CampaignStore", return_value=mock_store), \
-             patch("orchestrator.cli.ClaudeClient"), \
+             patch("orchestrator.cli.build_llm_client"), \
              patch("orchestrator.cli.TribeClient"), \
              patch("orchestrator.cli.MirofishClient"), \
              patch("orchestrator.cli.VariantGenerator"), \

@@ -5,8 +5,12 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 
-# ── Claude API ────────────────────────────────────────────────────────────────
+# ── LLM clients ───────────────────────────────────────────────────────────────
+# anthropic: production path (LLM_PROVIDER=anthropic, default)
+# openai:    vLLM / OpenAI-compatible path (LLM_PROVIDER=vllm), used on
+#            competition/amd-hackathon for MI300X-served Qwen models
 anthropic>=0.36.0
+openai>=1.40.0
 
 # ── Async HTTP client (for TRIBE v2 and MiroFish calls) ───────────────────────
 httpx>=0.27.0

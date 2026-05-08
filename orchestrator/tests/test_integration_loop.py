@@ -121,7 +121,7 @@ class TestCLIMultiIteration:
 
         with patch("orchestrator.cli.Database", return_value=mock_db), \
              patch("orchestrator.cli.CampaignStore", return_value=mock_store), \
-             patch("orchestrator.cli.ClaudeClient"), \
+             patch("orchestrator.cli.build_llm_client"), \
              patch("orchestrator.cli.TribeClient"), \
              patch("orchestrator.cli.MirofishClient"), \
              patch("orchestrator.cli.VariantGenerator"), \

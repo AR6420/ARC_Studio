@@ -24,7 +24,7 @@ import httpx
 from orchestrator.config import settings
 from orchestrator.storage.database import Database
 from orchestrator.storage.campaign_store import CampaignStore
-from orchestrator.clients.claude_client import ClaudeClient
+from orchestrator.clients.llm_factory import build_llm_client
 from orchestrator.clients.tribe_client import TribeClient
 from orchestrator.clients.mirofish_client import MirofishClient
 from orchestrator.engine.variant_generator import VariantGenerator
@@ -79,7 +79,9 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     try:
         # Create all components
         store = CampaignStore(db)
-        claude = ClaudeClient()
+        # Provider selected by LLM_PROVIDER (anthropic | vllm).
+        # Variable kept named `claude` to match downstream constructor args.
+        claude = build_llm_client()
         tribe_client = TribeClient(tribe_http)
         mirofish_client = MirofishClient(mirofish_http, litellm_url=settings.litellm_url)
 
