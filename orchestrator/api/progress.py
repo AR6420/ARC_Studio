@@ -63,6 +63,12 @@ async def campaign_progress(request: Request, campaign_id: str):
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=30.0)
                     event_type = event.get("event", "message")
+                    # Stamp wallclock at emission so the UI's
+                    # formatEventTime() has a parseable ISO timestamp.
+                    # The campaign_runner payloads omit timestamp; without
+                    # this the UI renders "Invalid Date" on every row.
+                    if not event.get("timestamp"):
+                        event["timestamp"] = datetime.now(timezone.utc).isoformat()
                     yield {
                         "event": event_type,
                         "data": json.dumps(event),
