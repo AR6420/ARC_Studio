@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # peak (vendor lazy-loads V-JEPA2 + brain encoder ≈ 5-6 GB) and inference
     # time (audio extract → transcribe → V-JEPA2 → brain encoding all run
     # sequentially per the _free_extractor_model pattern).
-    max_video_duration_seconds: float = 15.0
+    max_video_duration_seconds: float = 120.0
     max_video_resolution_height: int = 720
     video_inference_timeout_seconds: int = 1800  # 30 minutes
 

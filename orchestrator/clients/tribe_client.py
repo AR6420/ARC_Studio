@@ -83,6 +83,12 @@ def _extract_scores(data: dict[str, Any]) -> dict[str, float] | None:
     if timeline is not None:
         scores["timeline"] = timeline
         scores["tr_seconds"] = data.get("tr_seconds")
+    # Phase 5 session 2: Whisper transcript for video/audio. Used by
+    # variant_generator to ground variants in actual stimulus content
+    # rather than letting the LLM hallucinate from an empty seed.
+    transcript = data.get("transcript")
+    if transcript:
+        scores["transcript"] = transcript
     return scores
 
 

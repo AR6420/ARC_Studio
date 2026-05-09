@@ -122,7 +122,7 @@ async def test_analyze_iteration_success():
     # Verify call_opus_json was called once with correct params
     mock_client.call_opus_json.assert_called_once()
     call_kwargs = mock_client.call_opus_json.call_args
-    assert call_kwargs.kwargs["max_tokens"] == 8192
+    assert call_kwargs.kwargs["max_tokens"] == 4096
 
 
 @pytest.mark.asyncio

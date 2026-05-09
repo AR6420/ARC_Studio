@@ -92,7 +92,7 @@ class ResultAnalyzer:
         result = await self._claude.call_opus_json(
             system=RESULT_ANALYSIS_SYSTEM,
             user=user_prompt,
-            max_tokens=8192,
+            max_tokens=4096,
         )
 
         # Validate required fields

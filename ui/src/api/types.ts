@@ -69,6 +69,9 @@ export interface TribeScores {
   // built. tr_seconds is the per-window duration; idx × tr_seconds = wallclock.
   timeline?: TribeTimeline | null;
   tr_seconds?: number | null;
+  // Phase 5 session 2: Whisper transcript captured during video/audio
+  // inference. Empty for text-only stimuli.
+  transcript?: string | null;
 }
 
 export interface MirofishMetrics {

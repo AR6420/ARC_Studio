@@ -39,6 +39,8 @@ class VariantGenerator:
         num_variants: int = 2,
         constraints: str | None = None,
         previous_iteration_results: list[dict[str, Any]] | None = None,
+        media_transcript: str | None = None,
+        media_type: str = "text",
     ) -> list[dict[str, Any]]:
         """
         Generate N content variants using Claude Haiku.
@@ -65,13 +67,17 @@ class VariantGenerator:
             profile = get_profile(demographic)
             demo_description = profile["description"]
 
-        # Build the prompt
+        # Build the prompt. For video/audio campaigns the transcript is the
+        # primary content source — passed to the prompt so variants are
+        # grounded in the actual stimulus rather than hallucinated topics.
         user_prompt = build_variant_generation_prompt(
             campaign_brief=campaign_brief,
             demographic_description=demo_description,
             num_variants=num_variants,
             constraints=constraints,
             previous_iteration_results=previous_iteration_results,
+            media_transcript=media_transcript,
+            media_type=media_type,
         )
 
         # Call Claude Haiku (JSON mode)

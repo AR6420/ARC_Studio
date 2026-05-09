@@ -144,7 +144,34 @@ class CampaignRunner:
             # Step 1: Pre-flight health check
             availability = await self.check_system_availability()
 
-            # Step 2: Generate variants
+            # Phase 5 session 2: for audio/video campaigns we score the
+            # stimulus FIRST so the Whisper transcript surfaced by TRIBE can
+            # ground variant generation. Text campaigns keep the original
+            # variants-then-score order.
+            media_type = getattr(campaign, "media_type", "text") or "text"
+            media_path = getattr(campaign, "media_path", None)
+
+            media_score: dict[str, float] | None = None
+            media_transcript: str | None = None
+            if availability.tribe_available and media_type in ("audio", "video") and media_path:
+                logger.info(
+                    "Step 2a: Scoring %s stimulus via TRIBE v2 (%s) — captures "
+                    "transcript for variant generation grounding",
+                    media_type, media_path,
+                )
+                if media_type == "audio":
+                    media_score = await self._tribe_client.score_audio(media_path)
+                else:
+                    media_score = await self._tribe_client.score_video(media_path)
+                if media_score:
+                    media_transcript = media_score.get("transcript")
+                    if media_transcript:
+                        logger.info(
+                            "Captured %s transcript (%d chars) for variant grounding",
+                            media_type, len(media_transcript),
+                        )
+
+            # Step 2: Generate variants (now optionally grounded in transcript)
             logger.info("Step 2: Generating %d content variants", 2)
             variants = await self._variant_gen.generate_variants(
                 campaign_brief=campaign.seed_content,
@@ -153,49 +180,25 @@ class CampaignRunner:
                 num_variants=2,  # Per D-01, reduced from 3 in B.1 scope reduction
                 constraints=campaign.constraints,
                 previous_iteration_results=previous_iteration_results,
+                media_transcript=media_transcript,
+                media_type=media_type,
             )
 
-            # Step 3: TRIBE scoring (if available)
-            # Phase 2 A.1: dispatch on media_type. Audio campaigns route the
-            # uploaded file to TRIBE's audio endpoint (via tribe_client.score_audio);
-            # text campaigns keep the existing batch-scoring pipeline unchanged.
-            media_type = getattr(campaign, "media_type", "text") or "text"
-            media_path = getattr(campaign, "media_path", None)
+            # Step 3: TRIBE scoring (if available). For audio/video, reuse
+            # the stimulus score captured in Step 2a (broadcast across
+            # variants — same as before). For text, score each variant.
             tribe_scores_list: list[dict[str, float] | None] = []
             if availability.tribe_available:
-                if media_type == "audio":
-                    if not media_path:
+                if media_type in ("audio", "video"):
+                    if media_score is None:
                         logger.warning(
-                            "Campaign %s declared media_type='audio' but has no "
-                            "media_path; skipping TRIBE scoring", campaign_id,
+                            "Campaign %s media_type=%s but no media_score "
+                            "captured; skipping TRIBE",
+                            campaign_id, media_type,
                         )
                         tribe_scores_list = [None] * len(variants)
                     else:
-                        logger.info(
-                            "Step 3: Scoring audio seed via TRIBE v2 (%s) — "
-                            "one score broadcast to all %d variants",
-                            media_path, len(variants),
-                        )
-                        # Single seed-audio score broadcast across variants —
-                        # variant-level audio mutations are out of scope for A.1.
-                        audio_score = await self._tribe_client.score_audio(media_path)
-                        tribe_scores_list = [audio_score] * len(variants)
-                elif media_type == "video":
-                    if not media_path:
-                        logger.warning(
-                            "Campaign %s declared media_type='video' but has no "
-                            "media_path; skipping TRIBE scoring", campaign_id,
-                        )
-                        tribe_scores_list = [None] * len(variants)
-                    else:
-                        logger.info(
-                            "Step 3: Scoring video seed via TRIBE v2 V-JEPA2 (%s) — "
-                            "one score broadcast to all %d variants",
-                            media_path, len(variants),
-                        )
-                        # Same broadcast pattern as audio (Phase 2 A.2).
-                        video_score = await self._tribe_client.score_video(media_path)
-                        tribe_scores_list = [video_score] * len(variants)
+                        tribe_scores_list = [media_score] * len(variants)
                 else:
                     logger.info("Step 3: Scoring %d variants with TRIBE v2", len(variants))
                     tribe_scores_list = await self._tribe_scoring.score_variants(variants)
@@ -249,7 +252,22 @@ class CampaignRunner:
                     composite_scores=composite,
                 )
 
-            # Step 6: Cross-system analysis (Claude Opus)
+            # Step 6: Cross-system analysis (Claude Opus). Strip non-aggregate
+            # fields from tribe_scores before sending to the analyzer — the
+            # per-window timeline (~600 floats) and Whisper transcript
+            # (~500 chars) bloat the prompt past the 16K context window
+            # without informing analysis quality. Only the 7 dimension scores
+            # + is_pseudo_score matter for cross-system reasoning.
+            _ANALYSIS_TRIBE_KEYS = {
+                "attention_capture", "emotional_resonance", "memory_encoding",
+                "reward_response", "threat_detection", "cognitive_load",
+                "social_relevance", "is_pseudo_score",
+            }
+            def _strip_tribe(t: dict | None) -> dict | None:
+                if not t:
+                    return t
+                return {k: v for k, v in t.items() if k in _ANALYSIS_TRIBE_KEYS}
+
             logger.info("Step 6: Running Claude Opus cross-system analysis")
             variants_with_scores = []
             for i, variant in enumerate(variants):
@@ -257,7 +275,9 @@ class CampaignRunner:
                     "variant_id": variant["id"],
                     "content": variant["content"],
                     "strategy": variant.get("strategy", ""),
-                    "tribe_scores": tribe_scores_list[i] if i < len(tribe_scores_list) else None,
+                    "tribe_scores": _strip_tribe(
+                        tribe_scores_list[i] if i < len(tribe_scores_list) else None
+                    ),
                     "mirofish_metrics": mirofish_metrics_list[i] if i < len(mirofish_metrics_list) else None,
                     "composite_scores": composite_scores_list[i],
                 })

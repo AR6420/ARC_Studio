@@ -101,6 +101,10 @@ class TribeScores(BaseModel):
     # Surfaced to the UI in Phase 5 for the playback-synced timeline chart.
     timeline: dict[str, list[float]] | None = None
     tr_seconds: float | None = None
+    # Phase 5 session 2: Whisper transcript captured during video/audio
+    # inference. Empty for text-only stimuli. Surfaced in the UI's
+    # campaign-detail view alongside the timeline chart.
+    transcript: str | None = None
 
 
 class MirofishMetrics(BaseModel):

@@ -167,6 +167,19 @@ def transcribe_words(
     return df
 
 
+# Phase 5 session 2: Whisper transcript surfacing for variant generation.
+# TRIBE inference is serialised by `_inference_lock` in main.py, so storing
+# the most recent transcript on a module-global is safe — the next inference
+# overwrites it. Orchestrator reads via /api/score_video response, not by
+# calling get_last_transcript directly.
+_LAST_TRANSCRIPT: str | None = None
+
+
+def get_last_transcript() -> str | None:
+    """Return the transcript produced by the most recent _patched() call."""
+    return _LAST_TRANSCRIPT
+
+
 def install_eventstransforms_patch() -> None:
     """
     Replace the whisperx-based ``_get_transcript_from_audio`` inside
@@ -191,7 +204,30 @@ def install_eventstransforms_patch() -> None:
 
     @staticmethod
     def _patched(wav_filename, language: str) -> pd.DataFrame:
-        return transcribe_words(wav_filename, language=language)
+        global _LAST_TRANSCRIPT
+        df = transcribe_words(wav_filename, language=language)
+        # Reconstruct transcript from word-level dataframe. "sentence" column
+        # already contains full sentences (deduped per word); take unique
+        # ordered sentences. Fall back to joining "text" tokens if missing.
+        try:
+            if "sentence" in df.columns and len(df) > 0:
+                seen: set[str] = set()
+                ordered: list[str] = []
+                for s in df["sentence"].tolist():
+                    s = str(s).strip()
+                    if s and s not in seen:
+                        seen.add(s)
+                        ordered.append(s)
+                _LAST_TRANSCRIPT = " ".join(ordered) if ordered else None
+            elif "text" in df.columns and len(df) > 0:
+                _LAST_TRANSCRIPT = " ".join(
+                    str(t).strip() for t in df["text"].tolist() if str(t).strip()
+                ) or None
+            else:
+                _LAST_TRANSCRIPT = None
+        except Exception:  # noqa: BLE001 — never let transcript capture break inference
+            _LAST_TRANSCRIPT = None
+        return df
 
     et.ExtractWordsFromAudio._get_transcript_from_audio = _patched
     et.ExtractWordsFromAudio._whisperx_patched = True

@@ -346,6 +346,14 @@ class VideoScoreResponse(BaseModel):
     )
     timeline: dict[str, list[float]] | None = Field(default=None)
     tr_seconds: float | None = Field(default=None)
+    # Phase 5 session 2: surface the Whisper transcript produced internally
+    # during inference so the orchestrator can ground variant generation in
+    # the actual video content (rather than hallucinating off an empty seed).
+    transcript: str | None = Field(
+        default=None,
+        description="Whisper-large-v3 transcript of the video's audio track. "
+                    "Null when inference fell back to pseudo or had no audio.",
+    )
 
 
 class HealthResponse(BaseModel):
@@ -629,6 +637,16 @@ def _run_single_video_score(
             tr_seconds = TRIBE_TR_SECONDS
         except ValueError as exc:
             logger.warning("Could not build video timeline (%s); omitting field", exc)
+    # Surface Whisper transcript captured by the patched ExtractWordsFromAudio.
+    # Null when inference pseudo-fell-back before whisper ran. Safe under the
+    # _inference_lock — only one inference at a time touches the global.
+    transcript: str | None = None
+    if not is_pseudo:
+        try:
+            from scoring.whisper_hf import get_last_transcript
+            transcript = get_last_transcript()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not read whisper transcript (%s); omitting", exc)
     return VideoScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -646,6 +664,7 @@ def _run_single_video_score(
         pseudo_reason=pseudo_reason,
         timeline=timeline,
         tr_seconds=tr_seconds,
+        transcript=transcript,
     )
 
 

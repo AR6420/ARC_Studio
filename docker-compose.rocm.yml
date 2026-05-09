@@ -161,6 +161,12 @@ services:
     volumes:
       - tribe_hf_cache:/cache/hf
       - tribe_exca_cache:/cache/tribe
+      # Phase 5 session 2: bind-mount the orchestrator's media-upload dir into
+      # the tribe container so /api/score_video and /api/score_audio can read
+      # the absolute paths the orchestrator forwards. Mounted rw because
+      # moviepy writes the extracted .wav next to the source mp4 during
+      # video transcription (whisper feed).
+      - ./data/uploads:/root/ARC_Studio/data/uploads
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri

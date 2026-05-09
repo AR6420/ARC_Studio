@@ -176,7 +176,12 @@ def compute_composite_scores(
     if tribe:
         weighted_scores = []
         for dim, score in tribe.items():
-            if dim == "is_pseudo_score":
+            # Skip metadata + non-numeric fields. Phase 5 added timeline (dict),
+            # tr_seconds (float, but not a brain dimension), and transcript (str)
+            # to the tribe scores dict — none belong in the weighted average.
+            if dim in {"is_pseudo_score", "timeline", "tr_seconds", "transcript"}:
+                continue
+            if not isinstance(score, (int, float)):
                 continue
             weight = cognitive_weights.get(dim, 1.0)
             weighted_scores.append(score * weight)

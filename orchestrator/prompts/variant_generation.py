@@ -64,6 +64,8 @@ def build_variant_generation_prompt(
     num_variants: int,
     constraints: str | None = None,
     previous_iteration_results: list[dict[str, Any]] | None = None,
+    media_transcript: str | None = None,
+    media_type: str = "text",
 ) -> str:
     """
     Build the user-turn prompt for variant generation.
@@ -82,8 +84,32 @@ def build_variant_generation_prompt(
     """
     lines: list[str] = []
 
+    # Phase 5 session 2: when the stimulus is video/audio, the Whisper
+    # transcript is the authoritative content source. Include it explicitly
+    # so the LLM grounds variants in the actual material instead of
+    # hallucinating from an empty/short brief.
+    if media_transcript and media_type in ("video", "audio"):
+        lines.append(f"## Stimulus transcript ({media_type})")
+        lines.append(
+            "The user uploaded a {} stimulus. The Whisper transcript below is "
+            "the authoritative content source — variants MUST stay on-topic "
+            "with respect to this transcript and the user's seed brief.".format(media_type)
+        )
+        lines.append("")
+        lines.append(media_transcript.strip())
+        lines.append("")
+
     lines.append("## Campaign brief")
-    lines.append(campaign_brief.strip())
+    if campaign_brief.strip():
+        lines.append(campaign_brief.strip())
+    elif media_transcript and media_type in ("video", "audio"):
+        lines.append(
+            f"(No additional brief provided. Treat the {media_type} transcript above "
+            "as the campaign brief and generate variants that re-frame, distil, or "
+            "amplify its message for the target demographic.)"
+        )
+    else:
+        lines.append("(No brief provided.)")
     lines.append("")
 
     lines.append("## Target demographic")
