@@ -6,7 +6,7 @@
  *
  *   Audio: .wav/.mp3/.flac/.ogg, ≤ 10 MB, ≤ 60 s
  *          duration is decoded via the Web Audio API (PCM-accurate).
- *   Video: .mp4/.webm/.mov, ≤ 25 MB, ≤ 15 s, ≤ 720 p height
+ *   Video: .mp4/.webm/.mov, ≤ 50 MB, ≤ 120 s, ≤ 720 p height
  *          duration + dimensions read from a hidden <video> element.
  *
  * Selected state shows file metadata. For video, a thumbnail extracted from
@@ -25,8 +25,8 @@ const AUDIO_MAX_BYTES = 10 * 1024 * 1024;
 const AUDIO_MAX_DURATION_SECONDS = 60;
 const AUDIO_EXTENSIONS = ['wav', 'mp3', 'flac', 'ogg'] as const;
 
-const VIDEO_MAX_BYTES = 25 * 1024 * 1024;
-const VIDEO_MAX_DURATION_SECONDS = 15;
+const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+const VIDEO_MAX_DURATION_SECONDS = 120;
 const VIDEO_MAX_RESOLUTION_HEIGHT = 720;
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'mov'] as const;
 
@@ -34,7 +34,7 @@ const VIDEO_EXTENSIONS = ['mp4', 'webm', 'mov'] as const;
 const AUDIO_DURATION_ERROR =
   'Audio must be under 60 seconds for laptop-class inference. Longer files supported on cloud hardware.';
 const VIDEO_DURATION_ERROR =
-  'Video must be under 15 seconds for laptop-class inference.';
+  'Video must be under 120 seconds.';
 
 export type MediaType = 'audio' | 'video';
 
@@ -223,7 +223,7 @@ export function MediaUpload({ value, onChange, disabled }: MediaUploadProps) {
 
         // Video branch
         if (file.size > VIDEO_MAX_BYTES) {
-          const msg = `Video file too large (${formatBytes(file.size)}). Maximum 25 MB.`;
+          const msg = `Video file too large (${formatBytes(file.size)}). Maximum 50 MB.`;
           setErrorMsg(msg);
           toast.error(msg);
           return;
@@ -399,7 +399,7 @@ export function MediaUpload({ value, onChange, disabled }: MediaUploadProps) {
             audio: wav · mp3 · flac · ogg · ≤ 10 MB · ≤ 60 s
           </span>
           <span className="font-mono text-[0.6rem] tracking-[0.08em] text-muted-foreground uppercase">
-            video: mp4 · webm · mov · ≤ 25 MB · ≤ 15 s · ≤ 720 p
+            video: mp4 · webm · mov · ≤ 50 MB · ≤ 120 s · ≤ 720 p
           </span>
         </div>
         <input

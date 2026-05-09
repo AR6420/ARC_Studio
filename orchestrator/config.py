@@ -121,12 +121,12 @@ class Settings(BaseSettings):
     # ── Video upload (Phase 2 A.2) ──────────────────────────────────────────────
     # Same upload dir as audio (data/uploads/) — UUID filenames keep them distinct.
     video_max_bytes: int = Field(
-        default=25 * 1024 * 1024,
-        description="Maximum accepted video upload size in bytes (default: 25 MB).",
+        default=50 * 1024 * 1024,
+        description="Maximum accepted video upload size in bytes (default: 50 MB).",
     )
     video_max_duration_seconds: float = Field(
-        default=15.0,
-        description="Maximum accepted video duration in seconds (default: 15s).",
+        default=120.0,
+        description="Maximum accepted video duration in seconds (default: 120s).",
     )
     video_max_resolution_height: int = Field(
         default=720,
