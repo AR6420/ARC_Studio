@@ -1,0 +1,109 @@
+{
+  "_meta": {
+    "source": "synthetic",
+    "derived_from": "demo_assets/apple_1984.mp4 (Apple 1984 Super Bowl ad, 60s)",
+    "note": "Mock data for Phase 5 UI development. Shape mirrors TRIBE timeline output (per-window ROI activations across the 7 brain dimensions). Replace with real /api/score_video output when running on MI300X."
+  },
+  "tr_seconds": 5.0,
+  "duration_seconds": 60.0,
+  "timeline": {
+    "attention_capture": [
+      0.023,
+      0.0213,
+      0.0285,
+      0.0246,
+      0.0369,
+      0.047,
+      0.0611,
+      0.0868,
+      0.0979,
+      0.1092,
+      0.0983,
+      0.0818
+    ],
+    "emotional_resonance": [
+      0.0168,
+      0.0276,
+      0.0333,
+      0.0451,
+      0.053,
+      0.0512,
+      0.0399,
+      0.04,
+      0.0642,
+      0.0701,
+      0.0583,
+      0.0262
+    ],
+    "memory_encoding": [
+      0.0195,
+      0.0197,
+      0.0218,
+      0.0271,
+      0.0242,
+      0.031,
+      0.0367,
+      0.041,
+      0.0488,
+      0.0502,
+      0.0537,
+      0.057
+    ],
+    "reward_response": [
+      0.0152,
+      0.0138,
+      0.0138,
+      0.017,
+      0.0198,
+      0.0253,
+      0.0377,
+      0.0479,
+      0.054,
+      0.0594,
+      0.0557,
+      0.0489
+    ],
+    "threat_detection": [
+      0.0543,
+      0.0516,
+      0.0556,
+      0.0502,
+      0.0513,
+      0.0519,
+      0.0454,
+      0.0423,
+      0.0327,
+      0.0296,
+      0.0251,
+      0.0211
+    ],
+    "cognitive_load": [
+      0.0335,
+      0.03,
+      0.0353,
+      0.0387,
+      0.0448,
+      0.0511,
+      0.0603,
+      0.0636,
+      0.0574,
+      0.0528,
+      0.0407,
+      0.0395
+    ],
+    "social_relevance": [
+      0.0212,
+      0.024,
+      0.0226,
+      0.0184,
+      0.0194,
+      0.0222,
+      0.0183,
+      0.0251,
+      0.0294,
+      0.0394,
+      0.0494,
+      0.0618
+    ]
+  }
+}

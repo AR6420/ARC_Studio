@@ -149,6 +149,11 @@ export interface CampaignResponse {
   error?: string | null;
   iterations?: IterationRecord[] | null;
   analyses?: AnalysisRecord[] | null;
+  // Phase 2 A.1/A.2: input modality and the uploaded media file (for
+  // audio/video campaigns). Phase 5 reads these to render the stimulus
+  // player + timeline above the scorecard.
+  media_type?: 'text' | 'audio' | 'video';
+  media_path?: string | null;
 }
 
 export interface CampaignListResponse {

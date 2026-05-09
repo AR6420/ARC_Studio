@@ -89,3 +89,13 @@ tribe_test_payload.json
 
 # Test media artifacts
 test_video.*
+
+# Demo assets — large media files (download separately, see demo_assets/README.md)
+demo_assets/*.mp4
+demo_assets/*.mov
+demo_assets/*.webm
+
+# Vite-served large demo media (mirrors demo_assets/)
+ui/public/demo_assets/*.mp4
+ui/public/demo_assets/*.mov
+ui/public/demo_assets/*.webm

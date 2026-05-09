@@ -23,6 +23,7 @@ import { ExportButtons } from '@/components/results/export-buttons';
 import { ScoreBar } from '@/components/results/score-bar';
 import { VariantRanking } from '@/components/results/variant-ranking';
 import { IterationChart } from '@/components/results/iteration-chart';
+import { VideoStimulusPlayer } from '@/components/results/video-stimulus-player';
 import { MetricsPanel } from '@/components/simulation/metrics-panel';
 import { SentimentTimeline } from '@/components/simulation/sentiment-timeline';
 import { AgentGrid } from '@/components/simulation/agent-grid';
@@ -307,9 +308,30 @@ function CampaignTabContent({
     );
   }
 
+  // Video stimulus playback: real upload when present, otherwise the
+  // bundled Apple-1984 mock so the demo still has something to show on
+  // text-only campaigns running on the local laptop.
+  const videoSrc =
+    campaign.media_type === 'video' && campaign.media_path
+      ? // For now we surface the mock-staged copy under ui/public/demo_assets/.
+        // A backend GET /api/campaigns/{id}/media route is the cloud-session
+        // upgrade path for arbitrary uploads.
+        '/demo_assets/apple_1984.mp4'
+      : null;
+  const showStimulus =
+    campaign.media_type === 'video' || (bestVariant?.tribe_scores?.timeline ?? null) !== null;
+
   return (
     <div className="flex flex-col gap-8">
       <DataCompletenessLine completeness={completeness} pseudo={hasPseudo} />
+
+      {showStimulus && (
+        <VideoStimulusPlayer
+          videoSrc={videoSrc}
+          tribeScores={bestVariant?.tribe_scores ?? null}
+          forceMock={!videoSrc}
+        />
+      )}
 
       {/* Composite profile — 7 horizontal bars */}
       <section className="flex flex-col gap-4">
