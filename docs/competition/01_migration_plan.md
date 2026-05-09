@@ -274,9 +274,11 @@ green.
 `test_tribe_timeout.py` — `CHUNK_SIZE_WORDS` import drift, unrelated
 to this session). UI `npm run build` green.
 
-### Phase 5 session 2 — Cloud: 1000-agent demo path + viz wiring (~6 cloud hrs)
+### Phase 5 session 2 — Cloud: rehearsal + viz wiring (~3 cloud hrs)
 
-**Goal**: 1000-agent simulation with live visualization matching MiroFish project-website demo, integrated end-to-end with the orchestrator's stimulus playback view.
+**Runbook**: `docs/competition/07_phase5_session2_runbook.md`.
+
+**Goal**: real demo artifacts (Apple 1984 ad through full pipeline) and validation that the session-1 VideoStimulusPlayer + TimelineChart work against live TRIBE data through an SSH-tunnelled browser. 1000-agent path is honest-deferred until the per-entity persona multiplier (Phase 4 backlog item 4) lands.
 
 **Files touched**:
 - `mirofish/frontend/` — already has Vue UI with polling-based "realtime" endpoints (`profiles/realtime`, `config/realtime`, `run-status`). Confirm it stands up and is reachable from outside the cloud VM.
