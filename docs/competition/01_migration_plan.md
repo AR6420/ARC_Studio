@@ -231,15 +231,59 @@ These were applied directly to the running droplet during diagnosis. Re-apply if
 ⚠ CLAUDE.md ≤20 min target deferred (cloud throughput cap, not code)
 🟢 Pipeline confirmed production-ready end-to-end on ROCm vLLM 0.17.1 + Qwen3.5 dense pair
 
-## Phase 5 — Cloud: 1000-agent demo path + viz wiring (~6 cloud hrs)
+## Phase 5 — Demo path: backlog cleanup + timeline viz + 1000-agent (split)
 
-**Goal**: 1000-agent simulation with live visualization matching MiroFish project-website demo.
+Phase 5 splits into two sessions: **session 1 is local-only** (no cloud
+spend) and clears the Phase 4 backlog plus builds the demo's hero
+visualization. **Session 2 is the cloud rehearsal** (1000 agents + live
+viz + integrated demo).
+
+### Phase 5 session 1 — Local: backlog + timeline viz (0 cloud hrs) — **DONE**
+
+**Goal achieved**: 2/5 backlog items closed, video stimulus plumbing
+through CLI + schema, full TRIBE → storage → UI passthrough for the
+per-window timeline, React TimelineChart + VideoStimulusPlayer wired
+into the campaign-detail view, mock data in place so the demo runs
+even on a laptop with no MI300X. 306 orchestrator tests + UI build
+green.
+
+**Commits** (on `competition/amd-hackathon`):
+- `phase5/A1` — backport `SIM_PREPARE_TIMEOUT=600` (mirofish_client)
+- `phase5/A2` — strip naked-reasoning preambles in OpenAICompatClient
+  (`Thinking Process:` / `Reasoning:` / `Let me think` / `Let me analyze`
+  with `\n\n**Heading**` transition); 7 unit tests
+- `phase5/B1` — TribeScores.timeline + tr_seconds fields, TS UI types,
+  6-test passthrough suite (extractor → schema → JSON → SQLite roundtrip)
+- `phase5/B2` — CLI `--media-type {text,audio,video}` and `--media-path`;
+  schema validator extended to require media_path for video too;
+  `validate_default=True` so the check fires on omitted field; 6 tests
+- `phase5/B3-B5` — `lib/timeline-channels.ts` (4 derived channels with
+  documented blend formulas + min-max normalisation), `TimelineChart`
+  (Recharts LineChart matching IterationChart styling, ReferenceLine
+  playhead, mm:ss axis), `VideoStimulusPlayer` (HTML5 video + chart,
+  timeupdate-bound, mock fallback + manual toggle),
+  `mock_timeline_apple1984.json` (60s/12-window narrative arc),
+  CampaignTabContent integration above the composite-profile section
+
+**Outstanding from Phase 4 backlog** (deferred to session 2 / post-Phase-5):
+- Item 3 — GPU clock investigation (cloud-only, needs MI300X provision)
+- Item 4 — Per-entity persona multiplier (mirofish submodule edit)
+- Item 5 — N=40 / 4-iter rerun (cloud)
+
+**Tests**: full suite (306 passed, 1 pre-existing collection error in
+`test_tribe_timeout.py` — `CHUNK_SIZE_WORDS` import drift, unrelated
+to this session). UI `npm run build` green.
+
+### Phase 5 session 2 — Cloud: 1000-agent demo path + viz wiring (~6 cloud hrs)
+
+**Goal**: 1000-agent simulation with live visualization matching MiroFish project-website demo, integrated end-to-end with the orchestrator's stimulus playback view.
 
 **Files touched**:
 - `mirofish/frontend/` — already has Vue UI with polling-based "realtime" endpoints (`profiles/realtime`, `config/realtime`, `run-status`). Confirm it stands up and is reachable from outside the cloud VM.
 - `docker-compose.rocm.yml` — expose MiroFish frontend port externally
-- Possibly `ui/` (orchestrator React UI) — embed MiroFish UI via iframe, or accept that the demo opens MiroFish's own UI directly
+- `ui/` — embed MiroFish UI via iframe in the Simulation tab; add a real GET `/api/campaigns/{id}/media` route so the VideoStimulusPlayer can play uploaded mp4s (currently surfaced from `ui/public/demo_assets/`)
 - Throughput tuning: MiroFish agent batching (`mirofish/backend/scripts/run_parallel_simulation.py`) to keep Qwen 7B vLLM saturated without OOM
+- Per-entity persona multiplier (Phase 4 backlog item 4)
 
 **Validation**:
 - 1000 agents run to completion
