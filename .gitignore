@@ -99,3 +99,7 @@ demo_assets/*.webm
 ui/public/demo_assets/*.mp4
 ui/public/demo_assets/*.mov
 ui/public/demo_assets/*.webm
+
+.orch.err
+.ui.err
+

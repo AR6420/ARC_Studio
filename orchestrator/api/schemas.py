@@ -337,6 +337,25 @@ class DemographicsResponse(BaseModel):
     supports_custom: bool = True
 
 
+# -- Runtime config exposed to the UI (Phase 5 session 5) --
+
+
+class ModelTier(BaseModel):
+    """One LLM tier (agent or orchestrator). label is user-facing."""
+
+    label: str
+    full_id: str
+    provider: str  # "anthropic" | "vllm"
+
+
+class ConfigResponse(BaseModel):
+    """Runtime LLM config for UI labels (pipeline subtitles etc.)."""
+
+    llm_provider: str
+    agent_model: ModelTier
+    orchestrator_model: ModelTier
+
+
 # -- System availability (used by engine for graceful degradation, D-05) --
 
 

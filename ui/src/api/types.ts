@@ -207,6 +207,20 @@ export interface HealthResponse {
   database: ServiceHealth;
 }
 
+// -- Runtime config (Phase 5 session 5) --
+
+export interface ModelTier {
+  label: string;
+  full_id: string;
+  provider: 'anthropic' | 'vllm' | string;
+}
+
+export interface ConfigResponse {
+  llm_provider: string;
+  agent_model: ModelTier;
+  orchestrator_model: ModelTier;
+}
+
 // -- Demographics response --
 
 export interface DemographicInfo {

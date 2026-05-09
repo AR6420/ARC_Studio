@@ -17,6 +17,8 @@ from orchestrator.api.schemas import (
     ServiceHealth,
     DemographicsResponse,
     DemographicInfo,
+    ConfigResponse,
+    ModelTier,
 )
 from orchestrator.config import settings
 from orchestrator.prompts.demographic_profiles import list_profiles
@@ -117,6 +119,45 @@ async def health_check(request: Request):
             latency_ms=round(db_latency, 1) if db_ok else None,
         ),
         neo4j=neo4j_health,
+    )
+
+
+@router.get("/config", response_model=ConfigResponse)
+async def get_config() -> ConfigResponse:
+    """Expose runtime config the UI needs.
+
+    Phase 5 session 5: pipeline-stage labels must reflect the actual model
+    family running. When LLM_PROVIDER=anthropic we emit the Claude tier
+    names so dev/test output is truthful; on the AMD hackathon stack we
+    emit the configured Qwen model ids.
+    """
+    provider = settings.llm_provider.lower()
+    if provider == "vllm":
+        agent = ModelTier(
+            label=settings.vllm_agent_model.split("/")[-1],
+            full_id=settings.vllm_agent_model,
+            provider="vllm",
+        )
+        orchestrator_tier = ModelTier(
+            label=settings.vllm_orchestrator_model.split("/")[-1],
+            full_id=settings.vllm_orchestrator_model,
+            provider="vllm",
+        )
+    else:
+        agent = ModelTier(
+            label="Haiku draft",
+            full_id=settings.claude_haiku_model,
+            provider="anthropic",
+        )
+        orchestrator_tier = ModelTier(
+            label="Opus",
+            full_id=settings.claude_opus_model,
+            provider="anthropic",
+        )
+    return ConfigResponse(
+        llm_provider=provider,
+        agent_model=agent,
+        orchestrator_model=orchestrator_tier,
     )
 
 

@@ -20,17 +20,29 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useConfig } from '@/hooks/use-config';
 import type { ProgressEvent } from '@/api/types';
 
 export type StageName = 'variants' | 'tribe' | 'mirofish' | 'composite' | 'analysis';
 
-const STAGES: { key: StageName; label: string; sub: string }[] = [
-  { key: 'variants',  label: 'Variants',  sub: 'haiku draft' },
-  { key: 'tribe',     label: 'Neural',    sub: 'tribe v2'   },
-  { key: 'mirofish',  label: 'Social',    sub: 'mirofish'   },
-  { key: 'composite', label: 'Composite', sub: '7 dims'     },
-  { key: 'analysis',  label: 'Analysis',  sub: 'opus'       },
-];
+interface StageDef {
+  key: StageName;
+  label: string;
+  sub: string;
+}
+
+// Subtitles for variants/analysis are overridden by /api/config so the
+// label reflects the actual model tier in use (Qwen on MI300X, Haiku/Opus
+// on Anthropic dev). Other stages stay static.
+function buildStages(agentLabel: string, orchestratorLabel: string): StageDef[] {
+  return [
+    { key: 'variants',  label: 'Variants',  sub: agentLabel.toLowerCase()         },
+    { key: 'tribe',     label: 'Neural',    sub: 'tribe v2'                       },
+    { key: 'mirofish',  label: 'Social',    sub: 'mirofish'                       },
+    { key: 'composite', label: 'Composite', sub: '7 dims'                         },
+    { key: 'analysis',  label: 'Analysis',  sub: orchestratorLabel.toLowerCase()  },
+  ];
+}
 
 type StageState = 'pending' | 'active' | 'complete' | 'error';
 
@@ -87,6 +99,15 @@ interface StageIndicatorProps {
 
 export function StageIndicator({ events, paused = false, className }: StageIndicatorProps) {
   const { byStage, activeStage } = useMemo(() => deriveStageStatuses(events), [events]);
+  const { data: config } = useConfig();
+  const STAGES = useMemo(
+    () =>
+      buildStages(
+        config?.agent_model?.label ?? 'haiku draft',
+        config?.orchestrator_model?.label ?? 'opus',
+      ),
+    [config?.agent_model?.label, config?.orchestrator_model?.label],
+  );
 
   // Live elapsed for the active stage. ticker only mounts a setInterval
   // when there's actually an active stage so an idle StageIndicator
