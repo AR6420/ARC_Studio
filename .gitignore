@@ -103,3 +103,10 @@ ui/public/demo_assets/*.webm
 .orch.err
 .ui.err
 
+
+s5_*.png
+.playwright-mcp/
+
+.vite.err
+.vite.log
+.orch.log

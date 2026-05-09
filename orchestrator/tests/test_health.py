@@ -192,8 +192,10 @@ import os
 
 
 @pytest.mark.asyncio
-async def test_config_endpoint_returns_anthropic_labels(monkeypatch):
-    """Default LLM_PROVIDER=anthropic emits Haiku/Opus labels."""
+async def test_config_endpoint_emits_qwen_labels_under_anthropic(monkeypatch):
+    """Even with LLM_PROVIDER=anthropic the labels surface the Qwen
+    hackathon target stack — pipeline labels are demo identity, not a
+    diagnostic of what's actually running locally."""
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")
     from orchestrator import config as cfg_mod
     importlib.reload(cfg_mod)
@@ -208,9 +210,8 @@ async def test_config_endpoint_returns_anthropic_labels(monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["llm_provider"] == "anthropic"
-    assert body["agent_model"]["label"] == "Haiku draft"
-    assert body["orchestrator_model"]["label"] == "Opus"
-    assert body["agent_model"]["provider"] == "anthropic"
+    assert body["agent_model"]["label"] == "Qwen3.5-9B"
+    assert body["orchestrator_model"]["label"] == "Qwen3.5-27B"
 
 
 @pytest.mark.asyncio
