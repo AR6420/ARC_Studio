@@ -43,9 +43,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Run a A.R.C Studio campaign from the command line",
         prog="python -m orchestrator.cli",
     )
-    content_group = parser.add_mutually_exclusive_group(required=True)
+    # Seed content is required for media_type=text; for audio/video it can
+    # be omitted (empty string) — the pipeline derives the working content
+    # from the uploaded media via TRIBE's transcription path.
+    content_group = parser.add_mutually_exclusive_group(required=False)
     content_group.add_argument("--seed-content", type=str, help="Seed content text (inline)")
     content_group.add_argument("--seed-file", type=str, help="Path to a text file with seed content")
+    parser.add_argument(
+        "--media-type",
+        type=str,
+        default="text",
+        choices=("text", "audio", "video"),
+        help="Input modality (default: text). 'audio'/'video' require --media-path.",
+    )
+    parser.add_argument(
+        "--media-path",
+        type=str,
+        default=None,
+        help="Path to an audio/video stimulus file (required when --media-type is audio or video).",
+    )
 
     parser.add_argument("--prediction-question", required=True, type=str,
                        help="What you want to know about audience response")
@@ -102,11 +118,29 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             report_generator=report_generator,
         )
 
-        # Load seed content
+        # Load seed content. For media_type=audio|video the seed text is
+        # optional (the pipeline pulls working content from the upload via
+        # TRIBE transcription), so an empty string is acceptable.
+        media_type = getattr(args, "media_type", "text")
+        media_path = getattr(args, "media_path", None)
+        if media_type in ("audio", "video"):
+            if not media_path:
+                raise ValueError(
+                    f"--media-path is required when --media-type={media_type}"
+                )
+            if not Path(media_path).exists():
+                raise FileNotFoundError(f"media-path not found: {media_path}")
+            media_path = str(Path(media_path).resolve())
         if args.seed_file:
             seed_content = Path(args.seed_file).read_text(encoding="utf-8")
-        else:
+        elif args.seed_content:
             seed_content = args.seed_content
+        elif media_type in ("audio", "video"):
+            seed_content = ""
+        else:
+            raise ValueError(
+                "Either --seed-content or --seed-file is required for --media-type=text"
+            )
 
         # Parse thresholds if provided
         thresholds = None
@@ -126,6 +160,8 @@ async def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             thresholds=thresholds,
             constraints=args.constraints,
             auto_start=False,
+            media_type=media_type,
+            media_path=media_path,
         )
         campaign = await store.create_campaign(request)
         print(f"\n{'='*60}")

@@ -32,9 +32,10 @@ class CampaignCreateRequest(BaseModel):
     )
     media_path: str | None = Field(
         default=None,
+        validate_default=True,  # so the audio/video required-check fires on omitted field
         description=(
-            "Absolute path on the orchestrator host to an uploaded audio file. "
-            "Required when media_type='audio'. Obtained from POST /api/campaigns/upload."
+            "Absolute path on the orchestrator host to an uploaded audio or video file. "
+            "Required when media_type='audio' or 'video'. Obtained from POST /api/campaigns/upload."
         ),
     )
 
@@ -66,13 +67,15 @@ class CampaignCreateRequest(BaseModel):
 
     @field_validator("media_path")
     @classmethod
-    def _media_path_required_for_audio(
+    def _media_path_required_for_media(
         cls, v: str | None, info: ValidationInfo
     ) -> str | None:
-        """media_path is required when media_type='audio'."""
+        """media_path is required when media_type is 'audio' or 'video'."""
         media_type = info.data.get("media_type", "text")
-        if media_type == "audio" and not v:
-            raise ValueError("media_path is required when media_type='audio'")
+        if media_type in ("audio", "video") and not v:
+            raise ValueError(
+                f"media_path is required when media_type='{media_type}'"
+            )
         return v
 
 

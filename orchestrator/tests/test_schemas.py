@@ -232,3 +232,38 @@ class TestCampaignResponse:
         json_str = campaign.model_dump_json()
         reconstructed = CampaignResponse.model_validate_json(json_str)
         assert reconstructed.iterations[0].tribe_scores.attention_capture == 0.85
+
+
+class TestVideoMediaRequest:
+    """Phase 5 B2: media_path is required for both audio and video."""
+
+    def test_video_request_requires_media_path(self):
+        with pytest.raises(ValidationError, match="media_path is required"):
+            CampaignCreateRequest(
+                media_type="video",
+                seed_content="",
+                prediction_question="How will this resonate?",
+                demographic="tech_professionals",
+            )
+
+    def test_video_request_accepts_empty_seed_with_media_path(self):
+        req = CampaignCreateRequest(
+            media_type="video",
+            media_path="/tmp/clip.mp4",
+            seed_content="",
+            prediction_question="How will this resonate?",
+            demographic="tech_professionals",
+        )
+        assert req.media_type == "video"
+        assert req.media_path == "/tmp/clip.mp4"
+        assert req.seed_content == ""
+
+    def test_audio_request_still_requires_media_path(self):
+        """Regression guard for the existing audio path."""
+        with pytest.raises(ValidationError, match="media_path is required"):
+            CampaignCreateRequest(
+                media_type="audio",
+                seed_content="",
+                prediction_question="How will this resonate?",
+                demographic="tech_professionals",
+            )

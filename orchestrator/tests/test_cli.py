@@ -363,3 +363,39 @@ class TestPrintSummary:
         captured = capsys.readouterr()
         assert "CAMPAIGN RESULTS" in captured.out
         assert "WARNING: TRIBE unavailable" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Video stimulus plumbing (Phase 5 B2)
+# ---------------------------------------------------------------------------
+
+class TestMediaArgs:
+    """CLI parsing for --media-type and --media-path."""
+
+    def test_default_media_type_is_text(self):
+        args = parse_args([
+            "--seed-content", "A" * 150,
+            "--prediction-question", "How will users react?",
+            "--demographic", "tech_professionals",
+        ])
+        assert args.media_type == "text"
+        assert args.media_path is None
+
+    def test_video_media_args_parse(self):
+        args = parse_args([
+            "--media-type", "video",
+            "--media-path", "/tmp/clip.mp4",
+            "--prediction-question", "How will users react?",
+            "--demographic", "tech_professionals",
+        ])
+        assert args.media_type == "video"
+        assert args.media_path == "/tmp/clip.mp4"
+        assert args.seed_content is None
+
+    def test_invalid_media_type_rejected(self):
+        with pytest.raises(SystemExit):
+            parse_args([
+                "--media-type", "bogus",
+                "--prediction-question", "Q?",
+                "--demographic", "tech_professionals",
+            ])
