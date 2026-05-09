@@ -46,7 +46,7 @@ export interface SimulationGraphPanelProps {
 export function SimulationGraphPanel({
   simulationId,
   complete = false,
-  height = 600,
+  height = 540,
   mirofishBaseUrl,
   className,
 }: SimulationGraphPanelProps) {
@@ -71,7 +71,7 @@ export function SimulationGraphPanel({
     return (
       <div
         className={cn(
-          'flex flex-col gap-2 border border-border bg-card/40 p-3',
+          'flex flex-col gap-1.5 border border-border bg-card/40 px-3 py-2',
           className,
         )}
       >
@@ -91,7 +91,7 @@ export function SimulationGraphPanel({
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 border border-border bg-card/40 p-3',
+        'flex flex-col gap-1.5 border border-border bg-card/40 px-3 py-2',
         className,
       )}
     >
@@ -145,9 +145,9 @@ function PanelHeader({
   sourceUrl: string | null;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-border/50 pb-2">
+    <div className="flex items-baseline justify-between gap-3 pb-1">
       <div className="flex items-baseline gap-3">
-        <h3 className="text-[0.95rem] font-medium tracking-tight text-foreground">
+        <h3 className="text-[0.85rem] font-medium tracking-tight text-foreground">
           Live audience simulation
         </h3>
         <span

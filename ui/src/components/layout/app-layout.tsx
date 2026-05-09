@@ -21,7 +21,7 @@ export function AppLayout({ title }: AppLayoutProps) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header title={title} />
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1240px] px-8 py-8">
+          <div className="mx-auto w-full max-w-[1240px] px-7 py-5">
             <Outlet />
           </div>
         </main>

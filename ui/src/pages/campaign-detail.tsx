@@ -551,10 +551,10 @@ function ReportTabContent({
 
 function CampaignHeader({ campaign }: { campaign: CampaignResponse }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-border pb-5">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5 border-b border-border pb-3">
+      <div className="flex flex-col gap-0.5">
         <div className="flex items-baseline gap-3">
-          <span className="font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground uppercase">
+          <span className="font-mono text-[0.6rem] tracking-[0.12em] text-muted-foreground uppercase">
             campaign · {campaign.id.slice(0, 8)}
           </span>
           <StatusBadge status={campaign.status} />
@@ -562,11 +562,11 @@ function CampaignHeader({ campaign }: { campaign: CampaignResponse }) {
             <RunningElapsed startedAt={campaign.started_at} />
           )}
         </div>
-        <h1 className="text-[1.15rem] font-semibold leading-tight tracking-[-0.01em] text-foreground">
+        <h1 className="text-[1.05rem] font-semibold leading-tight tracking-[-0.01em] text-foreground">
           {campaign.prediction_question}
         </h1>
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[0.7rem] tabular-nums text-foreground/85">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 font-mono text-[0.66rem] tabular-nums text-foreground/85">
         <span className="flex items-baseline gap-1.5">
           <span className="tracking-[0.1em] text-muted-foreground uppercase">
             demographic
@@ -700,7 +700,7 @@ export default function CampaignDetail() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <CampaignHeader campaign={campaign} />
 
       {campaign.status === 'running' && <ProgressStream campaignId={id!} />}

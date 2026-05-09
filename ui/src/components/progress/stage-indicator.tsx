@@ -123,16 +123,16 @@ export function StageIndicator({ events, paused = false, className }: StageIndic
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 border border-border bg-card/40 p-4',
+        'flex flex-col gap-1.5 border border-border bg-card/40 px-3 py-2',
         className,
       )}
     >
-      <div className="flex items-baseline justify-between gap-3 border-b border-border/50 pb-2">
-        <span className="font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground uppercase">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-mono text-[0.6rem] tracking-[0.12em] text-muted-foreground uppercase">
           Pipeline
         </span>
         {activeStage && !paused && (
-          <span className="font-mono text-[0.62rem] tabular-nums text-muted-foreground">
+          <span className="font-mono text-[0.6rem] tabular-nums text-muted-foreground">
             {byStage[activeStage].detail ?? STAGES.find(s => s.key === activeStage)?.sub}
             {activeStartedAt && (
               <span className="ml-2 text-foreground/70">
@@ -150,8 +150,8 @@ export function StageIndicator({ events, paused = false, className }: StageIndic
           const isComplete = status.state === 'complete';
           const isError = status.state === 'error';
           return (
-            <li key={stage.key} className="flex flex-col gap-1.5">
-              <div className="relative h-1 overflow-hidden bg-border/50">
+            <li key={stage.key} className="flex flex-col gap-1">
+              <div className="relative h-[3px] overflow-hidden bg-border/50">
                 <div
                   className={cn(
                     'absolute inset-y-0 left-0 transition-all duration-500',
@@ -162,30 +162,32 @@ export function StageIndicator({ events, paused = false, className }: StageIndic
                   )}
                 />
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className={cn(
-                    'font-mono text-[0.6rem] tabular-nums',
-                    isActive ? 'text-primary' : 'text-muted-foreground/55',
-                  )}
-                >
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span
-                  className={cn(
-                    'text-[0.78rem] font-medium tracking-tight',
-                    isComplete && 'text-foreground/85',
-                    isActive && 'text-foreground',
-                    isError && 'text-destructive',
-                    status.state === 'pending' && 'text-muted-foreground/60',
-                  )}
-                >
-                  {stage.label}
+              <div className="flex items-baseline justify-between gap-1.5">
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                  <span
+                    className={cn(
+                      'font-mono text-[0.58rem] tabular-nums',
+                      isActive ? 'text-primary' : 'text-muted-foreground/55',
+                    )}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[0.74rem] font-medium tracking-tight truncate',
+                      isComplete && 'text-foreground/85',
+                      isActive && 'text-foreground',
+                      isError && 'text-destructive',
+                      status.state === 'pending' && 'text-muted-foreground/60',
+                    )}
+                  >
+                    {stage.label}
+                  </span>
+                </div>
+                <span className="font-mono text-[0.55rem] tracking-[0.08em] text-muted-foreground/55 uppercase truncate">
+                  {stage.sub}
                 </span>
               </div>
-              <span className="font-mono text-[0.6rem] tracking-[0.1em] text-muted-foreground/55 uppercase">
-                {stage.sub}
-              </span>
             </li>
           );
         })}

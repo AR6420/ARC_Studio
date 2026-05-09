@@ -355,7 +355,7 @@ export function ProgressStream({ campaignId }: ProgressStreamProps) {
   }, [events]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <StageIndicator events={events} paused={isComplete || isError} />
       <ReportLayersProgress events={events} />
       {(mirofishStageStarted || latestSimulationId) && (
