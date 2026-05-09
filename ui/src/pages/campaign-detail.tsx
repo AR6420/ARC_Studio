@@ -7,7 +7,7 @@
  * ranking, and (when possible) the scorecard variants.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -15,6 +15,7 @@ import { ErrorState } from '@/components/common/error-state';
 import { cn } from '@/lib/utils';
 import { useCampaign } from '@/hooks/use-campaigns';
 import { useReport } from '@/hooks/use-report';
+import { useSidebar } from '@/hooks/use-sidebar';
 import { VerdictDisplay } from '@/components/results/verdict-display';
 import { ScorecardTable } from '@/components/results/scorecard-table';
 import { DeepAnalysis } from '@/components/results/deep-analysis';
@@ -668,6 +669,22 @@ export default function CampaignDetail() {
 
   const handleInterviewAgent = (agentId: string, agentName: string) =>
     setInterviewAgent({ id: agentId, name: agentName });
+
+  // Phase 5 session 5 — auto-collapse the History sidebar when a campaign
+  // transitions configuring/pending → running so the live progress stream
+  // gets the full width. Tracks the previous status and only triggers on
+  // the edge, so the user can still re-expand mid-run if they want to
+  // jump to another campaign without us slamming it shut again.
+  const { setCollapsed } = useSidebar();
+  const prevStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    const curr = campaign?.status ?? null;
+    if (prev !== 'running' && curr === 'running') {
+      setCollapsed(true);
+    }
+    prevStatusRef.current = curr;
+  }, [campaign?.status, setCollapsed]);
 
   if (isLoading) return <LoadingState />;
 
