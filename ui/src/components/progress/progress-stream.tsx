@@ -17,6 +17,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useProgress } from '@/hooks/use-progress';
 import type { ProgressEvent } from '@/api/types';
+import { StageIndicator } from './stage-indicator';
+import { ReportLayersProgress } from './report-layers-progress';
 
 // ─── Formatting helpers ────────────────────────────────────────────────
 
@@ -325,15 +327,19 @@ export function ProgressStream({ campaignId }: ProgressStreamProps) {
   }, [isError, isComplete, isConnected, currentStep]);
 
   return (
-    <TerminalLog
-      events={events}
-      isComplete={isComplete}
-      isError={isError}
-      statusText={statusText}
-      statusClass={statusClass}
-      iteration={iteration}
-      maxIterations={maxIterations}
-      eta={eta}
-    />
+    <div className="flex flex-col gap-3">
+      <StageIndicator events={events} paused={isComplete || isError} />
+      <ReportLayersProgress events={events} />
+      <TerminalLog
+        events={events}
+        isComplete={isComplete}
+        isError={isError}
+        statusText={statusText}
+        statusClass={statusClass}
+        iteration={iteration}
+        maxIterations={maxIterations}
+        eta={eta}
+      />
+    </div>
   );
 }

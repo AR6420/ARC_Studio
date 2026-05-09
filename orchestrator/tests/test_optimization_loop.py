@@ -459,7 +459,7 @@ async def test_run_campaign_passes_previous_results():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         call_args_list.append({
             "iteration_number": iteration_number,
             "previous_iteration_results": previous_iteration_results,
@@ -498,7 +498,7 @@ async def test_run_campaign_stops_on_threshold_met():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         nonlocal call_count
         call_count += 1
         if iteration_number == 1:
@@ -529,7 +529,7 @@ async def test_run_campaign_stops_on_convergence():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         score = iteration_scores[iteration_number - 1]
         return _make_iteration_result(iteration_number, attention_score=score)
 
@@ -554,7 +554,7 @@ async def test_run_campaign_respects_max_iterations():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         score = iteration_scores[iteration_number - 1]
         return _make_iteration_result(iteration_number, attention_score=score)
 
@@ -579,7 +579,7 @@ async def test_run_campaign_emits_progress_events():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         score = iteration_scores[iteration_number - 1]
         return _make_iteration_result(iteration_number, attention_score=score)
 
@@ -614,7 +614,7 @@ async def test_run_campaign_manage_status_false_in_single_iteration():
     async def mock_run_single(campaign_id, iteration_number=1,
                                previous_iteration_results=None,
                                previous_analysis=None,
-                               manage_status=True):
+                               manage_status=True, progress_callback=None, max_iterations=1):
         manage_status_values.append(manage_status)
         return _make_iteration_result(iteration_number)
 

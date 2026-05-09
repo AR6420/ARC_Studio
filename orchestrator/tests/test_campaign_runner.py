@@ -287,3 +287,71 @@ async def test_run_pipeline_failure_sets_failed_status():
     status_calls = mocks["store"].update_campaign_status.call_args_list
     assert status_calls[0] == call("campaign-001", "running")
     assert status_calls[1] == call("campaign-001", "failed", error="Haiku API error")
+
+
+@pytest.mark.asyncio
+async def test_run_emits_step_start_and_complete_for_each_stage():
+    """Phase 5 session 3 — every pipeline stage emits step_start + step_complete."""
+    runner, _ = _build_runner(tribe_available=True, mirofish_available=True)
+    events: list[dict] = []
+
+    async def collect(e: dict) -> None:
+        events.append(e)
+
+    await runner.run_single_iteration(
+        campaign_id="campaign-001",
+        progress_callback=collect,
+        max_iterations=1,
+    )
+
+    expected = ["variants", "tribe", "mirofish", "composite", "analysis"]
+    starts = [e["step"] for e in events if e["event"] == "step_start"]
+    completes = [e["step"] for e in events if e["event"] == "step_complete"]
+    assert starts == expected, f"step_start order wrong: {starts}"
+    assert completes == expected, f"step_complete order wrong: {completes}"
+    # Every event includes stage indexing for the UI.
+    for e in (ev for ev in events if ev["event"] in ("step_start", "step_complete")):
+        assert e["step_index"] in (1, 2, 3, 4, 5)
+        assert e["total_steps"] == 5
+
+
+@pytest.mark.asyncio
+async def test_mirofish_progress_event_per_variant():
+    """mirofish_progress events fire with variant_index + variants_total."""
+    runner, _ = _build_runner(tribe_available=True, mirofish_available=True)
+    events: list[dict] = []
+
+    async def collect(e: dict) -> None:
+        events.append(e)
+
+    # Make the mirofish_runner mock actually invoke the progress_callback
+    # so the test exercises the wiring rather than just the emitter.
+    async def fake_simulate(
+        variants, prediction_question, campaign_id,
+        agent_count=40, max_rounds=5, progress_callback=None,
+    ):
+        results = []
+        for i, v in enumerate(variants):
+            if progress_callback:
+                await progress_callback(i, v["id"])
+            results.append({
+                "organic_shares": 1, "sentiment_trajectory": [0.5],
+                "counter_narrative_count": 0, "peak_virality_cycle": 0,
+                "sentiment_drift": 0.0, "coalition_formation": 1,
+                "influence_concentration": 0.5, "platform_divergence": 0.5,
+            })
+        return results
+
+    runner._mirofish_runner.simulate_variants = fake_simulate  # type: ignore[assignment]
+
+    await runner.run_single_iteration(
+        campaign_id="campaign-001",
+        progress_callback=collect,
+        max_iterations=1,
+    )
+
+    progress = [e for e in events if e["event"] == "mirofish_progress"]
+    assert len(progress) == 3, f"expected 3 mirofish_progress events, got {len(progress)}"
+    assert [p["variant_index"] for p in progress] == [1, 2, 3]
+    assert all(p["variants_total"] == 3 for p in progress)
+    assert all(p["agent_count"] == 40 for p in progress)

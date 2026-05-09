@@ -14,7 +14,7 @@ Returns None per variant on failure without crashing the overall campaign (D-05)
 
 import logging
 import math
-from typing import Any
+from typing import Any, Awaitable, Callable  # noqa: F401 — Callable used in annotation
 
 from orchestrator.clients.mirofish_client import MirofishClient
 
@@ -38,6 +38,7 @@ class MirofishRunner:
         campaign_id: str,
         agent_count: int = 40,
         max_rounds: int = 30,
+        progress_callback: "Callable[[int, str], Awaitable[None]] | None" = None,
     ) -> list[dict[str, Any] | None]:
         """
         Run MiroFish simulation for each variant and compute 8 metrics.
@@ -69,6 +70,11 @@ class MirofishRunner:
                 continue
 
             logger.info("Running MiroFish simulation for variant %s (%d/%d)", variant_id, i + 1, len(variants))
+            if progress_callback:
+                try:
+                    await progress_callback(i, str(variant_id))
+                except Exception:  # noqa: BLE001 — progress is best-effort
+                    pass
 
             # Run the full simulation workflow
             raw_results = await self._client.run_simulation(

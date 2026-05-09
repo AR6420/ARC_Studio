@@ -132,7 +132,7 @@ export function CampaignForm() {
       className="mx-auto flex max-w-[780px] flex-col gap-10 pb-20"
     >
       {/* ── Content ─────────────────────────────────────────────── */}
-      <FieldGroup label="Content" hint="The raw text the pipeline will analyse and iterate on">
+      <FieldGroup step={1} label="Content" hint="The raw text the pipeline will analyse and iterate on">
         <div className="space-y-2.5">
           <div className="relative">
             <Textarea
@@ -188,7 +188,7 @@ export function CampaignForm() {
       </FieldGroup>
 
       {/* ── Audience ────────────────────────────────────────────── */}
-      <FieldGroup label="Audience" hint="Select a preset demographic or define your own profile">
+      <FieldGroup step={2} label="Audience" hint="Select a preset demographic or define your own profile">
         <DemographicSelector
           selected={demographic}
           onSelect={setDemographic}
@@ -198,7 +198,7 @@ export function CampaignForm() {
       </FieldGroup>
 
       {/* ── Configuration ───────────────────────────────────────── */}
-      <FieldGroup label="Configuration" hint="Simulation parameters — more agents and iterations cost more time">
+      <FieldGroup step={3} label="Configuration" hint="Simulation parameters — more agents and iterations cost more time">
         <ConfigPanel
           agentCount={agentCount}
           onAgentCountChange={setAgentCount}
@@ -215,6 +215,7 @@ export function CampaignForm() {
 
       {/* ── Constraints (optional) ──────────────────────────────── */}
       <FieldGroup
+        step={4}
         label="Constraints"
         hint="Optional rules the optimiser must respect during variant generation"
       >
@@ -260,10 +261,14 @@ export function CampaignForm() {
 // ── Sub-components ────────────────────────────────────────────────────────
 
 function FieldGroup({
+  step,
   label,
   hint,
   children,
 }: {
+  /** Phase 5 session 3 — optional ordinal so the form reads as a
+   * structured 4-step setup rather than four equal headers. */
+  step?: number;
   label: string;
   hint?: string;
   children: React.ReactNode;
@@ -271,7 +276,12 @@ function FieldGroup({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline gap-3 border-b border-border pb-2">
-        <h2 className="text-[1rem] font-medium tracking-[-0.005em] text-foreground">
+        {step != null && (
+          <span className="font-mono text-[0.7rem] tabular-nums tracking-[0.1em] text-muted-foreground/65">
+            {String(step).padStart(2, '0')}
+          </span>
+        )}
+        <h2 className="text-[1.05rem] font-semibold tracking-[-0.01em] text-foreground">
           {label}
         </h2>
         {hint && (

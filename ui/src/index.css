@@ -244,3 +244,27 @@
         border-left: 1px solid var(--border);
     }
 }
+
+@layer utilities {
+    /* Phase 5 session 3 — active stage shimmer for StageIndicator. */
+    .shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+    .shimmer::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            color-mix(in oklch, var(--background) 65%, transparent) 50%,
+            transparent 100%
+        );
+        animation: shimmer-slide 1.4s linear infinite;
+    }
+    @keyframes shimmer-slide {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+}

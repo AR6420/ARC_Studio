@@ -115,6 +115,8 @@ class CampaignRunner:
         previous_iteration_results: list[dict[str, Any]] | None = None,
         previous_analysis: dict[str, Any] | None = None,
         manage_status: bool = True,
+        progress_callback: "Callable[[dict], Awaitable[None]] | None" = None,
+        max_iterations: int = 1,
     ) -> dict[str, Any]:
         """
         Run a single iteration of the campaign pipeline.
@@ -139,6 +141,30 @@ class CampaignRunner:
         # Update status to running (skip if caller manages status, e.g. run_campaign)
         if manage_status:
             await self._store.update_campaign_status(campaign_id, "running")
+
+        # ── Phase 5 session 3: emit per-stage progress events ───────────────
+        # The UI's StageIndicator reads `step` + `step_index`/`total_steps` to
+        # advance an animated horizontal bar. Stages are deliberately coarse
+        # (5 user-meaningful slots) rather than 1:1 with internal "Step N"
+        # numbering — preflight + transcript-capture + persistence are folded
+        # into adjacent user-facing stages.
+        STAGE_NAMES = ["variants", "tribe", "mirofish", "composite", "analysis"]
+        TOTAL_STAGES = len(STAGE_NAMES)
+
+        async def _emit_step(event: str, step: str, **extra) -> None:
+            if not progress_callback:
+                return
+            payload = {
+                "event": event,
+                "campaign_id": campaign_id,
+                "iteration": iteration_number,
+                "max_iterations": max_iterations,
+                "step": step,
+                "step_index": STAGE_NAMES.index(step) + 1,
+                "total_steps": TOTAL_STAGES,
+            }
+            payload.update(extra)
+            await progress_callback(payload)
 
         try:
             # Step 1: Pre-flight health check
@@ -173,6 +199,7 @@ class CampaignRunner:
 
             # Step 2: Generate variants (now optionally grounded in transcript)
             logger.info("Step 2: Generating %d content variants", 2)
+            await _emit_step("step_start", "variants", variants_total=2)
             variants = await self._variant_gen.generate_variants(
                 campaign_brief=campaign.seed_content,
                 demographic=campaign.demographic,
@@ -184,9 +211,12 @@ class CampaignRunner:
                 media_type=media_type,
             )
 
+            await _emit_step("step_complete", "variants", variants_total=len(variants))
+
             # Step 3: TRIBE scoring (if available). For audio/video, reuse
             # the stimulus score captured in Step 2a (broadcast across
             # variants — same as before). For text, score each variant.
+            await _emit_step("step_start", "tribe", variants_total=len(variants))
             tribe_scores_list: list[dict[str, float] | None] = []
             if availability.tribe_available:
                 if media_type in ("audio", "video"):
@@ -206,22 +236,50 @@ class CampaignRunner:
                 logger.info("Step 3: Skipping TRIBE scoring (unavailable)")
                 tribe_scores_list = [None] * len(variants)
 
+            await _emit_step("step_complete", "tribe", variants_total=len(variants))
+
             # Step 4: MiroFish simulation (if available)
+            await _emit_step(
+                "step_start", "mirofish",
+                variants_total=len(variants),
+                agent_count=campaign.agent_count,
+            )
             mirofish_metrics_list: list[dict[str, Any] | None] = []
             if availability.mirofish_available:
                 logger.info("Step 4: Running MiroFish simulations for %d variants", len(variants))
+
+                async def _mirofish_progress(variant_index: int, variant_id: str) -> None:
+                    if not progress_callback:
+                        return
+                    await progress_callback({
+                        "event": "mirofish_progress",
+                        "campaign_id": campaign_id,
+                        "iteration": iteration_number,
+                        "max_iterations": max_iterations,
+                        "step": "mirofish",
+                        "step_index": STAGE_NAMES.index("mirofish") + 1,
+                        "total_steps": TOTAL_STAGES,
+                        "variant_index": variant_index + 1,
+                        "variants_total": len(variants),
+                        "variant_id": variant_id,
+                        "agent_count": campaign.agent_count,
+                    })
+
                 mirofish_metrics_list = await self._mirofish_runner.simulate_variants(
                     variants=variants,
                     prediction_question=campaign.prediction_question,
                     campaign_id=campaign_id,
                     agent_count=campaign.agent_count,
                     max_rounds=5,
+                    progress_callback=_mirofish_progress,
                 )
             else:
                 logger.info("Step 4: Skipping MiroFish simulation (unavailable)")
                 mirofish_metrics_list = [None] * len(variants)
+            await _emit_step("step_complete", "mirofish", variants_total=len(variants))
 
             # Step 5: Compute composite scores
+            await _emit_step("step_start", "composite", variants_total=len(variants))
             logger.info("Step 5: Computing composite scores")
             cognitive_weights = _get_weights(campaign.demographic)
             composite_scores_list: list[dict[str, float | None]] = []
@@ -268,6 +326,9 @@ class CampaignRunner:
                     return t
                 return {k: v for k, v in t.items() if k in _ANALYSIS_TRIBE_KEYS}
 
+            await _emit_step("step_complete", "composite", variants_total=len(variants))
+
+            await _emit_step("step_start", "analysis", variants_total=len(variants))
             logger.info("Step 6: Running Claude Opus cross-system analysis")
             variants_with_scores = []
             for i, variant in enumerate(variants):
@@ -292,6 +353,8 @@ class CampaignRunner:
                 thresholds=campaign.thresholds,
                 previous_analysis=previous_analysis,
             )
+
+            await _emit_step("step_complete", "analysis", variants_total=len(variants))
 
             # Step 6b: Persist analysis to DB
             await self._store.save_analysis(
@@ -435,6 +498,8 @@ class CampaignRunner:
                     previous_iteration_results=previous_results,
                     previous_analysis=previous_analysis,
                     manage_status=False,
+                    progress_callback=progress_callback,
+                    max_iterations=max_iterations,
                 )
 
                 # Extract best composite scores for threshold/convergence checks
@@ -518,6 +583,7 @@ class CampaignRunner:
                         all_analyses=all_analyses_db,
                         best_scores_history=best_scores_history,
                         stop_reason=stop_reason,
+                        progress_callback=progress_callback,
                     )
                     await self._store.save_report(campaign_id=campaign_id, report=report)
 

@@ -13,7 +13,7 @@ Per research guidance: Layer 3 is raw data assembly, not LLM-generated.
 """
 
 import logging
-from typing import Any
+from typing import Any, Awaitable, Callable  # noqa: F401
 
 from orchestrator.api.schemas import (
     AnalysisRecord,
@@ -93,6 +93,7 @@ class ReportGenerator:
         all_analyses: list[AnalysisRecord],
         best_scores_history: list[dict],
         stop_reason: str,
+        progress_callback: "Callable[[dict], Awaitable[None]] | None" = None,
     ) -> dict[str, Any]:
         """
         Orchestrate all 4 report layers.
@@ -136,10 +137,22 @@ class ReportGenerator:
             all_met, _ = check_thresholds(best_scores, campaign.thresholds)
             thresholds_met = all_met
 
+        async def _emit_layer(event: str, layer: str, layer_index: int) -> None:
+            if not progress_callback:
+                return
+            await progress_callback({
+                "event": event,
+                "campaign_id": campaign.id,
+                "layer": layer,
+                "layer_index": layer_index,
+                "total_layers": 4,
+            })
+
         # Layer 1: Verdict (Opus call -- may fail if LLM unavailable)
         verdict: str | None = None
         try:
             logger.info("Generating Layer 1: Verdict")
+            await _emit_layer("report_layer_start", "verdict", 1)
             verdict = await self._generate_verdict(
                 campaign=campaign,
                 final_variants_with_scores=final_variants_with_scores,
@@ -149,11 +162,13 @@ class ReportGenerator:
             )
         except Exception as e:
             logger.error("Layer 1 (Verdict) failed: %s", e)
+        await _emit_layer("report_layer_complete", "verdict", 1)
 
         # Layer 2: Scorecard (programmatic -- should always succeed)
         scorecard = None
         try:
             logger.info("Generating Layer 2: Scorecard")
+            await _emit_layer("report_layer_start", "scorecard", 2)
             scorecard = self._assemble_scorecard(
                 campaign=campaign,
                 all_iterations=all_iterations,
@@ -165,23 +180,27 @@ class ReportGenerator:
             )
         except Exception as e:
             logger.error("Layer 2 (Scorecard) failed: %s", e)
+        await _emit_layer("report_layer_complete", "scorecard", 2)
 
         # Layer 3: Deep analysis (pure data, no LLM -- should always succeed)
         deep_analysis = None
         try:
             logger.info("Generating Layer 3: Deep Analysis")
+            await _emit_layer("report_layer_start", "deep_analysis", 3)
             deep_analysis = self._assemble_deep_analysis(
                 all_iterations=all_iterations,
                 all_analyses=all_analyses,
             )
         except Exception as e:
             logger.error("Layer 3 (Deep Analysis) failed: %s", e)
+        await _emit_layer("report_layer_complete", "deep_analysis", 3)
 
         # Layer 4: Mass psychology (2 Opus calls -- may fail if LLM unavailable)
         psych_general: str | None = None
         psych_technical: str | None = None
         try:
             logger.info("Generating Layer 4: Mass Psychology")
+            await _emit_layer("report_layer_start", "mass_psychology", 4)
             psych_general, psych_technical = await self._generate_psychology(
                 campaign=campaign,
                 final_variants_with_scores=final_variants_with_scores,
@@ -189,6 +208,7 @@ class ReportGenerator:
             )
         except Exception as e:
             logger.error("Layer 4 (Mass Psychology) failed: %s", e)
+        await _emit_layer("report_layer_complete", "mass_psychology", 4)
 
         layers_generated = sum(1 for x in [verdict, scorecard, deep_analysis, psych_general] if x is not None)
         logger.info("Report assembled: %d/4 layers generated", layers_generated)

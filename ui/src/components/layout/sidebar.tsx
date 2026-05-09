@@ -74,8 +74,13 @@ export function Sidebar() {
             loading…
           </p>
         ) : isError ? (
-          <p className="px-3 py-2 font-mono text-[0.68rem] text-[oklch(0.68_0.20_22)]/90">
-            fetch failed
+          // Phase 5 session 3 — quiet treatment. Avoids developer-string
+          // "fetch failed" in user-facing chrome; the underlying fetch is
+          // idempotent and TanStack Query will retry on next focus / mount,
+          // so a soft em-dash communicates "nothing to show" without
+          // implying user action is required.
+          <p className="px-3 py-2 font-mono text-[0.68rem] text-muted-foreground/55">
+            —
           </p>
         ) : !data || data.campaigns.length === 0 ? (
           <p className="px-3 py-2 font-mono text-[0.68rem] text-muted-foreground">

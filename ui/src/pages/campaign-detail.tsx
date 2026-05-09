@@ -557,6 +557,9 @@ function CampaignHeader({ campaign }: { campaign: CampaignResponse }) {
             campaign · {campaign.id.slice(0, 8)}
           </span>
           <StatusBadge status={campaign.status} />
+          {campaign.status === 'running' && campaign.started_at && (
+            <RunningElapsed startedAt={campaign.started_at} />
+          )}
         </div>
         <h1 className="text-[1.15rem] font-semibold leading-tight tracking-[-0.01em] text-foreground">
           {campaign.prediction_question}
@@ -593,6 +596,32 @@ function CampaignHeader({ campaign }: { campaign: CampaignResponse }) {
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Phase 5 session 3 — live wall-clock since campaign started_at.
+ * Subtle pulse on the leading dot reinforces "system is doing work" in
+ * the header without competing with the StageIndicator below.
+ */
+function RunningElapsed({ startedAt }: { startedAt: string }) {
+  const start = useMemo(() => Date.parse(startedAt), [startedAt]);
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!Number.isFinite(start)) return null;
+  const ms = Math.max(0, now - start);
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  const display = m > 0 ? `${m}m ${String(r).padStart(2, '0')}s` : `${r}s`;
+  return (
+    <span className="flex items-center gap-1.5 font-mono text-[0.62rem] tabular-nums tracking-[0.06em] text-primary uppercase">
+      <span className="inline-block size-1.5 rounded-full bg-primary shimmer" />
+      running · {display}
+    </span>
   );
 }
 

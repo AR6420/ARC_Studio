@@ -274,6 +274,83 @@ green.
 `test_tribe_timeout.py` — `CHUNK_SIZE_WORDS` import drift, unrelated
 to this session). UI `npm run build` green.
 
+### Phase 5 session 3 — Local: real-time progress UI + targeted polish (0 cloud hrs) — **DONE**
+
+**Goal achieved**: closed the most demo-fatal UX gap from session 2 — the
+25–60 minute window where the UI sat static after "Run Campaign". Real-
+time pipeline progress now visible end-to-end, plus targeted polish on
+the empty/error states and form hierarchy. 308 orchestrator tests +
+UI build green.
+
+**Backend (`orchestrator/engine/`)**
+- `campaign_runner.run_single_iteration` now accepts `progress_callback`
+  + `max_iterations`, emits `step_start`/`step_complete` for the 5
+  user-meaningful stages (variants → tribe → mirofish → composite →
+  analysis). Each event carries `step`, `step_index`, `total_steps`
+  so the UI can drive an animated horizontal indicator.
+- `mirofish_runner.simulate_variants` accepts a `progress_callback`
+  and fires `mirofish_progress` per-variant so the longest stage
+  shows a live "variant N / total" counter instead of a frozen bar.
+- `report_generator.generate_report` accepts a `progress_callback`
+  and emits `report_layer_start` / `report_layer_complete` for each
+  of the 4 layers (verdict, scorecard, deep_analysis, mass_psychology).
+- `run_campaign` threads the SSE callback through all of the above.
+
+**UI (`ui/src/`)**
+- `components/progress/stage-indicator.tsx` — new horizontal pipeline
+  indicator. 5 stages, monospace numerals, shimmer animation on the
+  active stage, live elapsed counter. State derives off the existing
+  `useProgress` event stream — no polling, no wall-clock drift.
+- `components/progress/report-layers-progress.tsx` — companion strip
+  that renders only once `report_generating` arrives, then animates
+  through the 4 layers.
+- `components/progress/progress-stream.tsx` now stacks the new
+  indicator + report-layers strip above the existing terminal log.
+- `hooks/use-progress.ts` registers the new event types
+  (`mirofish_progress`, `report_layer_*`, `report_complete`,
+  `report_failed`).
+- `api/types.ts` adds the optional fields the new events carry
+  (`variant_index`, `variants_total`, `agent_count`, `layer`,
+  `layer_index`, `total_layers`, `best_scores`).
+- `pages/campaign-detail.tsx` — header now shows a live
+  `RunningElapsed` counter while `status === 'running'`, with a
+  shimmer pulse so the page never feels frozen between stage events.
+- `index.css` — new `.shimmer` utility (1.4s slide) used by the
+  active stage bar + the running pulse.
+
+**Polish (B-track)**
+- `components/layout/sidebar.tsx` — replaced the developer-string
+  "fetch failed" with a quiet "—" placeholder (TanStack Query
+  retries automatically on next focus/mount).
+- `pages/campaign-list.tsx` — when the orchestrator is unreachable,
+  treat the page as the empty state with a small inline "couldn't
+  reach orchestrator — retry" line instead of a giant centered red
+  panel. Reserved the loud `ErrorState` for legitimate degraded-data
+  scenarios (it is now unimported on this page).
+- `components/campaign/campaign-form.tsx` — added an ordinal step
+  prefix (`01`, `02`, …) to each `FieldGroup` and bumped the section
+  heading weight from `font-medium` to `font-semibold` for a clear
+  4-step hierarchy.
+
+**Tests**
+- 2 new `test_campaign_runner.py` tests:
+  `test_run_emits_step_start_and_complete_for_each_stage` and
+  `test_mirofish_progress_event_per_variant`.
+- `test_optimization_loop.py` mock signatures bumped to accept the
+  new `progress_callback` / `max_iterations` kwargs (no behaviour
+  change).
+- `test_result_analyzer.py` — already updated in session 2 for the
+  4096 max_tokens cap.
+
+**Deferred to a future session**: per-token streaming on the verdict
+layer (A4). The stage indicator + per-layer progress + counters
+already deliver "system is working" feedback without the additional
+plumbing surface area of streaming + UI typing effect.
+
+**Outstanding from earlier**: Phase 4 backlog item 4 (per-entity
+persona multiplier — mirofish 1:1 cap), and the cloud-side
+`/api/campaigns/{id}/media` route for uploaded mp4 playback.
+
 ### Phase 5 session 2 — Cloud: rehearsal + viz wiring (~3 cloud hrs)
 
 **Runbook**: `docs/competition/07_phase5_session2_runbook.md`.

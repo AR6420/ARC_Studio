@@ -12,7 +12,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusDot } from '@/components/common/status-badge';
-import { ErrorState } from '@/components/common/error-state';
 import { useCampaigns } from '@/hooks/use-campaigns';
 import { formatRelative } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -218,20 +217,33 @@ export function CampaignList() {
         </Button>
       </div>
 
-      {/* Content */}
+      {/* Phase 5 session 3: when the orchestrator is unreachable, treat
+          the page as the empty-state (with a quiet "couldn't connect"
+          inline banner). The previous implementation rendered a giant
+          centered red "Something went wrong" panel which made the
+          first-load demo experience feel broken even when no campaigns
+          existed. Reserve the loud ErrorState for cases where we have
+          partial data already on screen and a refetch failed — those
+          are exceptional in this UI. */}
       {isLoading ? (
         <Loading />
-      ) : isError ? (
-        <ErrorState
-          message={
-            error instanceof Error
-              ? error.message
-              : 'Failed to load campaigns. Check that the orchestrator is running.'
-          }
-          onRetry={() => void refetch()}
-        />
       ) : !data || data.campaigns.length === 0 ? (
-        <EmptyCampaigns onNew={() => navigate('/campaigns/new')} />
+        <>
+          {isError && (
+            <p className="-mt-4 font-mono text-[0.68rem] tracking-[0.05em] text-muted-foreground/70">
+              › couldn't reach orchestrator —{' '}
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="underline-offset-2 hover:text-foreground hover:underline"
+              >
+                retry
+              </button>
+              {error instanceof Error ? `  · ${error.message.slice(0, 80)}` : null}
+            </p>
+          )}
+          <EmptyCampaigns onNew={() => navigate('/campaigns/new')} />
+        </>
       ) : (
         <div className="flex flex-col">
           <TableHeader />

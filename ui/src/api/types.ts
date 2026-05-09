@@ -233,6 +233,17 @@ export interface ProgressEvent {
   eta_seconds?: number | null;
   data?: Record<string, unknown> | null;
   timestamp: string;
+  // Phase 5 session 3 — per-stage detail used by StageIndicator + counters.
+  variant_index?: number | null;
+  variants_total?: number | null;
+  variant_id?: string | null;
+  agent_count?: number | null;
+  layer?: string | null;
+  layer_index?: number | null;
+  total_layers?: number | null;
+  best_scores?: Record<string, number | null> | null;
+  iterations_completed?: number | null;
+  stop_reason?: string | null;
 }
 
 export interface EstimateRequest {
