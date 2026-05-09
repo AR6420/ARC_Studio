@@ -1,0 +1,243 @@
+2026-05-09 07:51:19,449 INFO: Database initialized at /root/ARC_Studio/data/nexus_sim.db
+2026-05-09 07:51:19,490 INFO: LLM provider: vllm (OpenAICompatClient -> http://127.0.0.1:18000/v1)
+2026-05-09 07:51:19,518 INFO: Separate agent-tier endpoint: http://127.0.0.1:18001/v1
+2026-05-09 07:51:19,518 INFO: OpenAICompatClient initialised: base_url=http://127.0.0.1:18000/v1, orchestrator=Qwen/Qwen3.5-27B, agent=Qwen/Qwen3.5-9B, agent_base_url=http://127.0.0.1:18001/v1
+2026-05-09 07:51:19,528 INFO: HTTP Request: GET http://127.0.0.1:8001/api/health "HTTP/1.1 200 OK"
+2026-05-09 07:51:19,530 INFO: HTTP Request: GET http://127.0.0.1:5001/health "HTTP/1.1 200 OK"
+2026-05-09 07:51:19,530 INFO: Step 2a: Scoring video stimulus via TRIBE v2 (/root/ARC_Studio/data/uploads/apple_1984_720.mp4) — captures transcript for variant generation grounding
+2026-05-09 07:51:29,323 INFO: HTTP Request: POST http://127.0.0.1:8001/api/score_video "HTTP/1.1 200 OK"
+2026-05-09 07:51:29,323 INFO: TRIBE scored video in 9746ms inference (duration=61.10s, peak VRAM=3730 MB)
+2026-05-09 07:51:29,323 INFO: Captured video transcript (468 chars) for variant grounding
+2026-05-09 07:51:29,323 INFO: Step 2: Generating 2 content variants
+2026-05-09 07:51:32,952 INFO: HTTP Request: POST http://127.0.0.1:18001/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-09 07:51:32,962 INFO: Generated 2 variants for demographic 'tech_professionals'
+2026-05-09 07:51:32,962 INFO: Step 4: Running MiroFish simulations for 2 variants
+2026-05-09 07:51:32,962 INFO: Running MiroFish simulation for variant v1_technical_precision (1/2)
+2026-05-09 07:51:46,916 INFO: HTTP Request: POST http://127.0.0.1:5001/api/graph/ontology/generate "HTTP/1.1 200 OK"
+2026-05-09 07:51:46,917 INFO: MiroFish ontology generated for project proj_a84f51eaf8b3
+2026-05-09 07:51:46,920 INFO: HTTP Request: POST http://127.0.0.1:5001/api/graph/build "HTTP/1.1 200 OK"
+2026-05-09 07:51:46,922 INFO: HTTP Request: GET http://127.0.0.1:5001/api/graph/task/15de0508-673e-4058-8029-9aa86e70c8e5 "HTTP/1.1 200 OK"
+2026-05-09 07:51:48,926 INFO: HTTP Request: GET http://127.0.0.1:5001/api/graph/task/15de0508-673e-4058-8029-9aa86e70c8e5 "HTTP/1.1 200 OK"
+2026-05-09 07:51:48,928 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/create "HTTP/1.1 200 OK"
+2026-05-09 07:51:48,949 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare "HTTP/1.1 200 OK"
+2026-05-09 07:51:48,955 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:51:50,959 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:51:53,964 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:51:58,471 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:05,228 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:15,240 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:25,248 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:35,256 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:45,260 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:52:55,273 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:05,277 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:15,283 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:25,295 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:35,308 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:45,312 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:53:55,324 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:05,336 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:15,349 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:25,362 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:35,374 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:45,387 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:54:55,392 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:05,404 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:15,417 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:25,430 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:35,436 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:45,448 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:55:55,461 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:05,470 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:15,477 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:25,487 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:35,497 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:45,506 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:56:55,517 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:05,525 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:15,538 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:25,545 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:35,557 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:45,568 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:57:55,580 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:05,587 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:15,600 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:25,609 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:35,620 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:45,632 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:58:55,644 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:05,655 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:15,668 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:25,682 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:35,694 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:45,705 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 07:59:55,718 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:05,723 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:15,736 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:25,745 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:35,754 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:45,766 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:00:55,779 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:05,792 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:15,800 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:25,813 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:35,825 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:45,837 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:01:55,845 ERROR: MiroFish prepare timed out after 600s
+2026-05-09 08:01:55,845 WARNING: MiroFish simulation returned None for variant v1_technical_precision
+2026-05-09 08:01:55,846 INFO: Running MiroFish simulation for variant v2_social_consequence (2/2)
+2026-05-09 08:02:10,684 INFO: HTTP Request: POST http://127.0.0.1:5001/api/graph/ontology/generate "HTTP/1.1 200 OK"
+2026-05-09 08:02:10,684 INFO: MiroFish ontology generated for project proj_9a0b35401cfb
+2026-05-09 08:02:10,687 INFO: HTTP Request: POST http://127.0.0.1:5001/api/graph/build "HTTP/1.1 200 OK"
+2026-05-09 08:02:10,689 INFO: HTTP Request: GET http://127.0.0.1:5001/api/graph/task/9e8ba4c4-08b3-4a6b-b785-f0f5ec96b450 "HTTP/1.1 200 OK"
+2026-05-09 08:02:12,693 INFO: HTTP Request: GET http://127.0.0.1:5001/api/graph/task/9e8ba4c4-08b3-4a6b-b785-f0f5ec96b450 "HTTP/1.1 200 OK"
+2026-05-09 08:02:12,695 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/create "HTTP/1.1 200 OK"
+2026-05-09 08:02:12,700 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare "HTTP/1.1 200 OK"
+2026-05-09 08:02:12,702 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:14,706 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:17,709 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:22,216 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:28,974 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:38,987 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:48,999 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:02:59,010 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:09,021 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:19,034 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:29,040 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:39,051 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:49,063 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:03:59,073 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:09,084 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:19,095 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:29,107 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:39,113 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:49,122 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:04:59,129 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:09,136 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:19,144 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:29,156 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:39,168 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:49,180 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:05:59,189 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:09,200 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:19,213 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:29,225 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:39,237 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:49,250 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:06:59,263 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:09,276 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:19,288 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:29,301 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:39,314 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:49,326 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:07:59,339 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:09,351 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:19,360 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:29,369 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:39,376 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:49,388 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:08:59,401 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:09,414 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:19,427 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:29,440 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:39,453 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:49,466 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:09:59,479 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:09,490 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:19,503 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:29,515 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:39,522 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:49,532 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:10:59,544 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:09,547 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:19,560 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:29,572 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:39,585 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:49,597 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:11:59,605 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:12:09,616 INFO: HTTP Request: POST http://127.0.0.1:5001/api/simulation/prepare/status "HTTP/1.1 200 OK"
+2026-05-09 08:12:19,626 ERROR: MiroFish prepare timed out after 600s
+2026-05-09 08:12:19,626 WARNING: MiroFish simulation returned None for variant v2_social_consequence
+2026-05-09 08:12:19,626 INFO: MiroFish simulation complete: 0/2 variants simulated
+2026-05-09 08:12:19,626 INFO: Step 5: Computing composite scores
+2026-05-09 08:12:19,629 INFO: Step 6: Running Claude Opus cross-system analysis
+2026-05-09 08:12:19,629 INFO: Calling Claude Opus for iteration 1 cross-system analysis
+2026-05-09 08:13:43,746 INFO: HTTP Request: POST http://127.0.0.1:18000/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-09 08:13:43,747 INFO: Opus analysis complete: ranked 2 variants, 3 cross-system insights
+2026-05-09 08:13:43,748 INFO: Campaign 4a28f6b4-e2c5-4ad2-9977-ed7ad76d5a47 iteration 1 completed successfully
+2026-05-09 08:13:43,749 INFO: Generating Layer 1: Verdict
+2026-05-09 08:15:50,505 INFO: HTTP Request: POST http://127.0.0.1:18000/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-09 08:15:50,506 INFO: Verdict generated: 9165 chars
+2026-05-09 08:15:50,506 INFO: Generating Layer 2: Scorecard
+2026-05-09 08:15:50,506 INFO: Generating Layer 3: Deep Analysis
+2026-05-09 08:15:50,506 INFO: Generating Layer 4: Mass Psychology
+2026-05-09 08:17:55,402 INFO: HTTP Request: POST http://127.0.0.1:18000/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-09 08:20:01,501 INFO: HTTP Request: POST http://127.0.0.1:18000/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-09 08:20:01,502 INFO: Psychology generated: general=8898 chars, technical=14 chars
+2026-05-09 08:20:01,502 INFO: Report assembled: 4/4 layers generated
+2026-05-09 08:20:01,504 INFO: Report generated for campaign 4a28f6b4-e2c5-4ad2-9977-ed7ad76d5a47
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/ARC_Studio/orchestrator/cli.py", line 408, in <module>
+    main()
+  File "/root/ARC_Studio/orchestrator/cli.py", line 401, in main
+    result = asyncio.run(run_campaign(args))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/root/ARC_Studio/orchestrator/cli.py", line 219, in run_campaign
+    _print_summary(result)
+  File "/root/ARC_Studio/orchestrator/cli.py", line 273, in _print_summary
+    _print_single_iteration(last)
+  File "/root/ARC_Studio/orchestrator/cli.py", line 314, in _print_single_iteration
+    print(f"    {dim}: {score:.1f}")
+                       ^^^^^^^^^^^
+TypeError: unsupported format string passed to dict.__format__
+
+============================================================
+Campaign created: 4a28f6b4-e2c5-4ad2-9977-ed7ad76d5a47
+Demographic: tech_professionals
+Agent count: 100
+Max iterations: 1
+============================================================
+
+
+--- Iteration 1/1 ---
+--- Iteration 1 complete ---
+
+Generating final report...
+Report generated successfully.
+
+Campaign complete. Stop reason: max_iterations
+Full results written to /tmp/runA_n100.json
+
+============================================================
+CAMPAIGN RESULTS (1 iteration(s), stop: max_iterations)
+============================================================
+
+BEST SCORES TRAJECTORY:
+  Iteration 1: attention_score=88.1, conversion_potential=8.9, audience_fit=84.5
+
+TRIBE v2: Available
+MiroFish: Available
+
+--- Variant: v1_technical_precision ---
+Strategy: Uses technical precision and mentorship-style framing to appeal to engineers who distrust hype, presenting the announcement as a deterministic system improvement rather than a cultural statement.
+Content preview: System architects have long understood that perceived efficiency often reveals hidden entropy. January 24th brings Macintosh not as a metaphorical reo...
+
+  TRIBE v2 scores:
+    attention_capture: 87.6
+    emotional_resonance: 88.8
+    memory_encoding: 86.0
+    reward_response: 86.7
+    threat_detection: 85.5
+    cognitive_load: 86.2
+    social_relevance: 84.8
