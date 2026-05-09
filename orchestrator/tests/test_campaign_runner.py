@@ -329,6 +329,7 @@ async def test_mirofish_progress_event_per_variant():
     async def fake_simulate(
         variants, prediction_question, campaign_id,
         agent_count=40, max_rounds=5, progress_callback=None,
+        on_simulation_id=None,
     ):
         results = []
         for i, v in enumerate(variants):
@@ -355,3 +356,46 @@ async def test_mirofish_progress_event_per_variant():
     assert [p["variant_index"] for p in progress] == [1, 2, 3]
     assert all(p["variants_total"] == 3 for p in progress)
     assert all(p["agent_count"] == 40 for p in progress)
+
+
+@pytest.mark.asyncio
+async def test_mirofish_simulation_started_event_fires():
+    """Phase 5 session 4 — orchestrator emits mirofish_simulation_started
+    with simulation_id once MiroFish has created the simulation."""
+    runner, _ = _build_runner(tribe_available=True, mirofish_available=True)
+    events: list[dict] = []
+
+    async def collect(e: dict) -> None:
+        events.append(e)
+
+    async def fake_simulate(
+        variants, prediction_question, campaign_id,
+        agent_count=40, max_rounds=5, progress_callback=None,
+        on_simulation_id=None,
+    ):
+        results = []
+        for i, v in enumerate(variants):
+            if on_simulation_id:
+                # Mimic mirofish_client firing the hook after _create_simulation.
+                await on_simulation_id(i, v["id"], f"sim_{v["id"]}", f"proj_{v["id"]}")
+            results.append({
+                "organic_shares": 1, "sentiment_trajectory": [0.5],
+                "counter_narrative_count": 0, "peak_virality_cycle": 0,
+                "sentiment_drift": 0.0, "coalition_formation": 1,
+                "influence_concentration": 0.5, "platform_divergence": 0.5,
+            })
+        return results
+
+    runner._mirofish_runner.simulate_variants = fake_simulate  # type: ignore[assignment]
+
+    await runner.run_single_iteration(
+        campaign_id="campaign-001",
+        progress_callback=collect,
+        max_iterations=1,
+    )
+
+    started = [e for e in events if e["event"] == "mirofish_simulation_started"]
+    assert len(started) == 3, f"expected 3 sim_started events, got {len(started)}"
+    assert [s["simulation_id"] for s in started] == ["sim_v1", "sim_v2", "sim_v3"]
+    assert [s["project_id"] for s in started] == ["proj_v1", "proj_v2", "proj_v3"]
+    assert all(s["step"] == "mirofish" for s in started)

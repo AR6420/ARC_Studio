@@ -22,7 +22,7 @@ Design decisions:
 import asyncio
 import logging
 import time
-from typing import Any
+from typing import Any, Awaitable, Callable  # noqa: F401
 
 import httpx
 
@@ -281,6 +281,7 @@ class MirofishClient:
         simulation_requirement: str,
         project_name: str,
         max_rounds: int = 30,
+        on_simulation_id: "Callable[[str, str], Awaitable[None]] | None" = None,
     ) -> dict[str, Any] | None:
         """
         Run the full MiroFish simulation workflow for a single content variant.
@@ -314,6 +315,17 @@ class MirofishClient:
             simulation_id = await self._create_simulation(project_id)
             if not simulation_id:
                 return None
+
+            # Phase 5 session 4: surface the simulation_id immediately so the
+            # orchestrator can fire a SSE event and the UI can iframe-embed
+            # MiroFish's live graph view (/simulation/<id>/start) instead of
+            # showing a static "simulating audience" placeholder for ~5-15
+            # minutes. Callback is best-effort — never block the run.
+            if on_simulation_id:
+                try:
+                    await on_simulation_id(simulation_id, project_id)
+                except Exception:  # noqa: BLE001
+                    logger.exception("on_simulation_id callback raised; continuing")
 
             # Step 4: Prepare simulation (async -- requires polling)
             prepare_ok = await self._prepare_simulation(simulation_id)

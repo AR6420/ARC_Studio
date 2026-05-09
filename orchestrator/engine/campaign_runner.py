@@ -265,6 +265,27 @@ class CampaignRunner:
                         "agent_count": campaign.agent_count,
                     })
 
+                async def _mirofish_sim_id(
+                    variant_index: int, variant_id: str,
+                    simulation_id: str, project_id: str,
+                ) -> None:
+                    if not progress_callback:
+                        return
+                    await progress_callback({
+                        "event": "mirofish_simulation_started",
+                        "campaign_id": campaign_id,
+                        "iteration": iteration_number,
+                        "max_iterations": max_iterations,
+                        "step": "mirofish",
+                        "step_index": STAGE_NAMES.index("mirofish") + 1,
+                        "total_steps": TOTAL_STAGES,
+                        "variant_index": variant_index + 1,
+                        "variants_total": len(variants),
+                        "variant_id": variant_id,
+                        "simulation_id": simulation_id,
+                        "project_id": project_id,
+                    })
+
                 mirofish_metrics_list = await self._mirofish_runner.simulate_variants(
                     variants=variants,
                     prediction_question=campaign.prediction_question,
@@ -272,6 +293,7 @@ class CampaignRunner:
                     agent_count=campaign.agent_count,
                     max_rounds=5,
                     progress_callback=_mirofish_progress,
+                    on_simulation_id=_mirofish_sim_id,
                 )
             else:
                 logger.info("Step 4: Skipping MiroFish simulation (unavailable)")

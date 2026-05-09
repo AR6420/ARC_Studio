@@ -19,6 +19,7 @@ import { useProgress } from '@/hooks/use-progress';
 import type { ProgressEvent } from '@/api/types';
 import { StageIndicator } from './stage-indicator';
 import { ReportLayersProgress } from './report-layers-progress';
+import { SimulationGraphPanel } from '@/components/simulation/simulation-graph-panel';
 
 // ─── Formatting helpers ────────────────────────────────────────────────
 
@@ -326,10 +327,43 @@ export function ProgressStream({ campaignId }: ProgressStreamProps) {
     };
   }, [isError, isComplete, isConnected, currentStep]);
 
+  // Phase 5 session 4 — surface MiroFish's live graph view inline
+  // during the social-simulation stage. The orchestrator emits
+  // `mirofish_simulation_started` with simulation_id once MiroFish has
+  // created the sim (post-step-3); we capture the latest one and pass
+  // it to the iframe-embed panel. Once the mirofish stage completes
+  // the panel switches to a "simulation complete" badge but keeps the
+  // iframe mounted so judges can scroll back through the agent graph.
+  const latestSimulationId = useMemo(() => {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i]!;
+      if (e.event === 'mirofish_simulation_started' && e.simulation_id) {
+        return e.simulation_id;
+      }
+    }
+    return null;
+  }, [events]);
+  const mirofishStageComplete = useMemo(() => {
+    return events.some(
+      (e) => e.event === 'step_complete' && e.step === 'mirofish',
+    );
+  }, [events]);
+  const mirofishStageStarted = useMemo(() => {
+    return events.some(
+      (e) => e.event === 'step_start' && e.step === 'mirofish',
+    );
+  }, [events]);
+
   return (
     <div className="flex flex-col gap-3">
       <StageIndicator events={events} paused={isComplete || isError} />
       <ReportLayersProgress events={events} />
+      {(mirofishStageStarted || latestSimulationId) && (
+        <SimulationGraphPanel
+          simulationId={latestSimulationId}
+          complete={mirofishStageComplete}
+        />
+      )}
       <TerminalLog
         events={events}
         isComplete={isComplete}

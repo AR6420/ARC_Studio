@@ -107,3 +107,41 @@ pytest --ignore=orchestrator/tests/test_tribe_timeout.py    # full suite
 ```
 
 The `--ignore` is for a pre-existing broken test on `main` (commit 495956b imports `CHUNK_SIZE_WORDS` that doesn't exist). Will be fixed separately.
+
+## Bringing up MiroFish locally for the iframe panel (Phase 5 session 4)
+
+The campaign-detail page iframe-embeds MiroFish's live graph view at
+`/simulation/<sim_id>/start`. For local UI development you have two options.
+
+### Option 1 — full local stack (Docker)
+
+```bash
+docker compose up -d neo4j litellm mirofish
+```
+
+MiroFish exposes its Vue UI at `http://localhost:3000`. The default
+`VITE_MIROFISH_BASE_URL` already targets that, so the iframe just works
+once a campaign progresses past the `mirofish_simulation_started`
+event. Note: real campaigns need TRIBE + the LLM stack too — see
+Option A above for the fake vLLM path.
+
+### Option 2 — point at the public demo (no local stack needed)
+
+When iterating on the ARC_Studio chrome around the iframe (panel
+header, loading state, integration with the StageIndicator) you do
+not need a real running simulation. Set the env var to the public
+MiroFish demo before `npm run dev`:
+
+```bash
+# PowerShell
+$env:VITE_MIROFISH_BASE_URL = "https://mirofish-demo.pages.dev"
+npm run dev
+
+# bash / zsh
+export VITE_MIROFISH_BASE_URL=https://mirofish-demo.pages.dev
+npm run dev
+```
+
+The iframe will load a representative simulation from the public demo.
+You will not see live updates — that is expected; this mode is for
+styling the surrounding chrome only.

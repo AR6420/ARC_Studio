@@ -351,6 +351,56 @@ plumbing surface area of streaming + UI typing effect.
 persona multiplier — mirofish 1:1 cap), and the cloud-side
 `/api/campaigns/{id}/media` route for uploaded mp4 playback.
 
+### Phase 5 session 4 — Local: embed MiroFish live graph in campaign-detail (0 cloud hrs) — **DONE**
+
+**Goal achieved**: closed the social-simulation visual gap from session
+3. The 5–15 min mirofish stage now renders MiroFish's own
+force-directed agent + ontology graph view inline in ARC_Studio,
+iframe-embedded from the existing Vue UI on port 3000. Architecture
+decision: do not rebuild the graph in React — iframe the canonical
+view so the demo lands in days, not weeks.
+
+**Backend (`orchestrator/`)**
+- `clients/mirofish_client.run_simulation` accepts an `on_simulation_id`
+  async callback fired right after `_create_simulation` returns. Hook
+  is best-effort — exceptions inside it never break the run.
+- `engine/mirofish_runner.simulate_variants` accepts the same callback,
+  threads `(variant_index, variant_id, simulation_id, project_id)`
+  through.
+- `engine/campaign_runner` wires that callback into a new
+  `mirofish_simulation_started` SSE event with all four fields plus
+  the standard step metadata.
+
+**UI (`ui/src/`)**
+- `components/simulation/simulation-graph-panel.tsx` — NEW iframe
+  wrapper around `${VITE_MIROFISH_BASE_URL}/simulation/<id>/start`.
+  Loading skeleton + error fallback (with copy-pasteable
+  `docker compose up -d mirofish` recovery hint), live/complete badge
+  in the header, "powered by MiroFish" attribution + an open-in-new-
+  tab link for judges who want to inspect the source view.
+- `components/progress/progress-stream.tsx` captures the latest
+  `mirofish_simulation_started` event and renders the panel inline
+  between ReportLayersProgress and the terminal log. Panel only
+  mounts once the mirofish stage has started (no empty rectangle
+  during variants/tribe/etc.).
+- `hooks/use-progress.ts` registers the new event type.
+- `api/types.ts` ProgressEvent gains optional `simulation_id` +
+  `project_id` fields.
+
+**Tests + docs**
+- `test_campaign_runner.test_mirofish_simulation_started_event_fires` —
+  mocks 3-variant run, asserts 3 events with correct sim_id +
+  project_id wiring + step="mirofish".
+- `docs/competition/03_run_locally.md` — new section documenting two
+  dev paths: real local docker mirofish (default base URL) OR public
+  demo override via `VITE_MIROFISH_BASE_URL=https://mirofish-demo.pages.dev`.
+- `docs/competition/06_demo_plan.md` — 0:40 demo beat rewritten as
+  "Watch the simulation come alive" with the live iframe as the hero
+  shot before switching to the Simulation tab metrics.
+
+**Tests**: 309 orchestrator passes (previous 308 + the new sim_started
+event test). UI `npm run build` clean.
+
 ### Phase 5 session 2 — Cloud: rehearsal + viz wiring (~3 cloud hrs)
 
 **Runbook**: `docs/competition/07_phase5_session2_runbook.md`.

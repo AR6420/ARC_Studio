@@ -238,6 +238,11 @@ export interface ProgressEvent {
   variants_total?: number | null;
   variant_id?: string | null;
   agent_count?: number | null;
+  // Phase 5 session 4 — fired once MiroFish has created the simulation
+  // (after step 3 of run_simulation). UI captures this to iframe-embed
+  // the live MiroFish view at /simulation/<simulation_id>/start.
+  simulation_id?: string | null;
+  project_id?: string | null;
   layer?: string | null;
   layer_index?: number | null;
   total_layers?: number | null;

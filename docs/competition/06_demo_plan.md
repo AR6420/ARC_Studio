@@ -34,13 +34,20 @@ Voice-over: "TRIBE's neural readout maps to seven decision-relevant
 dimensions. The rightmost bar is engagement composite — half emotional
 resonance, three-tenths reward, two-tenths attention."
 
-### 0:40 — Open the Simulation tab
+### 0:40 — Watch the simulation come alive (live MiroFish embed)
 
-MiroFish ontology-derived agents (~20 in the demo run) react to the
-ad. Show the per-cycle sentiment trajectory and a few agent posts.
+While the social-simulation stage is in flight, the campaign-detail
+page now renders the MiroFish live graph view inline (Phase 5
+session 4 iframe embed). Force-directed agents pop in as MiroFish
+spawns OASIS personas; ontology relations form edges in real time.
 
-Voice-over: "Then we drop those variants into a multi-agent social
-simulation — agents with persona, memory, and feed dynamics."
+Voice-over: "We drop those variants into a multi-agent social
+simulation. Each node is an agent with persona, memory, and feed
+dynamics — you're watching the audience materialise around the
+content right now."
+
+After ~30 sec on the live graph, switch to the Simulation tab for
+the per-cycle sentiment trajectory and a few sample agent posts.
 
 ### 1:00 — Iteration loop
 

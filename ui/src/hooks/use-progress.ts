@@ -21,6 +21,7 @@ const EVENT_TYPES = [
   'step_start',
   'step_complete',
   'mirofish_progress',
+  'mirofish_simulation_started',
   'report_generating',
   'report_layer_start',
   'report_layer_complete',

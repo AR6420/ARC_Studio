@@ -39,6 +39,7 @@ class MirofishRunner:
         agent_count: int = 40,
         max_rounds: int = 30,
         progress_callback: "Callable[[int, str], Awaitable[None]] | None" = None,
+        on_simulation_id: "Callable[[int, str, str, str], Awaitable[None]] | None" = None,
     ) -> list[dict[str, Any] | None]:
         """
         Run MiroFish simulation for each variant and compute 8 metrics.
@@ -76,12 +77,21 @@ class MirofishRunner:
                 except Exception:  # noqa: BLE001 — progress is best-effort
                     pass
 
-            # Run the full simulation workflow
+            # Run the full simulation workflow. The on_simulation_id hook
+            # fires after MiroFish creates the simulation so the
+            # orchestrator can SSE-emit the ID to the UI for iframe embed.
+            sim_id_cb = None
+            if on_simulation_id is not None:
+                async def _sim_id_cb(sim_id: str, project_id: str) -> None:
+                    await on_simulation_id(i, str(variant_id), sim_id, project_id)
+                sim_id_cb = _sim_id_cb
+
             raw_results = await self._client.run_simulation(
                 content=content,
                 simulation_requirement=prediction_question,
                 project_name=f"{campaign_id}_{variant_id}",
                 max_rounds=max_rounds,
+                on_simulation_id=sim_id_cb,
             )
 
             if not raw_results:
