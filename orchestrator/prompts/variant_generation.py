@@ -154,7 +154,16 @@ def build_variant_generation_prompt(
                 )
                 lines.append(f"Composite scores: {scores_str}")
             if tribe:
-                tribe_str = ", ".join(f"{k}: {v}" for k, v in tribe.items() if k != "is_pseudo_score")
+                # Skip: is_pseudo_score (bool flag), timeline (huge per-window
+                # array — ~5K tokens), tr_seconds, transcript (also large).
+                # Phase 5 session 7: previously-unfiltered timeline arrays
+                # bloated iter-2 prompts past Qwen's 16K context window.
+                tribe_str = ", ".join(
+                    f"{k}: {v}"
+                    for k, v in tribe.items()
+                    if k not in {"is_pseudo_score", "timeline", "tr_seconds", "transcript"}
+                    and not isinstance(v, (list, dict))
+                )
                 lines.append(f"Neural scores (TRIBE v2): {tribe_str}")
             if mirofish:
                 mf_str = ", ".join(
@@ -164,7 +173,11 @@ def build_variant_generation_prompt(
                 )
                 lines.append(f"Simulation metrics: {mf_str}")
             if opus_note:
-                lines.append(f"Analysis note: {opus_note}")
+                # Cap analysis note to keep prompt budget under control —
+                # iter 3 with 2 prior iters' notes uncapped pushed input
+                # past 12K tokens.
+                note_capped = opus_note if len(opus_note) <= 600 else opus_note[:600] + "…"
+                lines.append(f"Analysis note: {note_capped}")
             lines.append("")
 
         lines.append(
