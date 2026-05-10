@@ -80,11 +80,16 @@ class VariantGenerator:
             media_type=media_type,
         )
 
-        # Call Claude Haiku (JSON mode)
+        # Call agent-tier LLM (JSON mode). Output capped at 4096 so the
+        # combined input+output budget stays inside the 16K context window
+        # of the Qwen3.5-9B agent — Phase 5 session 7 surfaced an
+        # iteration-2 overflow when previous_iteration_results pushed the
+        # prompt past the Anthropic-era 8192 default. 2 variants of 150
+        # words each fit easily inside 4096 tokens.
         result = await self._claude.call_haiku_json(
             system=VARIANT_GENERATION_SYSTEM,
             user=user_prompt,
-            max_tokens=8192,
+            max_tokens=4096,
         )
 
         variants = result.get("variants", [])
