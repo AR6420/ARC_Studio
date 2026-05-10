@@ -17,7 +17,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useProgress } from '@/hooks/use-progress';
 import type { ProgressEvent } from '@/api/types';
-import { StageIndicator } from './stage-indicator';
 import { ReportLayersProgress } from './report-layers-progress';
 import { SimulationGraphPanel } from '@/components/simulation/simulation-graph-panel';
 
@@ -356,24 +355,29 @@ export function ProgressStream({ campaignId }: ProgressStreamProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <StageIndicator events={events} paused={isComplete || isError} />
-      <ReportLayersProgress events={events} />
+      <div id="anchor-report">
+        <ReportLayersProgress events={events} />
+      </div>
       {(mirofishStageStarted || latestSimulationId) && (
-        <SimulationGraphPanel
-          simulationId={latestSimulationId}
-          complete={mirofishStageComplete}
-        />
+        <div id="anchor-mirofish">
+          <SimulationGraphPanel
+            simulationId={latestSimulationId}
+            complete={mirofishStageComplete}
+          />
+        </div>
       )}
-      <TerminalLog
-        events={events}
-        isComplete={isComplete}
-        isError={isError}
-        statusText={statusText}
-        statusClass={statusClass}
-        iteration={iteration}
-        maxIterations={maxIterations}
-        eta={eta}
-      />
+      <div id="anchor-stream">
+        <TerminalLog
+          events={events}
+          isComplete={isComplete}
+          isError={isError}
+          statusText={statusText}
+          statusClass={statusClass}
+          iteration={iteration}
+          maxIterations={maxIterations}
+          eta={eta}
+        />
+      </div>
     </div>
   );
 }

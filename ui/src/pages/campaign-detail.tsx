@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 import { useCampaign } from '@/hooks/use-campaigns';
 import { useReport } from '@/hooks/use-report';
 import { useSidebar } from '@/hooks/use-sidebar';
+import { useProgress } from '@/hooks/use-progress';
+import { useStageAutoscroll } from '@/hooks/use-stage-autoscroll';
+import { StageIndicator, type StageName } from '@/components/progress/stage-indicator';
 import { VerdictDisplay } from '@/components/results/verdict-display';
 import { ScorecardTable } from '@/components/results/scorecard-table';
 import { DeepAnalysis } from '@/components/results/deep-analysis';
@@ -626,6 +629,82 @@ function RunningElapsed({ startedAt }: { startedAt: string }) {
   );
 }
 
+// Phase 5 session 6 — sticky pipeline strip + ProgressStream body.
+//
+// Splits the old single-block ProgressStream so the StageIndicator can
+// pin to the top of the scroll viewport while the rest (terminal log,
+// simulation iframe, report layers) flow below. Also drives the
+// stage-aware autoscroll: each `step_start` SSE event nudges the
+// matching anchor into view, suppressed if the user is mid-scroll.
+const STAGE_ANCHORS: Record<StageName, string> = {
+  variants: 'anchor-stream',
+  tribe: 'anchor-stream',
+  mirofish: 'anchor-mirofish',
+  composite: 'anchor-stream',
+  analysis: 'anchor-report',
+};
+
+function RunningPipeline({ campaignId }: { campaignId: string }) {
+  const { events, isComplete, isError } = useProgress(campaignId);
+
+  useStageAutoscroll(events, {
+    anchors: STAGE_ANCHORS,
+    stickyOffset: 88,
+  });
+
+  const handleStageClick = (stage: StageName) => {
+    const id = STAGE_ANCHORS[stage];
+    const el = id ? document.getElementById(id) : null;
+    if (!el) return;
+    const scroller = findScrollableAncestor(el) ?? document.scrollingElement;
+    if (!scroller) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const ancestorRect =
+      scroller === document.scrollingElement
+        ? ({ top: 0 } as DOMRect)
+        : (scroller as HTMLElement).getBoundingClientRect();
+    const offsetWithin = rect.top - ancestorRect.top;
+    (scroller as HTMLElement).scrollTo({
+      top: Math.max(0, (scroller as HTMLElement).scrollTop + offsetWithin - 88),
+      behavior: 'smooth',
+    });
+  };
+
+  return (
+    <>
+      {/* Sticky strip — pins below the global app header (h-12 ≈ 48px).
+          The wrapper bg + border keep scroll content from bleeding
+          through during the smooth scroll handoff. */}
+      <div className="sticky top-0 z-30 -mx-7 border-b border-border bg-background/95 px-7 backdrop-blur-sm">
+        <StageIndicator
+          events={events}
+          paused={isComplete || isError}
+          onStageClick={handleStageClick}
+        />
+      </div>
+      <ProgressStream campaignId={campaignId} />
+    </>
+  );
+}
+
+function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
+  let parent: HTMLElement | null = el.parentElement;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    if (
+      (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+      parent.scrollHeight > parent.clientHeight
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
 function LoadingState() {
   return (
     <div className="border border-border bg-surface-1 px-4 py-3 font-mono text-[0.72rem] text-muted-foreground">
@@ -703,7 +782,9 @@ export default function CampaignDetail() {
     <div className="flex flex-col gap-4">
       <CampaignHeader campaign={campaign} />
 
-      {campaign.status === 'running' && <ProgressStream campaignId={id!} />}
+      {campaign.status === 'running' && (
+        <RunningPipeline campaignId={id!} />
+      )}
 
       <Tabs defaultValue="campaign" className="gap-6">
         <TabsList variant="line">

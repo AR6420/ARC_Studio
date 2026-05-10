@@ -95,9 +95,16 @@ interface StageIndicatorProps {
   /** When true, rendering becomes static (run finished) — no live elapsed tick. */
   paused?: boolean;
   className?: string;
+  /** Optional: clicking a stage's row scrolls to that stage's content. */
+  onStageClick?: (stage: StageName) => void;
 }
 
-export function StageIndicator({ events, paused = false, className }: StageIndicatorProps) {
+export function StageIndicator({
+  events,
+  paused = false,
+  className,
+  onStageClick,
+}: StageIndicatorProps) {
   const { byStage, activeStage } = useMemo(() => deriveStageStatuses(events), [events]);
   const { data: config } = useConfig();
   const STAGES = useMemo(
@@ -123,16 +130,16 @@ export function StageIndicator({ events, paused = false, className }: StageIndic
   return (
     <div
       className={cn(
-        'flex flex-col gap-1.5 border border-border bg-card/40 px-3 py-2',
+        'flex flex-col gap-1 px-4 py-2',
         className,
       )}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[0.6rem] tracking-[0.12em] text-muted-foreground uppercase">
+        <span className="font-mono text-[0.58rem] tracking-[0.14em] text-muted-foreground uppercase">
           Pipeline
         </span>
         {activeStage && !paused && (
-          <span className="font-mono text-[0.6rem] tabular-nums text-muted-foreground">
+          <span className="font-mono text-[0.58rem] tabular-nums text-muted-foreground">
             {byStage[activeStage].detail ?? STAGES.find(s => s.key === activeStage)?.sub}
             {activeStartedAt && (
               <span className="ml-2 text-foreground/70">
@@ -149,45 +156,59 @@ export function StageIndicator({ events, paused = false, className }: StageIndic
           const isActive = status.state === 'active';
           const isComplete = status.state === 'complete';
           const isError = status.state === 'error';
+          const Wrapper = onStageClick ? 'button' : 'div';
           return (
-            <li key={stage.key} className="flex flex-col gap-1">
-              <div className="relative h-[3px] overflow-hidden bg-border/50">
-                <div
-                  className={cn(
-                    'absolute inset-y-0 left-0 transition-all duration-500',
-                    isComplete && 'w-full bg-foreground/55',
-                    isError && 'w-full bg-destructive',
-                    isActive && 'w-full bg-primary shimmer',
-                    status.state === 'pending' && 'w-0',
-                  )}
-                />
-              </div>
-              <div className="flex items-baseline justify-between gap-1.5">
-                <div className="flex items-baseline gap-1.5 min-w-0">
-                  <span
+            <li key={stage.key} className="flex">
+              <Wrapper
+                type={onStageClick ? 'button' : undefined}
+                onClick={onStageClick ? () => onStageClick(stage.key) : undefined}
+                className={cn(
+                  'flex flex-1 flex-col gap-1 text-left',
+                  onStageClick &&
+                    'cursor-pointer rounded-sm transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                )}
+                aria-label={
+                  onStageClick ? `Scroll to ${stage.label} stage` : undefined
+                }
+              >
+                <div className="relative h-[3px] overflow-hidden bg-border/50">
+                  <div
                     className={cn(
-                      'font-mono text-[0.58rem] tabular-nums',
-                      isActive ? 'text-primary' : 'text-muted-foreground/55',
+                      'absolute inset-y-0 left-0 transition-all duration-500',
+                      isComplete && 'w-full bg-foreground/55',
+                      isError && 'w-full bg-destructive',
+                      isActive && 'w-full bg-primary shimmer',
+                      status.state === 'pending' && 'w-0',
                     )}
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-[0.74rem] font-medium tracking-tight truncate',
-                      isComplete && 'text-foreground/85',
-                      isActive && 'text-foreground',
-                      isError && 'text-destructive',
-                      status.state === 'pending' && 'text-muted-foreground/60',
-                    )}
-                  >
-                    {stage.label}
+                  />
+                </div>
+                <div className="flex items-baseline justify-between gap-1.5">
+                  <div className="flex items-baseline gap-1.5 min-w-0">
+                    <span
+                      className={cn(
+                        'font-mono text-[0.55rem] tabular-nums',
+                        isActive ? 'text-primary' : 'text-muted-foreground/55',
+                      )}
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[0.72rem] font-medium tracking-tight truncate',
+                        isComplete && 'text-foreground/85',
+                        isActive && 'text-foreground',
+                        isError && 'text-destructive',
+                        status.state === 'pending' && 'text-muted-foreground/60',
+                      )}
+                    >
+                      {stage.label}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[0.55rem] tracking-[0.08em] text-muted-foreground/55 uppercase truncate">
+                    {stage.sub}
                   </span>
                 </div>
-                <span className="font-mono text-[0.55rem] tracking-[0.08em] text-muted-foreground/55 uppercase truncate">
-                  {stage.sub}
-                </span>
-              </div>
+              </Wrapper>
             </li>
           );
         })}
