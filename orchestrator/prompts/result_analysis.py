@@ -181,13 +181,18 @@ def build_result_analysis_prompt(
         if mirofish:
             for metric, value in mirofish.items():
                 if isinstance(value, list):
-                    # For time series, show summary stats rather than full array
-                    if value:
+                    # For numeric time series, show summary stats. For
+                    # lists of dicts (e.g., agent_roster) just emit the
+                    # length — formatting non-numeric items with .3f
+                    # crashes (TypeError: dict.__format__).
+                    if value and all(isinstance(x, (int, float)) for x in value):
                         lines.append(
                             f"  - {metric}: [series of {len(value)} values, "
                             f"start={value[0]:.3f}, end={value[-1]:.3f}, "
                             f"max={max(value):.3f}]"
                         )
+                    elif value:
+                        lines.append(f"  - {metric}: [{len(value)} items]")
                     else:
                         lines.append(f"  - {metric}: []")
                 elif isinstance(value, dict):
