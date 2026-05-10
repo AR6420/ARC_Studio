@@ -362,7 +362,22 @@ async def create_campaign(request: Request, body: CampaignCreateRequest):
         # Per Pitfall 4: Create queue BEFORE launching background task
         queue = get_or_create_queue(request.app, campaign.id)
 
+        # Phase 5 session 6: also buffer events into a per-campaign
+        # history list so a UI client that connects mid-run (or refreshes
+        # after stages have already fired) can be replayed the prior
+        # state. The StageIndicator otherwise has no way to know which
+        # stages already completed before SSE connect. Bounded so a
+        # runaway emitter can't eat memory.
+        if not hasattr(request.app.state, "progress_history"):
+            request.app.state.progress_history = {}
+        request.app.state.progress_history[campaign.id] = []
+        history: list = request.app.state.progress_history[campaign.id]
+        HISTORY_CAP = 500
+
         async def progress_callback(event: dict):
+            history.append(event)
+            if len(history) > HISTORY_CAP:
+                del history[: len(history) - HISTORY_CAP]
             await queue.put(event)
 
         async def _run_background(app, cid: str):

@@ -35,7 +35,15 @@ def get_or_create_queue(app, campaign_id: str) -> asyncio.Queue:
 
 
 def cleanup_queue(app, campaign_id: str) -> None:
-    """Remove queue for a completed/failed campaign. Per Pitfall 2: prevent memory leak."""
+    """Remove queue for a completed/failed campaign. Per Pitfall 2: prevent memory leak.
+
+    History buffer intentionally NOT cleared here — a second SSE client
+    connecting after the first disconnect (e.g. user refreshes the page
+    just as the run finishes) should still get the full timeline.
+    The campaign-store completion path is responsible for evicting it
+    when the campaign reaches a terminal state and is no longer
+    interesting to display in real-time.
+    """
     if hasattr(app.state, "progress_queues"):
         app.state.progress_queues.pop(campaign_id, None)
 
@@ -55,8 +63,27 @@ async def campaign_progress(request: Request, campaign_id: str):
     if queue is None:
         raise HTTPException(status_code=404, detail="No active campaign run")
 
+    # Phase 5 session 6: replay buffered history first so a mid-run
+    # connect (refresh, late tab open) sees the stages that already
+    # fired. The history is appended-to alongside every queue.put in
+    # api/campaigns.py.
+    history = getattr(request.app.state, "progress_history", {}).get(
+        campaign_id, []
+    )
+    # Snapshot at connect time — copy() so subsequent appends during
+    # iteration don't mutate what we yield.
+    replay = list(history)
+
     async def event_generator():
         try:
+            for event in replay:
+                event_type = event.get("event", "message")
+                if not event.get("timestamp"):
+                    event["timestamp"] = datetime.now(timezone.utc).isoformat()
+                yield {
+                    "event": event_type,
+                    "data": json.dumps(event),
+                }
             while True:
                 if await request.is_disconnected():
                     break

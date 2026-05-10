@@ -150,7 +150,7 @@ export function StageIndicator({
         )}
       </div>
 
-      <ol className="grid grid-cols-5 gap-2">
+      <ol className="grid grid-cols-5 gap-1.5">
         {STAGES.map((stage, i) => {
           const status = byStage[stage.key];
           const isActive = status.state === 'active';
@@ -163,9 +163,19 @@ export function StageIndicator({
                 type={onStageClick ? 'button' : undefined}
                 onClick={onStageClick ? () => onStageClick(stage.key) : undefined}
                 className={cn(
-                  'flex flex-1 flex-col gap-1 text-left',
+                  // Per-stage card: subtle border + tinted bg gives each
+                  // stage a clear demarcated box. Active stage gets a
+                  // brighter border + amber-tinted bg + ring "glow" so
+                  // the eye locks onto it during a long stage.
+                  'flex flex-1 flex-col gap-1.5 rounded-sm border px-2 py-1.5 text-left transition-colors',
+                  isActive &&
+                    'border-primary/60 bg-primary/[0.11] shadow-[0_0_18px_-4px_var(--color-primary)]',
+                  isComplete && 'border-border/70 bg-foreground/[0.025]',
+                  isError && 'border-destructive/50 bg-destructive/[0.06]',
+                  status.state === 'pending' &&
+                    'border-border/40 bg-foreground/[0.015]',
                   onStageClick &&
-                    'cursor-pointer rounded-sm transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                    'cursor-pointer hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
                 )}
                 aria-label={
                   onStageClick ? `Scroll to ${stage.label} stage` : undefined
@@ -184,12 +194,11 @@ export function StageIndicator({
                 </div>
                 <div className="flex items-baseline justify-between gap-1.5">
                   <div className="flex items-baseline gap-1.5 min-w-0">
-                    <span
-                      className={cn(
-                        'font-mono text-[0.55rem] tabular-nums',
-                        isActive ? 'text-primary' : 'text-muted-foreground/55',
-                      )}
-                    >
+                    {/* Stage number — uniform muted tone across every
+                        stage regardless of active/complete state. The
+                        bar + label + card chrome carry the status
+                        signal; the number is a pure ordinal. */}
+                    <span className="font-mono text-[0.55rem] tabular-nums text-muted-foreground/60">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span
