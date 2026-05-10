@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A.R.C Studio — AI-powered pre-testing for marketing content</title>
+    <meta name="description" content="Predicts how content will land — neurally and socially — before you publish. Running on a single AMD MI300X." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-row">
+        <a class="brand" href="#top">
+          <span class="brand-mark">◈</span>
+          <span class="brand-name">A.R.C Studio</span>
+        </a>
+        <nav class="nav">
+          <a href="#what">What it does</a>
+          <a href="#amd">Built on AMD</a>
+          <a href="#repro">Reproduce</a>
+          <a class="nav-cta" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- HERO -->
+      <section class="hero container">
+        <p class="eyebrow">AMD Developer Hackathon 2026</p>
+        <h1>A.R.C Studio</h1>
+        <p class="tagline">AI-powered pre-testing for marketing content.</p>
+        <p class="lede">
+          Predicts how content will land — neurally and socially — before you publish.
+          Running on a single AMD MI300X.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#demo">Watch demo</a>
+          <a class="btn btn-secondary" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>Hardware</dt><dd>1× MI300X · 192 GB</dd></div>
+          <div><dt>Runtime</dt><dd>ROCm 7.2 · vLLM 0.17.1</dd></div>
+          <div><dt>NVIDIA in path</dt><dd>0</dd></div>
+        </dl>
+      </section>
+
+      <!-- DEMO -->
+      <section id="demo" class="demo container">
+        <div class="section-head">
+          <span class="section-tag">DEMO</span>
+          <h2>Live MI300X run</h2>
+        </div>
+        <div class="video-frame">
+          <!-- TODO: replace src with the hosted demo video URL (YouTube embed or direct mp4) -->
+          <div class="video-placeholder">
+            <p class="placeholder-title">Demo video URL — TBD</p>
+            <p class="placeholder-sub">Replace this block with a YouTube/Loom embed or HTML5 &lt;video&gt; once the recording is hosted.</p>
+          </div>
+        </div>
+        <p class="caption">Live MI300X run on the Apple 1984 ad. Full pipeline end-to-end.</p>
+      </section>
+
+      <!-- WHAT IT DOES -->
+      <section id="what" class="what container">
+        <div class="section-head">
+          <span class="section-tag">PIPELINE</span>
+          <h2>What it does</h2>
+        </div>
+        <div class="grid-3">
+          <article class="card">
+            <p class="card-num">01</p>
+            <h3>Neural prediction</h3>
+            <p>
+              Meta FAIR's TRIBE v2 predicts activation across 7 brain regions for every window of your video.
+              Visual cortex peaks during the cuts. Language regions activate on the tagline.
+            </p>
+          </article>
+          <article class="card">
+            <p class="card-num">02</p>
+            <h3>Social simulation</h3>
+            <p>
+              1000 personas grounded in real-world entities react to your content — sharing, drifting,
+              counter-narrating. Behavioral signal at scale.
+            </p>
+          </article>
+          <article class="card">
+            <p class="card-num">03</p>
+            <h3>Iterative optimization</h3>
+            <p>
+              Qwen3.5-27B reads both signals and writes the next variant. Loops until thresholds clear.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- BUILT ON AMD -->
+      <section id="amd" class="amd container">
+        <div class="section-head">
+          <span class="section-tag">STACK</span>
+          <h2>Built on AMD</h2>
+        </div>
+        <ul class="stack-list">
+          <li><span class="k">Hardware</span><span class="v">1× AMD MI300X — 192 GB HBM3, AMD Developer Cloud</span></li>
+          <li><span class="k">Runtime</span><span class="v">ROCm 7.2 · vLLM 0.17.1 (rocm/vllm container)</span></li>
+          <li><span class="k">Variant tier</span><span class="v">Qwen3.5-9B — variant generation + MiroFish agents</span></li>
+          <li><span class="k">Orchestrator tier</span><span class="v">Qwen3.5-27B — cross-system analysis + report generation</span></li>
+          <li><span class="k">Neural encoder</span><span class="v">Meta FAIR TRIBE v2 — trimodal brain encoder, ROCm PyTorch</span></li>
+        </ul>
+        <p class="amd-tagline">Zero NVIDIA in the inference path.</p>
+      </section>
+
+      <!-- REPRODUCE -->
+      <section id="repro" class="repro container">
+        <div class="section-head">
+          <span class="section-tag">REPRODUCE</span>
+          <h2>Run it yourself</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span class="step-n">1</span>
+            <div>
+              <h4>Provision MI300X</h4>
+              <p>AMD Developer Cloud → 1× MI300X with the vLLM Quick Start image.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">2</span>
+            <div>
+              <h4>Clone the branch</h4>
+              <p><code>git clone --branch competition/amd-hackathon --recursive https://github.com/AR6420/ARC_Studio.git</code></p>
+            </div>
+          </li>
+          <li>
+            <span class="step-n">3</span>
+            <div>
+              <h4>Follow the runbook</h4>
+              <p>Ten steps, ~30–45 minutes from clean droplet to first completed campaign.</p>
+            </div>
+          </li>
+        </ol>
+        <a class="btn btn-secondary" href="https://github.com/AR6420/ARC_Studio/blob/competition/amd-hackathon/docs/competition/04_phase3_runbook.md" target="_blank" rel="noopener">View runbook</a>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-row">
+        <p class="foot-line">Adarsh Balanolla · AMD Developer Hackathon 2026</p>
+        <p class="foot-links">
+          <a href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
