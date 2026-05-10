@@ -87,8 +87,13 @@ class MirofishClient:
         # http://vllm-agents:8001/v1). LiteLLM is bypassed entirely. Skip the
         # claude-haiku probe — it would 401 because no Anthropic key is set,
         # and that's by design.
-        import os
-        if os.environ.get("LLM_PROVIDER", "").lower() == "vllm":
+        # Read from settings (Pydantic BaseSettings auto-loads .env) rather
+        # than os.environ — Phase 5 session 7 surfaced that nohup-launched
+        # uvicorn doesn't inherit shell-exported LLM_PROVIDER, so the
+        # os.environ check returned "" and the LiteLLM probe ran on a
+        # vllm-only droplet, falsely marking mirofish unavailable.
+        from orchestrator.config import settings
+        if settings.llm_provider.lower() == "vllm":
             return True
 
         # Check LiteLLM proxy (MiroFish's LLM backend)
@@ -135,8 +140,8 @@ class MirofishClient:
         Phase 3 droplet smoke confirmed this is the only blocker between
         a working mirofish container and populated mirofish_metrics.
         """
-        import os
-        if os.environ.get("LLM_PROVIDER", "").lower() == "vllm":
+        from orchestrator.config import settings
+        if settings.llm_provider.lower() == "vllm":
             return True
         try:
             async with httpx.AsyncClient() as check_client:

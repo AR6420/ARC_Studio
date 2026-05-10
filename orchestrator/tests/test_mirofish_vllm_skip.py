@@ -7,6 +7,9 @@ in health_check and verify_llm_token would otherwise 401 (no Anthropic
 key present) and abort all simulations — that was the only blocker
 between a working mirofish container and populated mirofish_metrics
 during the Phase 3 smoke run.
+
+Phase 5 session 7: the skip now reads `settings.llm_provider` instead
+of `os.environ` directly. Tests monkeypatch the settings singleton.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -15,6 +18,7 @@ import httpx
 import pytest
 
 from orchestrator.clients.mirofish_client import MirofishClient
+from orchestrator.config import settings
 
 
 def _stub_httpx_response(status: int = 200) -> MagicMock:
@@ -37,7 +41,7 @@ async def test_health_check_skips_litellm_probe_when_vllm_provider(
     mirofish_client_with_healthy_flask, monkeypatch
 ):
     """LLM_PROVIDER=vllm → health_check returns True after Flask probe only."""
-    monkeypatch.setenv("LLM_PROVIDER", "vllm")
+    monkeypatch.setattr(settings, "llm_provider", "vllm")
     ok = await mirofish_client_with_healthy_flask.health_check()
     assert ok is True
 
@@ -45,7 +49,7 @@ async def test_health_check_skips_litellm_probe_when_vllm_provider(
 @pytest.mark.asyncio
 async def test_verify_llm_token_returns_true_when_vllm_provider(monkeypatch):
     """LLM_PROVIDER=vllm → verify_llm_token short-circuits to True (no HTTP)."""
-    monkeypatch.setenv("LLM_PROVIDER", "vllm")
+    monkeypatch.setattr(settings, "llm_provider", "vllm")
     http = MagicMock(spec=httpx.AsyncClient)  # never touched
     client = MirofishClient(http, litellm_url="http://litellm:4000")
     assert await client.verify_llm_token() is True
@@ -56,7 +60,7 @@ async def test_health_check_still_returns_false_when_flask_down_under_vllm(
     monkeypatch,
 ):
     """Even with the LiteLLM skip, Flask must still be reachable."""
-    monkeypatch.setenv("LLM_PROVIDER", "vllm")
+    monkeypatch.setattr(settings, "llm_provider", "vllm")
     http = MagicMock(spec=httpx.AsyncClient)
     http.get = AsyncMock(return_value=_stub_httpx_response(503))
     client = MirofishClient(http, litellm_url="http://litellm:4000")

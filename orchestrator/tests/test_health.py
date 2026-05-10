@@ -187,20 +187,17 @@ async def test_demographics_keys(tmp_path: Path):
 
 # ── Phase 5 session 5 — /api/config endpoint ──────────────────────────────
 
-import importlib
-import os
-
 
 @pytest.mark.asyncio
 async def test_config_endpoint_emits_qwen_labels_under_anthropic(monkeypatch):
     """Even with LLM_PROVIDER=anthropic the labels surface the Qwen
     hackathon target stack — pipeline labels are demo identity, not a
     diagnostic of what's actually running locally."""
-    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
-    from orchestrator import config as cfg_mod
-    importlib.reload(cfg_mod)
+    from orchestrator.config import settings
+    monkeypatch.setattr(settings, "llm_provider", "anthropic")
+    monkeypatch.setattr(settings, "vllm_agent_model", "Qwen/Qwen3.5-9B")
+    monkeypatch.setattr(settings, "vllm_orchestrator_model", "Qwen/Qwen3.5-27B")
     from orchestrator.api import health as health_mod
-    importlib.reload(health_mod)
 
     app = FastAPI()
     app.include_router(health_mod.router, prefix="/api")
@@ -217,13 +214,11 @@ async def test_config_endpoint_emits_qwen_labels_under_anthropic(monkeypatch):
 @pytest.mark.asyncio
 async def test_config_endpoint_returns_qwen_labels_under_vllm(monkeypatch):
     """LLM_PROVIDER=vllm surfaces the configured Qwen model names."""
-    monkeypatch.setenv("LLM_PROVIDER", "vllm")
-    monkeypatch.setenv("VLLM_AGENT_MODEL", "Qwen/Qwen3.5-9B")
-    monkeypatch.setenv("VLLM_ORCHESTRATOR_MODEL", "Qwen/Qwen3.5-27B")
-    from orchestrator import config as cfg_mod
-    importlib.reload(cfg_mod)
+    from orchestrator.config import settings
+    monkeypatch.setattr(settings, "llm_provider", "vllm")
+    monkeypatch.setattr(settings, "vllm_agent_model", "Qwen/Qwen3.5-9B")
+    monkeypatch.setattr(settings, "vllm_orchestrator_model", "Qwen/Qwen3.5-27B")
     from orchestrator.api import health as health_mod
-    importlib.reload(health_mod)
 
     app = FastAPI()
     app.include_router(health_mod.router, prefix="/api")
@@ -236,10 +231,3 @@ async def test_config_endpoint_returns_qwen_labels_under_vllm(monkeypatch):
     assert body["agent_model"]["label"] == "Qwen3.5-9B"
     assert body["orchestrator_model"]["label"] == "Qwen3.5-27B"
     assert body["agent_model"]["full_id"] == "Qwen/Qwen3.5-9B"
-
-    # restore default for downstream tests
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
-    monkeypatch.delenv("VLLM_AGENT_MODEL", raising=False)
-    monkeypatch.delenv("VLLM_ORCHESTRATOR_MODEL", raising=False)
-    importlib.reload(cfg_mod)
-    importlib.reload(health_mod)
