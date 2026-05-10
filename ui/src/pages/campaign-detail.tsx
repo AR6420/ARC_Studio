@@ -441,7 +441,7 @@ function SimulationTabContent({
   const metrics = scopedIteration?.mirofish_metrics ?? null;
   const trajectory = metrics?.sentiment_trajectory ?? null;
   const completeness = scopedIteration?.data_completeness ?? null;
-  const agents: AgentData[] = [];
+  const agents: AgentData[] = (metrics?.agent_roster ?? []).map((a) => a as AgentData);
 
   return (
     <div className="flex flex-col gap-8">

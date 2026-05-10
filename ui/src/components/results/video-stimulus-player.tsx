@@ -109,6 +109,14 @@ export function VideoStimulusPlayer({
   const effectiveDuration = videoDuration > 0 ? videoDuration : durationFromData;
   const effectiveVideoSrc = videoSrc || (effectiveUseMock ? MOCK_VIDEO_FALLBACK_URL : null);
 
+  // TRIBE pads its per-window timeline past the actual video length
+  // (audio padding + ceil(duration / TR)). Clip points whose t exceeds
+  // the true video duration so the chart x-axis matches the player.
+  const clippedTimelineData = useMemo<TimelinePoint[]>(() => {
+    if (effectiveDuration <= 0) return timelineData;
+    return timelineData.filter((p) => p.t <= effectiveDuration + 0.001);
+  }, [timelineData, effectiveDuration]);
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-4 border-b border-border pb-2">
@@ -162,7 +170,7 @@ export function VideoStimulusPlayer({
         </div>
 
         <TimelineChart
-          data={timelineData}
+          data={clippedTimelineData}
           durationSeconds={effectiveDuration}
           currentTimeSeconds={currentTime}
         />

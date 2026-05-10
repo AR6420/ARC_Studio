@@ -184,6 +184,11 @@ def compute_metrics(raw: dict[str, Any], agent_count: int) -> dict[str, Any]:
         "coalition_formation": coalition_formation,
         "influence_concentration": round(influence_concentration, 3),
         "platform_divergence": round(platform_divergence, 3),
+        # Per-agent roster passthrough so UI Simulation tab can render
+        # individual agent cards. Cap at 100 to keep payload bounded.
+        "agent_roster": [
+            a for a in agent_stats[:100] if isinstance(a, dict)
+        ] if agent_stats else None,
     }
 
 

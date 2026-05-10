@@ -93,7 +93,7 @@ async def test_simulate_variants_success(mock_mirofish_client: AsyncMock):
     expected_keys = {
         "organic_shares", "sentiment_trajectory", "counter_narrative_count",
         "peak_virality_cycle", "sentiment_drift", "coalition_formation",
-        "influence_concentration", "platform_divergence",
+        "influence_concentration", "platform_divergence", "agent_roster",
     }
     for r in results:
         assert set(r.keys()) == expected_keys
@@ -349,7 +349,7 @@ def test_compute_metrics_empty_data():
     expected_keys = {
         "organic_shares", "sentiment_trajectory", "counter_narrative_count",
         "peak_virality_cycle", "sentiment_drift", "coalition_formation",
-        "influence_concentration", "platform_divergence",
+        "influence_concentration", "platform_divergence", "agent_roster",
     }
     assert set(metrics.keys()) == expected_keys
     assert metrics["organic_shares"] == 0

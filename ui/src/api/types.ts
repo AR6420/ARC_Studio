@@ -83,6 +83,7 @@ export interface MirofishMetrics {
   coalition_formation: number;
   influence_concentration: number;
   platform_divergence: number;
+  agent_roster?: Array<Record<string, unknown>> | null;
 }
 
 export interface CompositeScores {

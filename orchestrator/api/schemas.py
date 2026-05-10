@@ -118,6 +118,10 @@ class MirofishMetrics(BaseModel):
     coalition_formation: int  # number of distinct coalitions
     influence_concentration: float  # gini coefficient 0-1
     platform_divergence: float  # divergence score 0-1
+    # Phase 5 session 7: per-agent roster surfaced from MiroFish so the
+    # UI Simulation tab can show individual agents rather than only
+    # aggregate metrics. Optional — older campaigns won't have it.
+    agent_roster: list[dict[str, Any]] | None = None
 
 
 class CompositeScores(BaseModel):
