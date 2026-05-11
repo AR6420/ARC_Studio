@@ -4,7 +4,6 @@
 
 > **AMD Developer Hackathon 2026 submission.**
 > Landing page + demo video: **https://arc-studio-three.vercel.app/**
-> lablab.ai project: **[TBD — add lablab project URL]**
 
 ![A.R.C Studio architecture](assets/architecture.png)
 
