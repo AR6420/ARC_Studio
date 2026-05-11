@@ -9,6 +9,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
+
+    <!-- PostHog analytics — pageviews, sessions, scroll depth, autocapture.
+         Custom events wired in /analytics.js. No PII, no session recording,
+         no heatmaps. -->
+    <script>
+      !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+      posthog.init('phc_xfZ6vT2T7yzK63uL4dtBr9qmHFvZ3LaSWdf3ZLw5U6Wp', {
+        api_host: 'https://us.i.posthog.com',
+        person_profiles: 'always',
+        autocapture: true,
+        capture_pageview: true,
+        capture_pageleave: true,
+        capture_performance: true,
+        scroll_depth_milestones: [25, 50, 75, 100],
+        disable_session_recording: true,
+        enable_heatmaps: false,
+        loaded: function (ph) {
+          // lablab.ai referrer detection — flag likely-judge visits
+          try {
+            var ref = document.referrer || '';
+            if (ref && /(^|\.)lablab\.ai/i.test(new URL(ref).hostname)) {
+              ph.capture('lablab_referrer', { referrer: ref });
+              ph.setPersonProperties({ from_lablab: true, lablab_referrer: ref });
+            }
+          } catch (_) {}
+        },
+      });
+    </script>
   </head>
   <body>
     <header class="topbar">
@@ -21,7 +49,7 @@
           <a href="#what">What it does</a>
           <a href="#amd">Built on AMD</a>
           <a href="#repro">Reproduce</a>
-          <a class="nav-cta" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
+          <a class="nav-cta" data-track-github="topbar" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
         </nav>
       </div>
     </header>
@@ -38,7 +66,7 @@
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="#demo">Watch demo</a>
-          <a class="btn btn-secondary" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">View on GitHub</a>
+          <a class="btn btn-secondary" data-track-github="hero" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">View on GitHub</a>
         </div>
         <dl class="hero-stats">
           <div><dt>Hardware</dt><dd>1× MI300X · 192 GB</dd></div>
@@ -54,7 +82,7 @@
           <h2>Live MI300X run</h2>
         </div>
         <div class="video-frame">
-          <video controls preload="metadata" playsinline poster="">
+          <video id="demo-video" controls preload="metadata" playsinline poster="">
             <source src="./demo.mp4" type="video/mp4" />
             Your browser does not support HTML5 video.
           </video>
@@ -129,7 +157,7 @@
             <span class="step-n">2</span>
             <div>
               <h4>Clone the branch</h4>
-              <p><code>git clone --branch competition/amd-hackathon --recursive https://github.com/AR6420/ARC_Studio.git</code></p>
+              <p><code id="repo-clone">git clone --branch competition/amd-hackathon --recursive https://github.com/AR6420/ARC_Studio.git</code></p>
             </div>
           </li>
           <li>
@@ -140,7 +168,7 @@
             </div>
           </li>
         </ol>
-        <a class="btn btn-secondary" href="https://github.com/AR6420/ARC_Studio/blob/competition/amd-hackathon/docs/competition/04_phase3_runbook.md" target="_blank" rel="noopener">View runbook</a>
+        <a class="btn btn-secondary" data-track-runbook="04_phase3_runbook.md" href="https://github.com/AR6420/ARC_Studio/blob/competition/amd-hackathon/docs/competition/04_phase3_runbook.md" target="_blank" rel="noopener">View runbook</a>
       </section>
     </main>
 
@@ -148,9 +176,65 @@
       <div class="container footer-row">
         <p class="foot-line">Adarsh Balanolla · AMD Developer Hackathon 2026</p>
         <p class="foot-links">
-          <a href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
+          <a data-track-github="footer" href="https://github.com/AR6420/ARC_Studio/tree/competition/amd-hackathon" target="_blank" rel="noopener">GitHub</a>
         </p>
       </div>
+      <p class="container privacy-note">Page analytics via PostHog. No personal data collected.</p>
     </footer>
+
+    <!-- Custom event wiring: demo_video_played, github_clicked,
+         runbook_clicked, repo_url_copied. Fires alongside PostHog
+         autocapture; both sources are useful (autocapture catches
+         everything; named events are easier to chart). -->
+    <script>
+      (function () {
+        var loadStart = Date.now();
+
+        // 1) demo_video_played — fires once on first play
+        var v = document.getElementById('demo-video');
+        if (v) {
+          var played = false;
+          v.addEventListener('play', function () {
+            if (played) return;
+            played = true;
+            window.posthog && posthog.capture('demo_video_played', {
+              source: 'self_hosted_mp4',
+              src: v.currentSrc,
+              time_to_play_ms: Date.now() - loadStart,
+            });
+          });
+        }
+
+        // 2) github_clicked — every <a data-track-github="...">
+        document.querySelectorAll('[data-track-github]').forEach(function (el) {
+          el.addEventListener('click', function () {
+            window.posthog && posthog.capture('github_clicked', {
+              location: el.getAttribute('data-track-github'),
+              target_url: el.href,
+            });
+          });
+        });
+
+        // 3) runbook_clicked — every <a data-track-runbook="filename">
+        document.querySelectorAll('[data-track-runbook]').forEach(function (el) {
+          el.addEventListener('click', function () {
+            window.posthog && posthog.capture('runbook_clicked', {
+              runbook: el.getAttribute('data-track-runbook'),
+              target_url: el.href,
+            });
+          });
+        });
+
+        // 4) repo_url_copied — clipboard copy from #repo-clone
+        var clone = document.getElementById('repo-clone');
+        if (clone) {
+          clone.addEventListener('copy', function () {
+            window.posthog && posthog.capture('repo_url_copied', {
+              text: clone.textContent.trim().slice(0, 200),
+            });
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

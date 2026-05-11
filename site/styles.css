@@ -385,3 +385,12 @@ section { padding: 4.5rem 1.5rem; }
 }
 .foot-links a { color: var(--fg-muted); }
 .foot-links a:hover { color: var(--primary); }
+
+.privacy-note {
+  margin: 1.4rem auto 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+  text-align: center;
+}
