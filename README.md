@@ -3,8 +3,8 @@
 **Audience Response Cortex Studio** — predict how content will land, neurally and socially, before you publish. Then iterate on it. Running on a single AMD MI300X.
 
 > **AMD Developer Hackathon 2026 submission.**
+> Landing page + demo video: **https://arc-studio-three.vercel.app/**
 > lablab.ai project: **[TBD — add lablab project URL]**
-> Demo video: **[TBD — add hosted video URL]**
 
 ![A.R.C Studio architecture](assets/architecture.png)
 
