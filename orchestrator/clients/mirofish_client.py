@@ -183,6 +183,26 @@ class MirofishClient:
         """
         async with self._refresh_lock:
             try:
+                # Coalesce concurrent 401s: if another caller already refreshed
+                # while we waited for the lock, the token is now valid — skip the
+                # expensive re-refresh + container restart and return success.
+                try:
+                    async with httpx.AsyncClient() as pre_client:
+                        pre = await pre_client.post(
+                            f"{self._litellm_url}/v1/chat/completions",
+                            json={
+                                "model": "claude-haiku-4-5-20251001",
+                                "messages": [{"role": "user", "content": "hi"}],
+                                "max_tokens": 1,
+                            },
+                            timeout=15.0,
+                        )
+                    if pre.status_code == 200:
+                        logger.info("LiteLLM token already valid (refreshed by a concurrent caller)")
+                        return True
+                except Exception:
+                    pass  # fall through to a real refresh
+
                 # Import and call the refresh function from orchestrator, off-loop.
                 from orchestrator.api import _refresh_litellm_api_key
                 loop = asyncio.get_running_loop()
