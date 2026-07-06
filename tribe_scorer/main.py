@@ -310,6 +310,15 @@ class AudioScoreResponse(BaseModel):
     )
     timeline: dict[str, list[float]] | None = Field(default=None)
     tr_seconds: float | None = Field(default=None)
+    # Whisper transcript of the audio, mirroring VideoScoreResponse. The
+    # orchestrator grounds variant generation in this; audio campaigns
+    # previously got no transcript field at all, so audio grounding silently
+    # never happened despite the code path treating audio and video alike.
+    transcript: str | None = Field(
+        default=None,
+        description="Whisper-large-v3 transcript of the audio. "
+                    "Null when inference fell back to pseudo.",
+    )
 
 
 class VideoScoreRequest(BaseModel):
@@ -500,6 +509,17 @@ def _run_single_score(text: str) -> ScoreResponse:
                 max_words_per_chunk=settings.max_words_per_chunk,
                 per_chunk_timeout=settings.per_chunk_timeout,
             )
+        except torch.cuda.OutOfMemoryError as exc:
+            # OOM is a RuntimeError subclass — catch it FIRST and surface a
+            # retryable 503 (not a terminal 422 that the client never retries),
+            # after freeing the fragmented allocator so the next request starts
+            # clean. VRAM exhaustion under contention is transient, not a bad input.
+            torch.cuda.empty_cache()
+            logger.warning("CUDA OOM during text inference: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="GPU out of memory — retry shortly.",
+            )
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -538,20 +558,28 @@ def _run_batch_score(texts: list[str]) -> list[ScoreResponse]:
                     max_words_per_chunk=settings.max_words_per_chunk,
                     per_chunk_timeout=settings.per_chunk_timeout,
                 )
-            except (ValueError, RuntimeError) as exc:
+            except torch.cuda.OutOfMemoryError as exc:
+                # OOM affects the whole GPU, not one text — free and fail the
+                # batch as retryable (503) so the client retries the batch.
+                torch.cuda.empty_cache()
+                logger.warning("CUDA OOM during batch inference: %s", exc)
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Inference failed for one of the texts: {exc}",
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="GPU out of memory — retry shortly.",
                 )
             except Exception as exc:
-                logger.error(
-                    "Unexpected batch inference error: %s: %s",
+                # One pathological text must NOT sink the whole batch (previously
+                # any single failure aborted /api/score/batch, nulling every
+                # healthy variant's scores). Substitute a pseudo activation for
+                # just this text and continue — the other variants still get
+                # real, batch-normalized scores.
+                logger.warning(
+                    "Batch text scoring failed (%s: %s); using pseudo-score for this text",
                     type(exc).__name__, exc,
                 )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Internal inference error — check server logs",
-                )
+                from scoring.text_scorer import _pseudo_score_from_text
+                vertex_activations = _pseudo_score_from_text(text)
+                is_pseudo = True
         raw_activations = extract_roi_activations(vertex_activations)
         elapsed_ms = (time.perf_counter() - t_start) * 1000.0
 
@@ -605,6 +633,7 @@ def _run_single_video_score(
     peak_vram_mb = 0.0
     preds_per_window = None
 
+    transcript: str | None = None
     with _inference_lock:
         try:
             vertex_activations, is_pseudo, peak_vram_mb, preds_per_window = (
@@ -614,6 +643,17 @@ def _run_single_video_score(
                     timeout=settings.video_inference_timeout_seconds,
                 )
             )
+            # Read the Whisper transcript WHILE STILL HOLDING the lock. The
+            # transcript lives on a module global (_LAST_TRANSCRIPT) overwritten
+            # by every inference; reading it after releasing the lock let a
+            # concurrent request's inference clobber it first, returning another
+            # user's transcript as this response's.
+            if not is_pseudo:
+                try:
+                    from scoring.whisper_hf import get_last_transcript
+                    transcript = get_last_transcript()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Could not read whisper transcript (%s); omitting", exc)
         except Exception as exc:
             logger.exception(
                 "Video inference raised %s — returning pseudo-score response.",
@@ -625,6 +665,7 @@ def _run_single_video_score(
             is_pseudo = True
             pseudo_reason = f"{type(exc).__name__}: {exc}"
             peak_vram_mb = _read_peak_vram_mb()
+            transcript = None
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     raw_activations = extract_roi_activations(vertex_activations)
@@ -637,16 +678,6 @@ def _run_single_video_score(
             tr_seconds = TRIBE_TR_SECONDS
         except ValueError as exc:
             logger.warning("Could not build video timeline (%s); omitting field", exc)
-    # Surface Whisper transcript captured by the patched ExtractWordsFromAudio.
-    # Null when inference pseudo-fell-back before whisper ran. Safe under the
-    # _inference_lock — only one inference at a time touches the global.
-    transcript: str | None = None
-    if not is_pseudo:
-        try:
-            from scoring.whisper_hf import get_last_transcript
-            transcript = get_last_transcript()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Could not read whisper transcript (%s); omitting", exc)
     return VideoScoreResponse(
         attention_capture=scores["attention_capture"],
         emotional_resonance=scores["emotional_resonance"],
@@ -683,6 +714,7 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
     is_pseudo = False
     pseudo_reason: str | None = None
     preds_per_window = None
+    transcript: str | None = None
 
     with _inference_lock:
         try:
@@ -691,6 +723,14 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
                 model,
                 timeout=settings.audio_inference_timeout_seconds,
             )
+            # Capture the Whisper transcript under the lock (see the video path)
+            # so audio campaigns get variant-generation grounding too.
+            if not is_pseudo:
+                try:
+                    from scoring.whisper_hf import get_last_transcript
+                    transcript = get_last_transcript()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Could not read whisper transcript (%s); omitting", exc)
         except Exception as exc:
             # Contract 3: surface mid-inference failures as 200 + is_pseudo_score=True.
             logger.exception(
@@ -702,6 +742,7 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
             vertex_activations = _pseudo_score_from_audio(audio_path)
             is_pseudo = True
             pseudo_reason = f"{type(exc).__name__}: {exc}"
+            transcript = None
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000.0
     raw_activations = extract_roi_activations(vertex_activations)
@@ -728,6 +769,7 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
         pseudo_reason=pseudo_reason,
         timeline=timeline,
         tr_seconds=tr_seconds,
+        transcript=transcript,
     )
 
 

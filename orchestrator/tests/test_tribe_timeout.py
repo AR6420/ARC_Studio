@@ -8,20 +8,16 @@ Covers:
 - Orchestrator-side chunk-aware timeout calculation
 """
 
-import math
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-from orchestrator.clients.tribe_client import (
-    CHUNK_SIZE_WORDS,
-    PER_CHUNK_TIMEOUT_BUDGET,
-    SCORE_TIMEOUT_FLOOR,
-    TIMEOUT_OVERHEAD,
-    _timeout_for_batch,
-    _timeout_for_text,
-)
+# NOTE: the orchestrator-side chunk-aware timeout helpers
+# (_timeout_for_text/_timeout_for_batch and their constants) were removed when
+# TribeClient moved to a flat SCORE_TIMEOUT; the TestTimeoutCalculation class
+# that exercised them was dropped with them. The chunking tests below still
+# cover tribe_scorer.scoring.text_scorer (guarded by @needs_tribe).
 
 # Import TRIBE scorer chunking logic.  These live in a separate venv
 # (Python 3.11), so we import carefully and skip if unavailable.
@@ -267,53 +263,3 @@ class TestScoreTextChunking:
             score_text("   \n  ", model, max_words=250, per_chunk_timeout=60)
 
 
-# ---------------------------------------------------------------------------
-# Orchestrator timeout calculation tests
-# ---------------------------------------------------------------------------
-
-
-class TestTimeoutCalculation:
-    """Tests for chunk-aware HTTP timeout in tribe_client.py."""
-
-    def test_short_text_gets_floor_timeout(self):
-        """A 100-word text (1 chunk) gets at least the floor timeout."""
-        text = " ".join(["word"] * 100)
-        timeout = _timeout_for_text(text)
-        assert timeout >= SCORE_TIMEOUT_FLOOR
-
-    def test_long_text_scales_with_chunks(self):
-        """A 600-word text (3 chunks at 250) gets a larger timeout."""
-        text = " ".join(["word"] * 600)
-        timeout = _timeout_for_text(text)
-        expected_chunks = math.ceil(600 / CHUNK_SIZE_WORDS)
-        expected = expected_chunks * PER_CHUNK_TIMEOUT_BUDGET + TIMEOUT_OVERHEAD
-        # Should be at least the chunk-based budget (may be higher due to floor).
-        assert timeout >= expected
-
-    def test_very_long_text_exceeds_floor(self):
-        """A 2000-word text produces a timeout above the floor."""
-        text = " ".join(["word"] * 2000)
-        timeout = _timeout_for_text(text)
-        expected_chunks = math.ceil(2000 / CHUNK_SIZE_WORDS)
-        chunk_budget = expected_chunks * PER_CHUNK_TIMEOUT_BUDGET + TIMEOUT_OVERHEAD
-        assert timeout == chunk_budget
-        assert timeout > SCORE_TIMEOUT_FLOOR
-
-    def test_batch_timeout_sums_per_text(self):
-        """Batch timeout is the sum of individual text timeouts."""
-        texts = [
-            " ".join(["word"] * 100),
-            " ".join(["word"] * 500),
-        ]
-        batch_t = _timeout_for_batch(texts)
-        individual_sum = sum(_timeout_for_text(t) for t in texts)
-        assert batch_t == individual_sum
-
-    def test_empty_batch(self):
-        """Empty batch returns zero timeout."""
-        assert _timeout_for_batch([]) == 0.0
-
-    def test_single_word_text(self):
-        """A single-word text still gets a valid timeout."""
-        timeout = _timeout_for_text("hello")
-        assert timeout >= SCORE_TIMEOUT_FLOOR
