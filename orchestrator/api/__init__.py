@@ -157,7 +157,15 @@ async def lifespan(app: FastAPI):
     db = Database(str(settings.database_path_absolute))
     await db.connect()
 
-    tribe_http = httpx.AsyncClient(base_url=settings.tribe_scorer_url, timeout=300.0)
+    # Client-level default timeout for TRIBE is set to the scoring budget so a
+    # call that forgets to pass an explicit per-request timeout fails SAFE (too
+    # patient) rather than being killed mid-inference at 300s. TribeClient still
+    # overrides per request; this only governs an accidentally-un-timed call.
+    from orchestrator.clients.tribe_client import SCORE_TIMEOUT
+
+    tribe_http = httpx.AsyncClient(
+        base_url=settings.tribe_scorer_url, timeout=SCORE_TIMEOUT
+    )
     mirofish_http = httpx.AsyncClient(base_url=settings.mirofish_url, timeout=300.0)
 
     app.state.db = db
@@ -202,6 +210,10 @@ async def lifespan(app: FastAPI):
     # Initialize background task tracking and progress queues
     app.state.running_tasks = {}
     app.state.progress_queues = {}
+    # Admission-control counter: number of campaigns currently in flight. Kept
+    # separate from running_tasks because the slot is reserved before the task
+    # is registered (see create_campaign) to make the cap race-free.
+    app.state.inflight_campaigns = 0
 
     logger.info(
         "Orchestrator started — DB at %s, TRIBE at %s, MiroFish at %s",
@@ -212,11 +224,21 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown -- cancel any running campaign tasks first
+    # Shutdown -- cancel any running campaign tasks first, then WAIT for them to
+    # actually unwind before tearing down the shared httpx clients and DB they
+    # may be mid-await on. task.cancel() only schedules a CancelledError at the
+    # next await point; closing resources immediately after raced the tasks onto
+    # a closed client/connection.
+    import asyncio as _asyncio
+
+    pending = [t for t in app.state.running_tasks.values() if not t.done()]
     for task_id, task in app.state.running_tasks.items():
         if not task.done():
             task.cancel()
             logger.info("Cancelled running task for campaign %s", task_id)
+    if pending:
+        # return_exceptions=True so a task raising on unwind can't abort teardown.
+        await _asyncio.gather(*pending, return_exceptions=True)
     app.state.running_tasks.clear()
     app.state.progress_queues.clear()
 
@@ -228,6 +250,16 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Factory function to create the FastAPI app."""
+    # Configure logging on the uvicorn run path. Uvicorn's default LOGGING_CONFIG
+    # only touches its own loggers and leaves root at WARNING with no handler, so
+    # every orchestrator.* logger.info() was silently dropped — no campaign trace
+    # to reconstruct failures from. basicConfig is a no-op if the root logger is
+    # already configured (e.g. the CLI path), so this is safe to call here.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s: %(message)s",
+    )
+
     from orchestrator.api.agents import router as agents_router
     from orchestrator.api.campaigns import router as campaigns_router
     from orchestrator.api.health import router as health_router
@@ -241,10 +273,12 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS for Vite dev server (per ORCH-01)
+    # CORS — origins are env-driven (settings.cors_allowed_origins) so a
+    # cloud/LAN UI deployment doesn't require editing this literal. Defaults to
+    # the Vite dev origin for local use.
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=settings.cors_allowed_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Accept"],

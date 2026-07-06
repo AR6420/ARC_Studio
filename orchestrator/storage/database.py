@@ -66,6 +66,16 @@ CREATE TABLE IF NOT EXISTS reports (
     mass_psychology_technical TEXT,
     created_at TEXT NOT NULL
 );
+
+-- Hot-path indexes. SQLite does NOT auto-index FK columns, so the per-poll
+-- get_iterations()/_get_analyses() WHERE campaign_id = ? and the list_campaigns
+-- correlated subquery were full table scans whose cost grew with GLOBAL row
+-- count, serialized behind the single shared connection. status/created_at back
+-- cleanup_orphaned_campaigns and the ORDER BY created_at list.
+CREATE INDEX IF NOT EXISTS idx_iterations_campaign_id ON iterations(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_analyses_campaign_id ON analyses(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_campaigns_created_at ON campaigns(created_at);
 """
 
 
@@ -91,6 +101,11 @@ class Database:
         self._conn.row_factory = aiosqlite.Row
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.execute("PRAGMA foreign_keys=ON")
+        # Wait up to 10s for a lock instead of raising "database is locked"
+        # immediately — protects against write contention (WAL still has one
+        # writer) from a second connection (cli.py opens its own) or bursty
+        # concurrent campaigns.
+        await self._conn.execute("PRAGMA busy_timeout=10000")
         await self._conn.executescript(SCHEMA_SQL)
         await self._migrate_schema()
         await self._conn.commit()

@@ -22,6 +22,7 @@ Design choices:
 import asyncio
 import json
 import logging
+import random
 import re
 from typing import Any
 
@@ -208,11 +209,14 @@ class OpenAICompatClient:
                 last_exc = exc
                 status = getattr(exc, "status_code", None)
                 if status in RETRYABLE_STATUS_CODES and attempt < MAX_RETRIES:
-                    wait = (
+                    # Jitter (×[0.5,1.5)) so concurrent callers sharing one vLLM
+                    # instance don't retry in lock-step (thundering herd).
+                    base = (
                         RATE_LIMIT_BACKOFF * (1.5 ** attempt)
                         if status == 429
                         else BACKOFF_BASE * (2 ** attempt)
                     )
+                    wait = base * (0.5 + random.random())
                     logger.warning(
                         "vLLM endpoint returned %s on attempt %d/%d; retrying in %.1fs (model=%s)",
                         status, attempt + 1, MAX_RETRIES, wait, model,
@@ -228,7 +232,7 @@ class OpenAICompatClient:
             except APIConnectionError as exc:
                 last_exc = exc
                 if attempt < MAX_RETRIES:
-                    wait = BACKOFF_BASE * (2 ** attempt)
+                    wait = BACKOFF_BASE * (2 ** attempt) * (0.5 + random.random())
                     logger.warning(
                         "Connection error on attempt %d/%d; retrying in %.1fs: %s",
                         attempt + 1, MAX_RETRIES, wait, exc,

@@ -65,17 +65,53 @@ class CampaignCreateRequest(BaseModel):
             )
         return v
 
+    @field_validator("demographic")
+    @classmethod
+    def _demographic_must_be_known(cls, v: str) -> str:
+        """Reject unknown demographic keys at REQUEST time (422), before the
+        pipeline burns GPU/LLM budget only to hit a KeyError at the composite
+        step. Accepts any preset key or the literal 'custom'."""
+        from orchestrator.prompts.demographic_profiles import list_profiles
+
+        valid = {"custom"} | {p["key"] for p in list_profiles()}
+        if v not in valid:
+            raise ValueError(
+                f"Unknown demographic {v!r}. Must be 'custom' or one of: "
+                f"{sorted(valid - {'custom'})}"
+            )
+        return v
+
     @field_validator("media_path")
     @classmethod
     def _media_path_required_for_media(
         cls, v: str | None, info: ValidationInfo
     ) -> str | None:
-        """media_path is required when media_type is 'audio' or 'video'."""
+        """media_path is required when media_type is 'audio' or 'video', and must
+        resolve INSIDE the sanctioned upload directory. Without the containment
+        check a client could point media_path at any readable file on the TRIBE
+        host and have Whisper transcribe it back — an arbitrary-file-disclosure
+        oracle (SEC-03 / API-03)."""
         media_type = info.data.get("media_type", "text")
-        if media_type in ("audio", "video") and not v:
-            raise ValueError(
-                f"media_path is required when media_type='{media_type}'"
-            )
+        if media_type in ("audio", "video"):
+            if not v:
+                raise ValueError(
+                    f"media_path is required when media_type='{media_type}'"
+                )
+            from pathlib import Path
+
+            from orchestrator.config import settings
+
+            upload_dir = settings.audio_upload_dir_absolute.resolve()
+            try:
+                resolved = Path(v).resolve()
+                contained = resolved.is_relative_to(upload_dir)
+            except (OSError, ValueError):
+                contained = False
+            if not contained:
+                raise ValueError(
+                    "media_path must be a file previously returned by "
+                    "POST /api/campaigns/upload (inside the upload directory)"
+                )
         return v
 
 

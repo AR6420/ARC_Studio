@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import re
 from pathlib import Path
 from typing import Any
@@ -182,7 +183,12 @@ class ClaudeClient:
         last_exception: Exception | None = None
         credential_refreshed = False
 
-        for attempt in range(MAX_RETRIES + 1):
+        # Manual attempt counter (not a for-range) so the one-shot 401 credential
+        # refresh does NOT consume one of the MAX_RETRIES backoff slots — the old
+        # `continue` advanced the loop index despite the comment claiming it
+        # wouldn't, leaving genuine transient errors one retry short.
+        attempt = 0
+        while attempt <= MAX_RETRIES:
             try:
                 response = await self._client.messages.create(
                     model=model,
@@ -202,34 +208,41 @@ class ClaudeClient:
                 last_exception = exc
                 status = exc.status_code
 
-                # Handle credential rotation — refresh and retry once
+                # Handle credential rotation — refresh and retry once, WITHOUT
+                # counting it against the retry budget.
                 if status == 401 and not credential_refreshed:
                     logger.warning(
                         "Received 401 from Anthropic API; refreshing credentials"
                     )
                     self._refresh_client()
                     credential_refreshed = True
-                    continue  # Don't count this as a backoff attempt
+                    continue  # Does not increment `attempt`.
 
                 # Handle retryable errors with backoff
                 if status in RETRYABLE_STATUS_CODES and attempt < MAX_RETRIES:
                     # Use longer backoff for rate limits (429)
                     if status == 429:
-                        # Check for Retry-After header
+                        # Check for Retry-After header (authoritative — no jitter)
                         retry_after = getattr(exc, 'response', None)
                         if retry_after and hasattr(retry_after, 'headers'):
                             retry_after = retry_after.headers.get('retry-after')
                         else:
                             retry_after = None
-                        wait = float(retry_after) if retry_after else RATE_LIMIT_BACKOFF * (1.5 ** attempt)
+                        if retry_after:
+                            wait = float(retry_after)
+                        else:
+                            # Jitter (×[0.5,1.5)) so 100 concurrent callers sharing
+                            # one rate limit don't retry in lock-step (thundering herd).
+                            wait = RATE_LIMIT_BACKOFF * (1.5 ** attempt) * (0.5 + random.random())
                     else:
-                        wait = BACKOFF_BASE * (2 ** attempt)
+                        wait = BACKOFF_BASE * (2 ** attempt) * (0.5 + random.random())
                     logger.warning(
                         "Anthropic API returned %d on attempt %d/%d; "
                         "retrying in %.1fs (model=%s)",
                         status, attempt + 1, MAX_RETRIES, wait, model,
                     )
                     await asyncio.sleep(wait)
+                    attempt += 1
                     continue
 
                 # Non-retryable or exhausted retries
@@ -242,12 +255,13 @@ class ClaudeClient:
             except APIConnectionError as exc:
                 last_exception = exc
                 if attempt < MAX_RETRIES:
-                    wait = BACKOFF_BASE * (2 ** attempt)
+                    wait = BACKOFF_BASE * (2 ** attempt) * (0.5 + random.random())
                     logger.warning(
                         "Connection error on attempt %d/%d; retrying in %.1fs: %s",
                         attempt + 1, MAX_RETRIES, wait, exc,
                     )
                     await asyncio.sleep(wait)
+                    attempt += 1
                     continue
                 logger.error("Anthropic API connection failed after %d attempts", attempt + 1)
                 raise

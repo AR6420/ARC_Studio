@@ -64,16 +64,33 @@ async def test_estimate_endpoint_default(progress_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_estimate_endpoint_custom(progress_client: AsyncClient):
-    """POST /api/estimate with 80 agents, 2 iterations -> 80.0 minutes."""
+    """POST /api/estimate with 80 agents, 2 iterations.
+
+    Estimate scales with agent_count now (2 variants * 2 iters * 20 min *
+    80/40 agents = 160.0) — previously agent_count was silently ignored, so
+    20-agent and 200-agent campaigns got identical ETAs (M-35)."""
     response = await progress_client.post(
         "/api/estimate",
         json={"agent_count": 80, "max_iterations": 2},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["estimated_minutes"] == 80.0
+    assert data["estimated_minutes"] == 160.0
     assert data["agent_count"] == 80
     assert data["max_iterations"] == 2
+
+
+@pytest.mark.asyncio
+async def test_estimate_scales_with_agent_count(progress_client: AsyncClient):
+    """A 200-agent campaign must estimate longer than a 20-agent one (regression
+    for the agent-count-ignored bug)."""
+    small = (await progress_client.post(
+        "/api/estimate", json={"agent_count": 20, "max_iterations": 2},
+    )).json()["estimated_minutes"]
+    large = (await progress_client.post(
+        "/api/estimate", json={"agent_count": 200, "max_iterations": 2},
+    )).json()["estimated_minutes"]
+    assert large > small
 
 
 @pytest.mark.asyncio

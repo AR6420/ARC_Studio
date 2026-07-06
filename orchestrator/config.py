@@ -65,8 +65,12 @@ class Settings(BaseSettings):
         description="Base URL for the TRIBE v2 neural scoring service.",
     )
     mirofish_url: str = Field(
-        default="http://localhost:5000",
-        description="Base URL for the MiroFish social simulation service.",
+        default="http://localhost:5001",
+        description=(
+            "Base URL for the MiroFish social simulation service. Port 5001 "
+            "matches what docker-compose serves and FLASK_PORT sets; the old "
+            "5000 default silently made every campaign degrade to TRIBE-only."
+        ),
     )
     litellm_url: str = Field(
         default="http://localhost:4000",
@@ -95,6 +99,25 @@ class Settings(BaseSettings):
     database_path: str = Field(
         default="./data/nexus_sim.db",
         description="Path to the SQLite database file.",
+    )
+    cors_allowed_origins: str = Field(
+        default="http://localhost:5173",
+        description=(
+            "Comma-separated list of allowed CORS origins for the UI. "
+            "Env-driven so a non-localhost (cloud/LAN) UI deployment doesn't "
+            "require a code change. Do NOT set to '*' with credentials."
+        ),
+    )
+    max_concurrent_campaigns: int = Field(
+        default=8,
+        ge=1,
+        le=1000,
+        description=(
+            "Admission-control cap on simultaneously-running auto-started "
+            "campaigns. POST /api/campaigns returns 429 when this many are "
+            "already in flight, instead of unbounded queueing behind the "
+            "single TRIBE GPU lock. Size to what the backing hardware sustains."
+        ),
     )
 
     # ── Audio upload (Phase 2 A.1) ──────────────────────────────────────────────
@@ -258,6 +281,11 @@ class Settings(BaseSettings):
         if p.is_absolute():
             return p
         return (_REPO_ROOT / p).resolve()
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        """Parse the comma-separated CORS origins into a clean list."""
+        return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
 
 
 # Module-level singleton — import this everywhere

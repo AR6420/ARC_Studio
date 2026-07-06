@@ -17,7 +17,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
-from orchestrator.api.progress import get_or_create_queue
+from orchestrator.api.progress import cleanup_queue, get_or_create_queue
 from orchestrator.api.schemas import (
     AudioUploadResponse,
     CampaignCreateRequest,
@@ -356,7 +356,39 @@ async def create_campaign(request: Request, body: CampaignCreateRequest):
     If auto_start=True, launches campaign execution in background.
     """
     store = request.app.state.campaign_store
-    campaign = await store.create_campaign(body)
+
+    reserved = False
+    if body.auto_start:
+        # Admission control: bound how many campaigns run at once. Without this,
+        # 100 concurrent POSTs all return 201 and queue invisibly behind the
+        # single TRIBE GPU lock for hours. Reject with 429 + Retry-After once at
+        # capacity so the client/UI gets an explicit signal instead of a hang.
+        #
+        # Reserve the slot SYNCHRONOUSLY (check + increment with no await in
+        # between) via an integer counter, NOT by counting running_tasks: the
+        # task isn't registered until after `await store.create_campaign(...)`,
+        # so a running_tasks-based count let a whole concurrent burst pass the
+        # check before any task appeared (a TOCTOU the cap is meant to prevent).
+        inflight = getattr(request.app.state, "inflight_campaigns", 0)
+        if inflight >= settings.max_concurrent_campaigns:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"At capacity: {inflight} campaigns already running "
+                    f"(max {settings.max_concurrent_campaigns}). Retry shortly."
+                ),
+                headers={"Retry-After": "30"},
+            )
+        request.app.state.inflight_campaigns = inflight + 1
+        reserved = True
+
+    try:
+        campaign = await store.create_campaign(body)
+    except Exception:
+        # Release the reserved slot if we never got as far as launching.
+        if reserved:
+            request.app.state.inflight_campaigns -= 1
+        raise
 
     if body.auto_start:
         # Per Pitfall 4: Create queue BEFORE launching background task
@@ -392,6 +424,16 @@ async def create_campaign(request: Request, body: CampaignCreateRequest):
                 await queue.put({"event": "campaign_error", "campaign_id": cid, "error": "Campaign failed — check server logs"})
             finally:
                 app.state.running_tasks.pop(cid, None)
+                # Release the admission slot (runs on normal completion AND on
+                # cancellation, e.g. delete-while-running, since this is a
+                # finally). Guard against underflow just in case.
+                app.state.inflight_campaigns = max(
+                    0, getattr(app.state, "inflight_campaigns", 1) - 1
+                )
+                # Authoritative eviction of the progress queue + history buffer
+                # once the campaign is terminal — bounded by campaign lifetime,
+                # not left to a live SSE subscriber that may never connect.
+                cleanup_queue(app, cid)
 
         task = asyncio.create_task(_run_background(request.app, campaign.id))
         request.app.state.running_tasks[campaign.id] = task
@@ -426,6 +468,18 @@ async def delete_campaign(request: Request, campaign_id: str):
     crashed on -- the DB delete still proceeds.
     """
     store = request.app.state.campaign_store
+
+    # Cancel any still-running background task for this campaign BEFORE deleting
+    # the row. Otherwise the task keeps burning TRIBE/MiroFish/LLM budget and its
+    # next save_iteration() INSERTs against a now-deleted FK (IntegrityError,
+    # swallowed) — wasted spend on data nobody can see.
+    running_tasks = getattr(request.app.state, "running_tasks", {})
+    task = running_tasks.get(campaign_id)
+    if task is not None and not task.done():
+        task.cancel()
+        logger.info("Cancelled running task for deleted campaign %s", campaign_id)
+    running_tasks.pop(campaign_id, None)
+    cleanup_queue(request.app, campaign_id)
 
     # Look up media info BEFORE deleting (cascade wipes the row).
     media = await store.get_campaign_media(campaign_id)

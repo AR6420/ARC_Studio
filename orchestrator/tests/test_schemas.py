@@ -38,6 +38,18 @@ class TestCampaignCreateRequest:
         assert req.constraints is None
         assert req.demographic_custom is None
 
+    def test_unknown_demographic_rejected_at_request_time(self):
+        """A typo'd/unknown demographic is rejected on validation (422) rather
+        than burning a full scoring pass and dying with KeyError at the
+        composite step (M-20)."""
+        with pytest.raises(ValidationError, match="Unknown demographic"):
+            CampaignCreateRequest(**self._valid_payload(demographic="tech_proffesionals"))
+
+    def test_custom_demographic_accepted(self):
+        """The literal 'custom' is always valid."""
+        req = CampaignCreateRequest(**self._valid_payload(demographic="custom"))
+        assert req.demographic == "custom"
+
     def test_rejects_short_seed_content(self):
         """seed_content shorter than 100 characters must be rejected."""
         with pytest.raises(ValidationError) as exc_info:
@@ -247,16 +259,32 @@ class TestVideoMediaRequest:
             )
 
     def test_video_request_accepts_empty_seed_with_media_path(self):
+        # media_path must resolve inside the sanctioned upload dir (SEC-03/API-03).
+        from orchestrator.config import settings
+
+        good_path = str(settings.audio_upload_dir_absolute / "clip.mp4")
         req = CampaignCreateRequest(
             media_type="video",
-            media_path="/tmp/clip.mp4",
+            media_path=good_path,
             seed_content="",
             prediction_question="How will this resonate?",
             demographic="tech_professionals",
         )
         assert req.media_type == "video"
-        assert req.media_path == "/tmp/clip.mp4"
+        assert req.media_path == good_path
         assert req.seed_content == ""
+
+    def test_media_path_outside_upload_dir_rejected(self):
+        """Arbitrary absolute paths outside the upload dir are rejected — closes
+        the file-disclosure oracle (SEC-03 / API-03)."""
+        with pytest.raises(ValidationError, match="upload directory"):
+            CampaignCreateRequest(
+                media_type="video",
+                media_path="/tmp/clip.mp4",
+                seed_content="",
+                prediction_question="How will this resonate?",
+                demographic="tech_professionals",
+            )
 
     def test_audio_request_still_requires_media_path(self):
         """Regression guard for the existing audio path."""

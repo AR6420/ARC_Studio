@@ -35,17 +35,21 @@ def get_or_create_queue(app, campaign_id: str) -> asyncio.Queue:
 
 
 def cleanup_queue(app, campaign_id: str) -> None:
-    """Remove queue for a completed/failed campaign. Per Pitfall 2: prevent memory leak.
+    """Evict a campaign's live progress queue AND its history buffer.
 
-    History buffer intentionally NOT cleared here — a second SSE client
-    connecting after the first disconnect (e.g. user refreshes the page
-    just as the run finishes) should still get the full timeline.
-    The campaign-store completion path is responsible for evicting it
-    when the campaign reaches a terminal state and is no longer
-    interesting to display in real-time.
+    Called once from the background-task completion path (authoritative) and,
+    defensively, from the SSE generator's finally ONLY when the campaign is no
+    longer running. It must NOT run on an ordinary mid-run SSE disconnect (tab
+    refresh, network blip) — doing so orphaned the queue while the producer
+    kept writing to it, and every later reconnect 404'd for the rest of the run.
+
+    Evicting the history here too (previously left forever) closes the
+    unbounded progress_history leak: one entry per campaign that never shrank.
     """
     if hasattr(app.state, "progress_queues"):
         app.state.progress_queues.pop(campaign_id, None)
+    if hasattr(app.state, "progress_history"):
+        app.state.progress_history.pop(campaign_id, None)
 
 
 # ── SSE endpoint ──────────────────────────────────────────────────────────
@@ -107,7 +111,15 @@ async def campaign_progress(request: Request, campaign_id: str):
         except asyncio.CancelledError:
             pass
         finally:
-            cleanup_queue(request.app, campaign_id)
+            # Only evict if the campaign is no longer running. A mid-run
+            # disconnect (refresh/blip) must leave the queue intact so a
+            # reconnect keeps working (the background task is still producing
+            # into it). The authoritative eviction happens in the campaign's
+            # background-task completion path.
+            running = getattr(request.app.state, "running_tasks", {})
+            task = running.get(campaign_id)
+            if task is None or task.done():
+                cleanup_queue(request.app, campaign_id)
 
     return EventSourceResponse(event_generator())
 
@@ -121,13 +133,25 @@ BASELINE_MINUTES_PER_VARIANT = 20.0  # ~20 min per variant on RTX 5070 Ti (TRIBE
 async def estimate_time(body: EstimateRequest):
     """
     Return pre-run time estimate for a campaign configuration.
-    Formula: variants_per_iteration * max_iterations * 20 minutes per variant.
+
+    Formula: variants_per_iteration * max_iterations * per-variant minutes,
+    where the per-variant cost scales with agent_count (the MiroFish simulation
+    is the agent-count-sensitive step). The BASELINE_MINUTES_PER_VARIANT figure
+    is calibrated for the 40-agent default; a 200-agent campaign takes
+    materially longer, so agent_count MUST feed the estimate (previously it was
+    accepted and silently ignored, giving identical ETAs for 20 vs 200 agents).
     """
     variants_per_iteration = 2  # B.1 default
-    estimated = variants_per_iteration * body.max_iterations * BASELINE_MINUTES_PER_VARIANT
+    agent_scale = max(body.agent_count, 1) / 40.0  # 40 agents = baseline
+    per_variant = BASELINE_MINUTES_PER_VARIANT * agent_scale
+    estimated = variants_per_iteration * body.max_iterations * per_variant
     return EstimateResponse(
         estimated_minutes=round(estimated, 1),
         agent_count=body.agent_count,
         max_iterations=body.max_iterations,
-        formula=f"{variants_per_iteration} variants * {body.max_iterations} iters * {BASELINE_MINUTES_PER_VARIANT} min = {round(estimated, 1)} min",
+        formula=(
+            f"{variants_per_iteration} variants * {body.max_iterations} iters * "
+            f"{BASELINE_MINUTES_PER_VARIANT} min * (agents {body.agent_count}/40) "
+            f"= {round(estimated, 1)} min"
+        ),
     )

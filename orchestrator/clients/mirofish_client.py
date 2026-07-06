@@ -62,6 +62,9 @@ class MirofishClient:
     ) -> None:
         self._client = client
         self._litellm_url = litellm_url.rstrip("/")
+        # Serialize token refreshes: a 401 seen concurrently by many in-flight
+        # campaigns must trigger ONE refresh, not N sequential blocking ones.
+        self._refresh_lock = asyncio.Lock()
 
     async def health_check(self) -> bool:
         """
@@ -170,42 +173,49 @@ class MirofishClient:
             return False
 
     async def _attempt_token_refresh(self) -> bool:
-        """Refresh the LiteLLM API key from Claude credentials and restart container."""
-        import asyncio
+        """Refresh the LiteLLM API key from Claude credentials and restart container.
 
-        try:
-            # Import and call the refresh function from orchestrator
-            from orchestrator.api import _refresh_litellm_api_key
-            _refresh_litellm_api_key()
-            # Wait for LiteLLM container to restart and become healthy
-            await asyncio.sleep(15)
-            # Re-verify
-            async with httpx.AsyncClient() as check_client:
-                resp = await check_client.post(
-                    f"{self._litellm_url}/v1/chat/completions",
-                    json={
-                        "model": "claude-haiku-4-5-20251001",
-                        "messages": [{"role": "user", "content": "hi"}],
-                        "max_tokens": 1,
-                    },
-                    timeout=15.0,
-                )
-                if resp.status_code == 200:
-                    logger.info("LiteLLM token refreshed successfully")
-                    return True
+        `_refresh_litellm_api_key()` does blocking file I/O + a
+        `subprocess.run(..., timeout=60)`; running it directly in the coroutine
+        froze the whole single-threaded event loop (every other user's request
+        stalled ~75-90s). Offload it to the default thread executor, and hold a
+        lock so concurrent 401s coalesce into one refresh instead of stacking.
+        """
+        async with self._refresh_lock:
+            try:
+                # Import and call the refresh function from orchestrator, off-loop.
+                from orchestrator.api import _refresh_litellm_api_key
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, _refresh_litellm_api_key)
+                # Wait for LiteLLM container to restart and become healthy
+                await asyncio.sleep(15)
+                # Re-verify
+                async with httpx.AsyncClient() as check_client:
+                    resp = await check_client.post(
+                        f"{self._litellm_url}/v1/chat/completions",
+                        json={
+                            "model": "claude-haiku-4-5-20251001",
+                            "messages": [{"role": "user", "content": "hi"}],
+                            "max_tokens": 1,
+                        },
+                        timeout=15.0,
+                    )
+                    if resp.status_code == 200:
+                        logger.info("LiteLLM token refreshed successfully")
+                        return True
+                    logger.error(
+                        "LiteLLM token refresh failed — still getting HTTP %d. "
+                        "Run scripts/refresh-env.sh --restart manually.",
+                        resp.status_code,
+                    )
+                    return False
+            except Exception as e:
                 logger.error(
-                    "LiteLLM token refresh failed — still getting HTTP %d. "
+                    "LiteLLM token auto-refresh failed: %s. "
                     "Run scripts/refresh-env.sh --restart manually.",
-                    resp.status_code,
+                    e,
                 )
                 return False
-        except Exception as e:
-            logger.error(
-                "LiteLLM token auto-refresh failed: %s. "
-                "Run scripts/refresh-env.sh --restart manually.",
-                e,
-            )
-            return False
 
     async def get_neo4j_stats(
         self,
