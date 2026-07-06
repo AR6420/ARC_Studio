@@ -211,6 +211,17 @@ class CampaignRunner:
                 media_type=media_type,
             )
 
+            # A round that produced zero variants (malformed/empty LLM JSON) must
+            # fail loud and attributable here — otherwise every downstream step
+            # tolerates the empty list and run_campaign() later hits
+            # find_best_composite([]) two calls away, surfacing as an opaque
+            # IndexError instead of a retryable campaign error.
+            if not variants:
+                raise ValueError(
+                    "Variant generation returned zero variants "
+                    f"(campaign {campaign_id}, iteration {iteration_number})"
+                )
+
             await _emit_step("step_complete", "variants", variants_total=len(variants))
 
             # Step 3: TRIBE scoring (if available). For audio/video, reuse
@@ -398,12 +409,20 @@ class CampaignRunner:
             )
             mirofish_ok = any(m is not None for m in mirofish_metrics_list)
 
-            missing: set[str] = set()
+            # A dimension is "missing" only when NO variant produced a usable
+            # value for it. Marking it missing because a single variant's value
+            # is None (e.g. that one variant's MiroFish sim failed) wrongly told
+            # the UI the whole dimension was unavailable when another variant
+            # has it.
+            all_keys: set[str] = set()
+            present_keys: set[str] = set()
             for comp in composite_scores_list:
                 if comp:
                     for key, val in comp.items():
-                        if val is None:
-                            missing.add(key)
+                        all_keys.add(key)
+                        if val is not None:
+                            present_keys.add(key)
+            missing: set[str] = all_keys - present_keys
 
             data_completeness = DataCompleteness(
                 tribe_available=any(t is not None for t in tribe_scores_list),
@@ -528,12 +547,17 @@ class CampaignRunner:
                 best_composite = find_best_composite(result["composite_scores"])
                 best_scores_history.append(best_composite)
 
-                # Compute improvement if we have 2+ iterations
+                # Compute improvement if we have 2+ iterations. A None result
+                # means "no comparable scores" (e.g. downstream systems down),
+                # which must NOT count toward convergence — only append real
+                # improvement percentages so is_converged can't be fooled into a
+                # false "converged" by two data-less iterations.
                 if len(best_scores_history) >= 2:
                     improvement = compute_improvement(
                         best_scores_history[-1], best_scores_history[-2]
                     )
-                    improvement_history.append(improvement)
+                    if improvement is not None:
+                        improvement_history.append(improvement)
 
                 # Build feedback for next iteration
                 previous_results = build_iteration_feedback(result, result["analysis"])

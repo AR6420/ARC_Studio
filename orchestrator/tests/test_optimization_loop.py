@@ -128,13 +128,15 @@ class TestComputeImprovement:
         )
         assert abs(result - 6.67) < 0.1
 
-    def test_all_none_returns_zero(self):
-        """All None scores yields 0.0 improvement."""
+    def test_all_none_returns_none(self):
+        """All-None scores yield None (no comparable data), distinct from a
+        genuine 0.0% improvement — so two data-less iterations can't be
+        misread as convergence."""
         result = compute_improvement(
             {"attention_score": None, "virality_potential": None},
             {"attention_score": None, "virality_potential": None},
         )
-        assert result == 0.0
+        assert result is None
 
     def test_inverted_score_improvement(self):
         """For backlash_risk, decrease is improvement (positive %)."""
@@ -258,6 +260,12 @@ class TestFindBestComposite:
         scores = {"attention_score": 50.0}
         result = find_best_composite([scores])
         assert result is scores
+
+    def test_empty_list_returns_empty_dict(self):
+        """An empty variants list (zero-variant round) must return {} rather
+        than IndexError on composite_scores_list[0] — regression for the crash
+        that killed the whole campaign loop."""
+        assert find_best_composite([]) == {}
 
 
 # ── build_iteration_feedback ────────────────────────────────────────────────

@@ -174,7 +174,8 @@ def compute_composite_scores(
 
     # 6. Audience fit (TRIBE only, uses cognitive_weights)
     if tribe:
-        weighted_scores = []
+        weighted_sum = 0.0
+        weight_total = 0.0
         for dim, score in tribe.items():
             # Skip metadata + non-numeric fields. Phase 5 added timeline (dict),
             # tr_seconds (float, but not a brain dimension), and transcript (str)
@@ -184,9 +185,13 @@ def compute_composite_scores(
             if not isinstance(score, (int, float)):
                 continue
             weight = cognitive_weights.get(dim, 1.0)
-            weighted_scores.append(score * weight)
-        if weighted_scores:
-            raw = sum(weighted_scores) / len(weighted_scores)
+            weighted_sum += score * weight
+            weight_total += weight
+        if weight_total > 0:
+            # True weighted average: Σ(wᵢ·xᵢ) / Σ(wᵢ). Dividing by the dimension
+            # COUNT instead biased the result by the amount Σweights deviates
+            # from n (−3.6%…+10.7% across the demographic presets).
+            raw = weighted_sum / weight_total
             scores["audience_fit"] = round(_clamp(raw), 1)
         else:
             scores["audience_fit"] = None

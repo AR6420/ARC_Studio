@@ -63,20 +63,23 @@ def check_thresholds(
 def compute_improvement(
     current_scores: dict[str, float | None],
     previous_scores: dict[str, float | None],
-) -> float:
+) -> float | None:
     """
     Compute average improvement percentage across all non-None composite scores.
 
     For INVERTED_SCORES, a decrease in value is improvement (inverted comparison).
     If previous score is 0, that metric is skipped to avoid division by zero.
-    If no comparable scores exist, returns 0.0.
+    If no comparable scores exist, returns None (distinct from a genuine 0.0%
+    improvement) so callers don't mistake "no data to compare" — e.g. both TRIBE
+    and MiroFish were unavailable, leaving all composites None — for convergence.
 
     Args:
         current_scores: Current iteration's best composite scores.
         previous_scores: Previous iteration's best composite scores.
 
     Returns:
-        Average improvement percentage (e.g., 6.67 means 6.67% improvement).
+        Average improvement percentage (e.g., 6.67 means 6.67% improvement), or
+        None when there are no comparable (non-None, non-zero-baseline) scores.
     """
     improvements: list[float] = []
 
@@ -92,7 +95,7 @@ def compute_improvement(
             pct_change = ((curr - prev) / abs(prev)) * 100
         improvements.append(pct_change)
 
-    return sum(improvements) / len(improvements) if improvements else 0.0
+    return sum(improvements) / len(improvements) if improvements else None
 
 
 def is_converged(
@@ -200,8 +203,13 @@ def find_best_composite(
         composite_scores_list: List of composite score dicts, one per variant.
 
     Returns:
-        The scores dict of the best variant.
+        The scores dict of the best variant, or an empty dict if the list is
+        empty (e.g. a variant-generation round returned zero variants). Callers
+        must tolerate an empty dict — indexing [0] here would raise IndexError.
     """
+    if not composite_scores_list:
+        return {}
+
     best_idx = 0
     best_avg = -float("inf")
 

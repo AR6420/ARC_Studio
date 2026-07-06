@@ -166,6 +166,26 @@ def _build_runner(
 
 
 @pytest.mark.asyncio
+async def test_zero_variants_raises_attributable_error():
+    """A variant-generation round that returns [] must fail loud in
+    run_single_iteration with a ValueError naming the campaign/iteration —
+    NOT silently complete and let run_campaign hit find_best_composite([])
+    with an opaque IndexError two calls downstream."""
+    runner, mocks = _build_runner(tribe_available=True, mirofish_available=True)
+    mocks["variant_gen"].generate_variants.return_value = []
+
+    with pytest.raises(ValueError, match="zero variants"):
+        await runner.run_single_iteration(campaign_id="campaign-001")
+
+    # TRIBE/MiroFish must NOT be invoked once generation yielded nothing.
+    mocks["tribe_scoring"].score_variants.assert_not_called()
+    mocks["mirofish_runner"].simulate_variants.assert_not_called()
+    # Status must be marked failed (this call manages its own status).
+    last_status_call = mocks["store"].update_campaign_status.call_args_list[-1]
+    assert last_status_call.args[1] == "failed"
+
+
+@pytest.mark.asyncio
 async def test_run_full_pipeline_success():
     """Full pipeline with all systems available -- verify all steps execute."""
     runner, mocks = _build_runner(tribe_available=True, mirofish_available=True)

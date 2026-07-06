@@ -147,30 +147,30 @@ def build_mass_psychology_general_prompt(
     if counter is not None:
         lines.append(f"Opposing narratives that emerged: {counter}")
 
-    coalition = simulation_summary.get("coalition_formation", {})
-    if coalition and isinstance(coalition, dict):
-        groups = coalition.get("groups", [])
-        if groups:
-            group_desc = "; ".join(
-                f"{g.get('name', 'unnamed')} (size {g.get('size', '?')}, "
-                f"stability {g.get('stability', '?')})"
-                for g in groups
-            )
-            lines.append(f"Opinion groups that formed: {group_desc}")
+    # coalition_formation is an int (count of pro/anti/neutral coalitions) from
+    # mirofish_runner._count_coalitions — not a {"groups": [...]} dict. The old
+    # isinstance(dict) branch never fired, so this narrative was dead in every
+    # report.
+    coalition = simulation_summary.get("coalition_formation")
+    if isinstance(coalition, int) and coalition > 0:
+        lines.append(f"Opinion groups that formed: {coalition} distinct coalition(s)")
 
+    # influence_concentration (Gini) and platform_divergence are fractions in
+    # [0, 1]; scale to the 0-100 the labels/display assume.
     influence = simulation_summary.get("influence_concentration")
     if influence is not None:
-        if influence < 30:
+        influence_pct = influence * 100.0
+        if influence_pct < 30:
             influence_label = "spread evenly across many participants"
-        elif influence < 60:
+        elif influence_pct < 60:
             influence_label = "moderately concentrated in key individuals"
         else:
             influence_label = "highly concentrated in a small number of influencers"
-        lines.append(f"Influence distribution: {influence:.0f}/100 ({influence_label})")
+        lines.append(f"Influence distribution: {influence_pct:.0f}/100 ({influence_label})")
 
     divergence = simulation_summary.get("platform_divergence")
     if divergence is not None:
-        lines.append(f"Platform divergence (Twitter-like vs. Reddit-like): {divergence:.0f}/100")
+        lines.append(f"Platform divergence (Twitter-like vs. Reddit-like): {divergence * 100.0:.0f}/100")
 
     lines.append("")
 
@@ -275,24 +275,19 @@ def build_mass_psychology_technical_prompt(
     if counter is not None:
         lines.append(f"  Counter-narrative count: {counter}")
 
+    # [0,1] fractions → 0-100 for display (see general-mode note above).
     influence = simulation_summary.get("influence_concentration")
     if influence is not None:
-        lines.append(f"  Influence concentration index: {influence:.1f}/100")
+        lines.append(f"  Influence concentration index: {influence * 100.0:.1f}/100")
 
     divergence = simulation_summary.get("platform_divergence")
     if divergence is not None:
-        lines.append(f"  Platform divergence coefficient: {divergence:.1f}/100")
+        lines.append(f"  Platform divergence coefficient: {divergence * 100.0:.1f}/100")
 
-    coalition = simulation_summary.get("coalition_formation", {})
-    if coalition and isinstance(coalition, dict):
-        groups = coalition.get("groups", [])
-        if groups:
-            lines.append(f"  Coalition count: {len(groups)}")
-            for g in groups:
-                lines.append(
-                    f"    - {g.get('name', 'unnamed')}: n={g.get('size', '?')}, "
-                    f"stability={g.get('stability', '?')}"
-                )
+    # coalition_formation is an int count, not a {"groups": [...]} dict.
+    coalition = simulation_summary.get("coalition_formation")
+    if isinstance(coalition, int) and coalition > 0:
+        lines.append(f"  Coalition count: {coalition}")
     lines.append("")
 
     # Cross-variant comparison for in-group/out-group analysis

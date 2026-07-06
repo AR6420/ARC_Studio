@@ -309,7 +309,14 @@ def _print_single_iteration(result: dict[str, Any]) -> None:
             pseudo_marker = " [PSEUDO - NOT REAL BRAIN-ENCODING]" if tribe.get("is_pseudo_score") else ""
             print(f"  TRIBE v2 scores{pseudo_marker}:")
             for dim, score in tribe.items():
-                if dim == "is_pseudo_score":
+                # Skip metadata + non-numeric fields. Real audio/video (and text
+                # sequential-fallback) scores carry timeline (dict)/tr_seconds/
+                # transcript (str) — formatting those with {:.1f} raises
+                # TypeError/ValueError, which the caller's UnicodeEncodeError-only
+                # handler would NOT catch.
+                if dim in {"is_pseudo_score", "timeline", "tr_seconds", "transcript"}:
+                    continue
+                if not isinstance(score, (int, float)):
                     continue
                 print(f"    {dim}: {score:.1f}")
         else:

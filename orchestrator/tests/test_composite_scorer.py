@@ -134,7 +134,9 @@ def test_audience_fit():
         cognitive_weights=SAMPLE_WEIGHTS,
         agent_count=AGENT_COUNT,
     )
-    # Manual calculation: weighted average of each TRIBE score * its weight
+    # True weighted average: Σ(wᵢ·xᵢ) / Σ(wᵢ) — NOT Σ(wᵢ·xᵢ)/n (the prior bug
+    # divided by the dimension count, which only equals a weighted average when
+    # the weights happen to sum to n).
     weighted = [
         72.0 * 1.0,    # attention_capture
         65.0 * 0.8,    # emotional_resonance
@@ -144,7 +146,8 @@ def test_audience_fit():
         42.0 * 0.7,    # cognitive_load
         68.0 * 1.15,   # social_relevance
     ]
-    expected = round(sum(weighted) / len(weighted), 1)
+    weights = [1.0, 0.8, 1.1, 0.9, 1.2, 0.7, 1.15]
+    expected = round(sum(weighted) / sum(weights), 1)
     assert scores["audience_fit"] == expected
     assert 0 <= scores["audience_fit"] <= 100
 
