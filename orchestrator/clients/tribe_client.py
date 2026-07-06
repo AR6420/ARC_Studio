@@ -47,6 +47,11 @@ SCORE_VIDEO_TIMEOUT = 1800.0  # 30 min
 MAX_RETRIES = 2
 RETRY_BACKOFF_BASE = 5.0  # seconds
 
+# After an endpoint exhausts its retries, skip it for this long when picking
+# the next endpoint — lets a wedged GPU replica drain out of rotation without
+# permanently removing it (the next health_check can clear it early).
+ENDPOINT_COOLDOWN_SECONDS = 30.0
+
 TRIBE_SCORE_DIMENSIONS = [
     "attention_capture",
     "emotional_resonance",
@@ -99,6 +104,7 @@ class TribeClient:
         self,
         client: httpx.AsyncClient,
         *,
+        base_urls: list[str] | None = None,
         max_retries: int = MAX_RETRIES,
         retry_backoff_base: float = RETRY_BACKOFF_BASE,
     ) -> None:
@@ -106,31 +112,84 @@ class TribeClient:
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
 
-    async def health_check(self) -> bool:
-        """Check if TRIBE v2 is healthy. Returns True if status is 'ok'.
+        # Endpoint pool. `base_urls` is the multi-GPU cloud list (one endpoint
+        # per GPU-pinned TRIBE replica); when omitted we derive a single
+        # endpoint from the client's base_url — the local single-GPU path.
+        # Requests are addressed with ABSOLUTE URLs (endpoint + path) so one
+        # shared httpx client (and its per-host connection pool) can fan out
+        # across all endpoints.
+        if base_urls:
+            endpoints = [u.rstrip("/") for u in base_urls if u]
+        else:
+            base = str(client.base_url) if client.base_url else ""
+            endpoints = [base.rstrip("/")] if base else [""]
+        self._endpoints: list[str] = endpoints or [""]
+        # in-flight request count per endpoint → drives least-in-flight picking.
+        self._inflight: dict[str, int] = {e: 0 for e in self._endpoints}
+        # monotonic time until which an endpoint is skipped after a hard failure.
+        self._cooldown_until: dict[str, float] = {e: 0.0 for e in self._endpoints}
 
-        Also detects stale CUDA contexts (e.g. after laptop sleep/wake) by
-        inspecting the ``cuda_healthy`` field in the health response. When
-        CUDA is stale the scorer cannot run inference and needs a restart.
-        """
+    # ── Endpoint pool helpers ────────────────────────────────────────────────
+
+    def _pick_endpoint(self) -> str:
+        """Choose the endpoint with the fewest in-flight requests, skipping any
+        currently in failure cooldown (unless all are, in which case best-effort
+        least-in-flight). Least-in-flight beats round-robin here because TRIBE
+        inference times vary widely (short text vs chunked/audio/video)."""
+        now = time.monotonic()
+        available = [e for e in self._endpoints if self._cooldown_until.get(e, 0.0) <= now]
+        pool = available or self._endpoints
+        return min(pool, key=lambda e: self._inflight.get(e, 0))
+
+    def _mark_cooldown(self, endpoint: str) -> None:
+        self._cooldown_until[endpoint] = time.monotonic() + ENDPOINT_COOLDOWN_SECONDS
+
+    def inflight_total(self) -> int:
+        """Total in-flight scoring requests across the pool (observability)."""
+        return sum(self._inflight.values())
+
+    @property
+    def endpoints(self) -> list[str]:
+        return list(self._endpoints)
+
+    async def _endpoint_healthy(self, endpoint: str) -> bool:
+        """Health-probe one endpoint; on success clear its cooldown, on failure
+        set it (so a wedged replica drops out of rotation)."""
         try:
-            resp = await self._client.get("/api/health", timeout=10.0)
+            resp = await self._client.get(endpoint + "/api/health", timeout=10.0)
             data = resp.json()
-
-            # Detect CUDA stale state (may come as 503 or 200-with-degraded)
             cuda_healthy = data.get("cuda_healthy")
             if cuda_healthy is False:
                 logger.warning(
-                    "TRIBE CUDA context is stale (cuda_healthy=false). "
-                    "The TRIBE scorer needs a restart — run: bash scripts/restart_tribe.sh"
+                    "TRIBE endpoint %s CUDA context is stale (cuda_healthy=false). "
+                    "Needs a restart — bash scripts/restart_tribe.sh",
+                    endpoint or "(local)",
                 )
+                self._mark_cooldown(endpoint)
                 return False
-
             resp.raise_for_status()
-            return data.get("status") == "ok"
+            ok = data.get("status") == "ok"
+            if ok:
+                self._cooldown_until[endpoint] = 0.0  # recovered → back in rotation
+            else:
+                self._mark_cooldown(endpoint)
+            return ok
         except Exception as e:
-            logger.warning("TRIBE health check failed: %s", e)
+            logger.warning("TRIBE health check failed for %s: %s", endpoint or "(local)", e)
+            self._mark_cooldown(endpoint)
             return False
+
+    async def health_check(self) -> bool:
+        """Return True if AT LEAST ONE TRIBE endpoint is healthy.
+
+        Probes every endpoint (updating per-endpoint cooldowns as a side effect,
+        so the load balancer routes only to live replicas). For the single-GPU
+        local case this is exactly the old one-endpoint behavior.
+        """
+        results = await asyncio.gather(
+            *[self._endpoint_healthy(e) for e in self._endpoints]
+        )
+        return any(results)
 
     async def _retry_loop(
         self,
@@ -221,15 +280,22 @@ class TribeClient:
         Retries on transient failures (timeouts, connection errors, 5xx).
         """
 
+        endpoint = self._pick_endpoint()
+
         async def _request(timeout: float) -> httpx.Response:
             return await self._client.post(
-                "/api/score",
+                endpoint + "/api/score",
                 json={"text": text},
                 timeout=timeout,
             )
 
-        resp = await self._retry_loop("scoring", _request, SCORE_TIMEOUT)
+        self._inflight[endpoint] += 1
+        try:
+            resp = await self._retry_loop("scoring", _request, SCORE_TIMEOUT)
+        finally:
+            self._inflight[endpoint] -= 1
         if resp is None:
+            self._mark_cooldown(endpoint)
             return None
 
         data = resp.json()
@@ -262,15 +328,22 @@ class TribeClient:
         # Budget 120s per text to handle cold cache + overhead.
         batch_timeout = max(SCORE_TIMEOUT, len(texts) * BATCH_PER_TEXT_TIMEOUT)
 
+        endpoint = self._pick_endpoint()
+
         async def _request(timeout: float) -> httpx.Response:
             return await self._client.post(
-                "/api/score/batch",
+                endpoint + "/api/score/batch",
                 json={"texts": texts},
                 timeout=timeout,
             )
 
-        resp = await self._retry_loop("batch scoring", _request, batch_timeout)
+        self._inflight[endpoint] += 1
+        try:
+            resp = await self._retry_loop("batch scoring", _request, batch_timeout)
+        finally:
+            self._inflight[endpoint] -= 1
         if resp is None:
+            self._mark_cooldown(endpoint)
             return [None] * len(texts)
 
         data = resp.json()
@@ -316,15 +389,22 @@ class TribeClient:
             Must be ``.wav``/``.mp3``/``.flac``/``.ogg`` and at most 60 seconds.
         """
 
+        endpoint = self._pick_endpoint()
+
         async def _request(timeout: float) -> httpx.Response:
             return await self._client.post(
-                "/api/score_audio",
+                endpoint + "/api/score_audio",
                 json={"audio_path": audio_path},
                 timeout=timeout,
             )
 
-        resp = await self._retry_loop("audio scoring", _request, SCORE_AUDIO_TIMEOUT)
+        self._inflight[endpoint] += 1
+        try:
+            resp = await self._retry_loop("audio scoring", _request, SCORE_AUDIO_TIMEOUT)
+        finally:
+            self._inflight[endpoint] -= 1
         if resp is None:
+            self._mark_cooldown(endpoint)
             return None
 
         data = resp.json()
@@ -363,15 +443,22 @@ class TribeClient:
             Must be ``.mp4``/``.webm``/``.mov``, ≤15 seconds, and ≤720p height.
         """
 
+        endpoint = self._pick_endpoint()
+
         async def _request(timeout: float) -> httpx.Response:
             return await self._client.post(
-                "/api/score_video",
+                endpoint + "/api/score_video",
                 json={"video_path": video_path},
                 timeout=timeout,
             )
 
-        resp = await self._retry_loop("video scoring", _request, SCORE_VIDEO_TIMEOUT)
+        self._inflight[endpoint] += 1
+        try:
+            resp = await self._retry_loop("video scoring", _request, SCORE_VIDEO_TIMEOUT)
+        finally:
+            self._inflight[endpoint] -= 1
         if resp is None:
+            self._mark_cooldown(endpoint)
             return None
 
         data = resp.json()

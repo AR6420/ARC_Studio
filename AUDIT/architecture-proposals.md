@@ -6,6 +6,9 @@ These items from the audit **cannot be fixed as contained changes** — they req
 
 ## P-1 — TRIBE scoring: admission control + request queue (M-06 / CON-03 / PERF-01 / OBS-07 / RES-01)
 
+> **UPDATE (approved + implemented):** direction given — *careful single-GPU local + optional multi-GPU cloud*. The contained parts are **done** (bounded admission gate + `queue_depth` on `/health` locally; least-in-flight multi-endpoint pool via `TRIBE_SCORER_URLS` for cloud). See **`p1-gpu-scaling-design.md`**. The only piece still open is **RES-01** (zombie-thread overlap on inference timeout), which is a scoring-internals change requiring a GPU to verify — deferred to a focused follow-up.
+
+
 **Problem.** One process-wide `threading.Lock` (`tribe_scorer/main.py:400`) serializes all neural scoring for all users on one GPU, with `SCORE_TIMEOUT=5400s` so nothing fails fast. 100 concurrent campaigns → ~200 texts queue for 1.5–5h; `/api/health` reports "ok" throughout. On timeout the worker thread can't be killed and the lock releases anyway → concurrent `model.predict()` on a non-thread-safe model + VRAM leak.
 
 **Contained slice already being done:** orchestrator-side max-concurrent-campaigns cap → 429 (M-14). That bounds the *queue*, it does not add *throughput*.

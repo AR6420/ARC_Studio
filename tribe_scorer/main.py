@@ -370,6 +370,11 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     gpu_available: bool
     cuda_healthy: bool | None = None
+    # Backpressure observability (single-GPU careful-local design): how many
+    # scoring requests are in flight (queued behind the inference lock) and the
+    # admission ceiling past which new requests get 503 + Retry-After.
+    queue_depth: int = 0
+    max_queue_depth: int = 0
     gpu_name: str | None
     gpu_memory_used_gb: float | None
     gpu_memory_total_gb: float | None
@@ -407,6 +412,38 @@ class HealthResponse(BaseModel):
 # thread pool, concurrent model.predict() or cache access can crash.
 # This lock ensures only one inference runs at a time.
 _inference_lock = threading.Lock()
+
+# ── Admission control (single-GPU backpressure) ────────────────────────────
+# One GPU means inference is serialized behind _inference_lock; without a
+# ceiling, requests pile up invisibly for hours under concurrent load. Bound
+# the queue: past MAX_INFLIGHT_REQUESTS in flight, return 503 + Retry-After so
+# the caller (the orchestrator's TRIBE pool) gets a retryable signal and can
+# shed load / route to another GPU replica instead of blocking forever.
+# _inflight_requests is mutated only on the FastAPI event-loop thread (in the
+# async endpoint handlers, with no await between check-and-increment), so it is
+# race-free without a lock.
+MAX_INFLIGHT_REQUESTS = int(os.environ.get("TRIBE_MAX_INFLIGHT", "8"))
+_inflight_requests = 0
+
+
+@asynccontextmanager
+async def _admission():
+    """Bound concurrent scoring requests; 503 + Retry-After when saturated."""
+    global _inflight_requests
+    if _inflight_requests >= MAX_INFLIGHT_REQUESTS:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                f"TRIBE at capacity ({_inflight_requests} in flight, "
+                f"max {MAX_INFLIGHT_REQUESTS}). Retry shortly."
+            ),
+            headers={"Retry-After": "5"},
+        )
+    _inflight_requests += 1
+    try:
+        yield
+    finally:
+        _inflight_requests -= 1
 
 
 def _check_cuda_health() -> bool:
@@ -787,9 +824,10 @@ def _run_single_audio_score(audio_path: str, duration_seconds: float) -> AudioSc
     ),
 )
 async def score_single(request: ScoreRequest) -> ScoreResponse:
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, lambda: _run_single_score(request.text))
-    return result
+    async with _admission():
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, lambda: _run_single_score(request.text))
+        return result
 
 
 @app.post(
@@ -807,9 +845,10 @@ async def score_batch(request: BatchScoreRequest) -> BatchScoreResponse:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="texts list must not be empty.",
         )
-    loop = asyncio.get_event_loop()
-    scores = await loop.run_in_executor(None, lambda: _run_batch_score(request.texts))
-    return BatchScoreResponse(scores=scores)
+    async with _admission():
+        loop = asyncio.get_event_loop()
+        scores = await loop.run_in_executor(None, lambda: _run_batch_score(request.texts))
+        return BatchScoreResponse(scores=scores)
 
 
 @app.post(
@@ -836,12 +875,13 @@ async def score_audio_endpoint(request: AudioScoreRequest) -> AudioScoreResponse
             detail=str(exc),
         )
 
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: _run_single_audio_score(request.audio_path, duration),
-    )
-    return result
+    async with _admission():
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: _run_single_audio_score(request.audio_path, duration),
+        )
+        return result
 
 
 @app.post(
@@ -870,17 +910,18 @@ async def score_video_endpoint(request: VideoScoreRequest) -> VideoScoreResponse
             detail=str(exc),
         )
 
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: _run_single_video_score(
-            request.video_path,
-            meta["duration_seconds"],
-            meta["width"],
-            meta["height"],
-        ),
-    )
-    return result
+    async with _admission():
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: _run_single_video_score(
+                request.video_path,
+                meta["duration_seconds"],
+                meta["width"],
+                meta["height"],
+            ),
+        )
+        return result
 
 
 @app.get(
@@ -934,6 +975,8 @@ async def health() -> HealthResponse:
         model_loaded=model_loaded,
         gpu_available=gpu_available,
         cuda_healthy=cuda_healthy,
+        queue_depth=_inflight_requests,
+        max_queue_depth=MAX_INFLIGHT_REQUESTS,
         gpu_name=gpu_name,
         gpu_memory_used_gb=gpu_mem_used,
         gpu_memory_total_gb=gpu_mem_total,

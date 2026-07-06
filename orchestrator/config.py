@@ -62,7 +62,18 @@ class Settings(BaseSettings):
     # ── Downstream services ─────────────────────────────────────────────────────
     tribe_scorer_url: str = Field(
         default="http://localhost:8001",
-        description="Base URL for the TRIBE v2 neural scoring service.",
+        description="Base URL for the TRIBE v2 neural scoring service (single-GPU local default).",
+    )
+    tribe_scorer_urls: str = Field(
+        default="",
+        description=(
+            "OPTIONAL comma-separated list of TRIBE endpoints for multi-GPU "
+            "cloud deployments — one endpoint per GPU-pinned TRIBE replica. The "
+            "orchestrator load-balances scoring across them (least-in-flight). "
+            "Empty (default) falls back to the single tribe_scorer_url = local "
+            "single-GPU. Each replica still serializes internally (one GPU each); "
+            "parallelism comes from having N replicas."
+        ),
     )
     mirofish_url: str = Field(
         default="http://localhost:5001",
@@ -286,6 +297,16 @@ class Settings(BaseSettings):
     def cors_allowed_origins_list(self) -> list[str]:
         """Parse the comma-separated CORS origins into a clean list."""
         return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
+
+    @property
+    def tribe_scorer_urls_list(self) -> list[str]:
+        """TRIBE endpoints for the scoring pool.
+
+        Returns the explicit multi-GPU list (tribe_scorer_urls) when set,
+        otherwise the single local endpoint. Always non-empty.
+        """
+        urls = [u.strip().rstrip("/") for u in self.tribe_scorer_urls.split(",") if u.strip()]
+        return urls or [self.tribe_scorer_url.rstrip("/")]
 
 
 # Module-level singleton — import this everywhere

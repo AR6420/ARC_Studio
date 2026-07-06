@@ -176,7 +176,13 @@ async def lifespan(app: FastAPI):
     if cleaned:
         logger.info("Cleaned %d orphaned 'running' campaigns on startup", cleaned)
 
-    app.state.tribe_client = TribeClient(tribe_http)
+    # Multi-endpoint TRIBE pool. Local single-GPU: one endpoint (default).
+    # Cloud multi-GPU: set TRIBE_SCORER_URLS to a comma-separated list of
+    # GPU-pinned replicas and the client least-in-flight balances across them.
+    tribe_endpoints = settings.tribe_scorer_urls_list
+    app.state.tribe_client = TribeClient(tribe_http, base_urls=tribe_endpoints)
+    if len(tribe_endpoints) > 1:
+        logger.info("TRIBE scoring pool: %d endpoints %s", len(tribe_endpoints), tribe_endpoints)
     app.state.mirofish_client = MirofishClient(
         mirofish_http, litellm_url=settings.litellm_url
     )

@@ -114,6 +114,85 @@ class TestTribeHealthCheck:
         assert result is False
 
 
+class TestTribeEndpointPool:
+    """Multi-GPU cloud pool: least-in-flight balancing + failover cooldown."""
+
+    def _pool_client(self, urls, handler=None):
+        transport = httpx.MockTransport(handler or _tribe_score_success_handler)
+        client = httpx.AsyncClient(transport=transport)
+        return TribeClient(client, base_urls=urls, max_retries=0, retry_backoff_base=0.0)
+
+    def test_single_endpoint_derived_from_base_url(self):
+        """No base_urls → one endpoint derived from the client base_url (local)."""
+        c = _make_tribe_client(_tribe_health_ok_handler)
+        assert c.endpoints == ["http://localhost:8001"]
+
+    def test_explicit_multi_endpoints(self):
+        c = self._pool_client(["http://gpu0:8001", "http://gpu1:8001/"])
+        # trailing slash stripped
+        assert c.endpoints == ["http://gpu0:8001", "http://gpu1:8001"]
+
+    def test_pick_endpoint_least_in_flight(self):
+        c = self._pool_client(["http://gpu0:8001", "http://gpu1:8001"])
+        # gpu0 busy → picker prefers gpu1
+        c._inflight["http://gpu0:8001"] = 3
+        assert c._pick_endpoint() == "http://gpu1:8001"
+
+    def test_pick_endpoint_skips_cooldown(self):
+        import time as _t
+        c = self._pool_client(["http://gpu0:8001", "http://gpu1:8001"])
+        c._cooldown_until["http://gpu0:8001"] = _t.monotonic() + 60
+        # even though gpu0 has fewer in-flight, it's in cooldown → gpu1 chosen
+        assert c._pick_endpoint() == "http://gpu1:8001"
+
+    @pytest.mark.asyncio
+    async def test_routes_to_least_busy_endpoint(self):
+        """With gpu0 already saturated, a new request is routed to gpu1."""
+        seen: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request.url.host)
+            return httpx.Response(200, json=MOCK_TRIBE_SCORES)
+
+        c = self._pool_client(["http://gpu0:8001", "http://gpu1:8001"], handler)
+        # Simulate 3 in-flight on gpu0 (as a real concurrent burst would).
+        c._inflight["http://gpu0:8001"] = 3
+        await c.score_text("t")
+        assert seen == ["gpu1"]
+
+    @pytest.mark.asyncio
+    async def test_leases_drain_to_zero(self):
+        """Every scoring call releases its in-flight lease, even on failure."""
+        c = self._pool_client(["http://gpu0:8001"], _tribe_score_success_handler)
+        await c.score_text("ok")
+        fail = self._pool_client(["http://gpu0:8001"], _tribe_connection_error_handler)
+        await fail.score_text("bad")
+        assert c.inflight_total() == 0
+        assert fail.inflight_total() == 0
+
+    @pytest.mark.asyncio
+    async def test_failed_endpoint_enters_cooldown(self):
+        c = self._pool_client(["http://gpu0:8001"], _tribe_connection_error_handler)
+        result = await c.score_text("x")
+        assert result is None
+        # the endpoint got marked for cooldown after exhausting retries
+        import time as _t
+        assert c._cooldown_until["http://gpu0:8001"] > _t.monotonic()
+
+    def test_config_urls_list_defaults_to_single(self, monkeypatch):
+        from orchestrator.config import settings
+        monkeypatch.setattr(settings, "tribe_scorer_urls", "")
+        monkeypatch.setattr(settings, "tribe_scorer_url", "http://localhost:8001")
+        assert settings.tribe_scorer_urls_list == ["http://localhost:8001"]
+
+    def test_config_urls_list_parses_multi(self, monkeypatch):
+        from orchestrator.config import settings
+        monkeypatch.setattr(
+            settings, "tribe_scorer_urls", "http://gpu0:8001, http://gpu1:8001/ ,"
+        )
+        assert settings.tribe_scorer_urls_list == ["http://gpu0:8001", "http://gpu1:8001"]
+
+
 class TestTribeScoreText:
     @pytest.mark.asyncio
     async def test_tribe_score_text_success(self):
